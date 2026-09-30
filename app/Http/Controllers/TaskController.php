@@ -62,9 +62,12 @@ class TaskController extends Controller
                 'SUM(CASE WHEN status = ? AND DATE(due_date) < ? THEN 1 ELSE 0 END) AS overdue',
                 [$pending, today()->toDateString()]
             )
+            // Counts every task due today, completed included, because the Today view is a date
+            // window and not a to-do list. A pending-only count would leave the sidebar badge reading
+            // one number while the view it opens renders another.
             ->selectRaw(
-                'SUM(CASE WHEN status = ? AND DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today',
-                [$pending, today()->toDateString()]
+                'SUM(CASE WHEN DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today',
+                [today()->toDateString()]
             )
             ->first();
 

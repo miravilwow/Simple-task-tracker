@@ -188,8 +188,25 @@ class TaskSchedulingTest extends TestCase
 
         $this->getJson('/api/tasks/stats')
             ->assertOk()
+            // A completed task is never overdue, so the finished 09-28 one is left out.
             ->assertJsonPath('data.overdue', 2)
             ->assertJsonPath('data.due_today', 1);
+    }
+
+    public function test_due_today_count_matches_the_today_view(): void
+    {
+        Task::factory()->dueOn('2026-09-30')->create();
+        Task::factory()->completed()->dueOn('2026-09-30')->create();
+        Task::factory()->dueOn('2026-10-01')->create();
+
+        $rows = $this->getJson('/api/tasks?due=today')->assertOk()->json('data');
+
+        // The sidebar shows this count beside the view, so the two must agree.
+        $this->getJson('/api/tasks/stats')
+            ->assertOk()
+            ->assertJsonPath('data.due_today', count($rows));
+
+        $this->assertCount(2, $rows);
     }
 
     public function test_listing_tasks_runs_a_fixed_number_of_queries(): void
