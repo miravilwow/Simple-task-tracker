@@ -13,7 +13,7 @@ class TaskSorterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->sorter = new TaskSorter;
+        $this->sorter = new TaskSorter();
     }
 
     public function test_sorts_high_before_medium_before_low(): void
