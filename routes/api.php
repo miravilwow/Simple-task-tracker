@@ -28,4 +28,5 @@ Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
 Route::get('/categories/{category}/comments', [CategoryCommentController::class, 'index']);
 Route::post('/categories/{category}/comments', [CategoryCommentController::class, 'store']);
+Route::patch('/categories/{category}/comments/{comment}/reactions', [CategoryCommentController::class, 'react']);
 Route::delete('/categories/{category}/comments/{comment}', [CategoryCommentController::class, 'destroy']);

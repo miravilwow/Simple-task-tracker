@@ -1,13 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { enhanceDateFields } from './datepicker.js';
-import {
-    confirmAction,
-    openActivityDialog,
-    openCommentsDialog,
-    openMoveDialog,
-    openScheduleDialog,
-} from './dialogs.js';
+import { confirmAction, openMoveDialog, openProjectPanel, openScheduleDialog } from './dialogs.js';
 import { openMenu } from './menu.js';
 import './shell.js';
 import { closeDrawer } from './sidebar.js';
@@ -75,6 +69,12 @@ const BUTTON_BASE =
 
 const dueFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
+
+// Where this browser's reaction token lives. It identifies a browser, not a person.
+const REACTOR_KEY = 'task-tracker-reactor';
+
+// Used only when localStorage is unavailable, so reactions still work for the life of the page.
+const session = { reactor: crypto.randomUUID() };
 
 const $ = (id) => document.getElementById(id);
 
@@ -368,8 +368,13 @@ function projectMenu(category, trigger) {
             ],
         },
         { separator: true },
-        { icon: 'chat', label: 'Comments', count: category.comment_count, onSelect: () => showComments(category) },
-        { icon: 'clock', label: 'View activity', onSelect: () => showActivity(category) },
+        {
+            icon: 'chat',
+            label: 'Comments',
+            count: category.comment_count,
+            onSelect: () => showProjectPanel(category, 'comments'),
+        },
+        { icon: 'clock', label: 'View activity', onSelect: () => showProjectPanel(category, 'activity') },
         { separator: true },
         { icon: 'archive-box', label: 'Archive', onSelect: () => setArchived(category, true) },
         { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteCategory(category) },
@@ -1131,15 +1136,50 @@ async function moveProject(category) {
     );
 }
 
-function showActivity(category) {
-    openActivityDialog(category.name, async () => (await api(`/categories/${category.id}/activity`)).data);
+/**
+ * The app has no accounts, so a reaction cannot belong to a person. It belongs to this browser:
+ * a random token kept in localStorage, which is enough to make a reaction toggle correctly and
+ * to stop one browser counting itself twice. Losing it only means losing which reactions were
+ * mine, never the counts themselves.
+ */
+function reactorToken() {
+    try {
+        const stored = localStorage.getItem(REACTOR_KEY);
+
+        if (stored) {
+            return stored;
+        }
+
+        const fresh = crypto.randomUUID();
+        localStorage.setItem(REACTOR_KEY, fresh);
+
+        return fresh;
+    } catch {
+        // Private browsing can refuse storage. Reactions still post and still count; they just
+        // stop being remembered as mine between loads.
+        return session.reactor;
+    }
 }
 
-function showComments(category) {
-    openCommentsDialog(category.name, {
-        load: async () => (await api(`/categories/${category.id}/comments`)).data,
-        add: (body) => api(`/categories/${category.id}/comments`, { method: 'POST', body: { body } }),
-        remove: (comment) => api(`/categories/${category.id}/comments/${comment.id}`, { method: 'DELETE' }),
+/**
+ * Comments and Activity are two views of the same question, so they share one dialog and the
+ * menu's two entries differ only in which tab opens.
+ */
+function showProjectPanel(category, tab) {
+    const reactor = reactorToken();
+
+    openProjectPanel(category, tab, {
+        loadComments: async () =>
+            (await api(`/categories/${category.id}/comments`, { params: { reactor } })).data,
+        addComment: (body) => api(`/categories/${category.id}/comments`, { method: 'POST', body: { body } }),
+        removeComment: (comment) =>
+            api(`/categories/${category.id}/comments/${comment.id}`, { method: 'DELETE' }),
+        react: (comment, emoji, reacted) =>
+            api(`/categories/${category.id}/comments/${comment.id}/reactions`, {
+                method: 'PATCH',
+                body: { emoji, reacted, reactor },
+            }),
+        loadActivity: async () => (await api(`/categories/${category.id}/activity`)).data,
     });
 }
 

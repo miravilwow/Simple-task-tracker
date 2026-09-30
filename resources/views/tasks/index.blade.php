@@ -508,54 +508,96 @@
         </div>
     </dialog>
 
-    <dialog id="comments-dialog"
-        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+    {{-- Comments and Activity are two views of the same thing: what has happened on a project.
+         One dialog with a tab switch keeps them a click apart instead of a menu apart. --}}
+    <dialog id="project-panel"
+        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
         <div class="flex max-h-[calc(100dvh-2rem)] flex-col">
-            <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
-                <div class="min-w-0">
-                    <h2 class="font-medium">Comments</h2>
-                    <p id="comments-project" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
-                </div>
-                <button type="button" id="comments-close" aria-label="Close comments"
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 p-4">
+                <p class="flex min-w-0 items-center gap-2 font-medium">
+                    <span class="text-gray-400" aria-hidden="true">#</span>
+                    <span id="panel-project" class="truncate"></span>
+                </p>
+                <button type="button" id="panel-close" aria-label="Close"
                     class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
                     <x-icon name="close" />
                 </button>
             </div>
 
-            <ul id="comments-list" class="flex-1 overflow-y-auto overscroll-contain px-6 pt-4"></ul>
-            <p id="comments-message" class="px-6 pt-4 text-sm text-gray-500"></p>
-
-            <form id="comment-form" class="border-t border-gray-200 p-6 pt-4" novalidate>
-                <label for="comment-body" class="sr-only">Add a comment</label>
-                <textarea id="comment-body" name="body" rows="2" maxlength="1000" placeholder="Add a comment"
-                    aria-describedby="comment-body-error"
-                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
-                <p id="comment-body-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                <button type="submit" id="comment-submit"
-                    class="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:w-auto">
-                    <span data-label>Comment</span>
-                </button>
-            </form>
-        </div>
-    </dialog>
-
-    <dialog id="activity-dialog"
-        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
-        <div class="flex max-h-[calc(100dvh-2rem)] flex-col">
-            <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
-                <div class="min-w-0">
-                    <h2 class="font-medium">Activity</h2>
-                    <p id="activity-project" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
+            <div class="flex justify-center border-b border-gray-200 p-3">
+                <div class="inline-flex gap-1 rounded-full bg-gray-100 p-1" role="group" aria-label="Switch view">
+                    <button type="button" data-panel-tab="comments" aria-pressed="true"
+                        class="panel-tab">Comments</button>
+                    <button type="button" data-panel-tab="activity" aria-pressed="false"
+                        class="panel-tab">Activity</button>
                 </div>
-                <button type="button" id="activity-close" aria-label="Close activity"
-                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
-                    <x-icon name="close" />
-                </button>
             </div>
 
-            {{-- aria-busy rather than a spinner: the list keeps its place and screen readers are told. --}}
-            <ul id="activity-list" class="flex-1 overflow-y-auto overscroll-contain p-6 pt-4"></ul>
-            <p id="activity-message" class="hidden px-6 pb-6 text-sm text-gray-500"></p>
+            <div id="panel-comments" class="flex min-h-0 flex-1 flex-col">
+                <div class="flex-1 overflow-y-auto overscroll-contain px-4">
+                    <ul id="comments-list" class="pt-2"></ul>
+
+                    {{-- The illustration is decorative; the sentence under it is what carries the
+                         meaning, so the SVG is aria-hidden and never the only thing here. --}}
+                    <div id="comments-empty" class="hidden flex-col items-center px-6 py-10 text-center">
+                        <svg viewBox="0 0 120 96" class="h-24 w-auto" fill="none" aria-hidden="true">
+                            <rect x="30" y="10" width="58" height="40" rx="8" class="fill-gray-200" />
+                            <path d="M52 50h16l-8 10z" class="fill-gray-200" />
+                            <rect x="12" y="26" width="34" height="26" rx="7" class="fill-amber-200" />
+                            <path d="M24 52h10l-5 7z" class="fill-amber-200" />
+                            <rect x="74" y="30" width="34" height="24" rx="7" class="fill-indigo-200" />
+                            <path d="M86 54h10l-5 7z" class="fill-indigo-200" />
+                            <path d="M60 60v22" class="stroke-gray-300" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="60" cy="86" r="4" class="fill-gray-300" />
+                            <circle cx="20" cy="16" r="3" class="fill-amber-300" />
+                            <circle cx="104" cy="18" r="2.5" class="fill-indigo-300" />
+                            <circle cx="98" cy="70" r="3" class="fill-gray-200" />
+                        </svg>
+                        <p class="mt-4 max-w-xs text-sm text-gray-500">
+                            Keep the discussion about this project in one place, next to the work it belongs to.
+                        </p>
+                    </div>
+
+                    <p id="comments-message" class="hidden px-2 py-6 text-center text-sm text-gray-500"></p>
+                </div>
+
+                <form id="comment-form" class="border-t border-gray-200 p-4" novalidate>
+                    <div class="rounded-lg border border-gray-300 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30">
+                        <label for="comment-body" class="sr-only">Add a comment</label>
+                        <textarea id="comment-body" name="body" rows="2" maxlength="1000" placeholder="Comment"
+                            aria-describedby="comment-body-error"
+                            class="block w-full resize-none rounded-t-lg border-0 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none"></textarea>
+                        <div class="flex items-center justify-between gap-2 px-2 pb-2">
+                            <button type="button" id="comment-emoji" aria-expanded="false" aria-haspopup="true"
+                                aria-controls="comment-emoji-row" aria-label="Add an emoji"
+                                class="inline-flex size-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                <x-icon name="face-smile" class="size-5" />
+                            </button>
+                            {{-- Indigo, not the reference's red: red is this app's destructive colour and
+                                 posting a comment is the least destructive thing on the screen. --}}
+                            <button type="submit" id="comment-submit"
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
+                                <span data-label>Comment</span>
+                            </button>
+                        </div>
+                        <div id="comment-emoji-row" class="hidden flex-wrap gap-1 border-t border-gray-200 p-2">
+                            @foreach (\App\Enums\Reaction::cases() as $reaction)
+                                <button type="button" data-insert-emoji="{{ $reaction->value }}"
+                                    class="inline-flex size-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                    <span aria-hidden="true">{{ $reaction->value }}</span>
+                                    <span class="sr-only">{{ $reaction->label() }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                    <p id="comment-body-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </form>
+            </div>
+
+            <div id="panel-activity" class="hidden min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
+                <ul id="activity-list" class="pt-2"></ul>
+                <p id="activity-message" class="hidden px-2 py-6 text-center text-sm text-gray-500"></p>
+            </div>
         </div>
     </dialog>
 

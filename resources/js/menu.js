@@ -94,7 +94,10 @@ function buildPanel(entries, depth, label) {
         item.type = 'button';
         item.setAttribute('role', 'menuitem');
         item.append(
-            createIcon(entry.icon, 'size-4 shrink-0 text-gray-500'),
+            // A reaction entry is marked by its emoji rather than by a drawn icon.
+            entry.emoji
+                ? createElement('span', 'w-4 shrink-0 text-center text-base', entry.emoji)
+                : createIcon(entry.icon, 'size-4 shrink-0 text-gray-500'),
             createElement('span', 'flex-1 text-left', entry.label),
         );
 
