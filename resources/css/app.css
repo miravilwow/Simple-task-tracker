@@ -59,8 +59,8 @@
 /*
  * App shell. The tracker is full-bleed: the navbar spans the viewport, the sidebar is pinned to
  * the left edge, and the content fills whatever is left. Only one measurement is shared — the
- * gutter below — so the navbar's brand, the sidebar's labels, the page content and the footer all
- * start on the same vertical line.
+ * gutter below — so the navbar's brand, the sidebar's labels and the page content all start on
+ * the same vertical line.
  */
 /*
  * Two variables, because the floor and the measurement are different things. The floor is in rem
@@ -120,16 +120,14 @@
         --app-shell-offset: var(--sidebar-width-icon);
     }
 
-    [data-app-shell] > main,
-    [data-app-shell] > footer {
+    [data-app-shell] > main {
         padding-left: var(--app-shell-offset);
         transition: padding-left 200ms ease;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    [data-app-shell] > main,
-    [data-app-shell] > footer {
+    [data-app-shell] > main {
         transition: none;
     }
 }

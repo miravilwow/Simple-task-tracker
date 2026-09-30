@@ -86,14 +86,5 @@
         {{ $slot }}
     </main>
 
-    <footer class="border-t border-gray-200 bg-white">
-        <div @class([
-            'py-6 text-sm text-gray-500',
-            'app-container' => $fluid,
-            'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8' => ! $fluid,
-        ])>
-            &copy; {{ date('Y') }} Simple Task Tracker &middot; Built with Laravel, Tailwind CSS, and vanilla JavaScript.
-        </div>
-    </footer>
 </body>
 </html>

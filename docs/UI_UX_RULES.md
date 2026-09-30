@@ -42,7 +42,7 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 | `--sidebar-width-mobile` | 18rem | the drawer, below `lg` |
 
 - From `lg` it is **fixed, not sticky**: it runs from the bottom of the sticky navbar (`--header-height`) to the bottom of the viewport, flush against the left edge, and scrolls on its own rather than with the page.
-- **`--header-height` is measured, never assumed.** `--header-min-height` (4rem) is the floor the navbar is laid out against, and `shell.js` writes the bar's real height back into `--header-height` through a `ResizeObserver`. A constant would be wrong the moment the bar grows — under a text-only zoom, a larger default font, or a longer brand name — and the sidebar would then start behind it. The navbar's height also has to include its bottom border, so `app-header` sits on the `<header>` and not on the `<nav>` inside it; a pixel short leaves a hairline of content showing through. `<main>` and the footer are pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
+- **`--header-height` is measured, never assumed.** `--header-min-height` (4rem) is the floor the navbar is laid out against, and `shell.js` writes the bar's real height back into `--header-height` through a `ResizeObserver`. A constant would be wrong the moment the bar grows — under a text-only zoom, a larger default font, or a longer brand name — and the sidebar would then start behind it. The navbar's height also has to include its bottom border, so `app-header` sits on the `<header>` and not on the `<nav>` inside it; a pixel short leaves a hairline of content showing through. `<main>` is pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
 - It **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form), centres the icons and the rail button, and the content reclaims the space in the same 200ms. The icons keep a `title` so each button is still identifiable.
 - The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
@@ -120,9 +120,8 @@ Heroicons is kept in two maps: `<x-icon>` for markup the server renders, and the
   - a "Skip to content" link
   - the top navbar (logo and app name on the left, one action on the right)
   - the `<main>`
-  - the footer
 - The navbar action depends on the page. On the landing page it is an **Open app** primary button. On the tracker it is a **Home** text link.
-- Within a page, the navbar, the content and the footer all use that page's one container, so their left and right edges line up down the whole screen.
+- Within a page, the navbar and the content use that page's one container, so their left and right edges line up down the whole screen.
 - The tracker's JavaScript loads only on `/tasks`. The landing page loads CSS only.
 
 ## 1. Layout (tracker dashboard)
@@ -133,7 +132,7 @@ A dashboard in the `app-container`, beside the fixed sidebar.
 
 Everything on the tracker resolves to **one gutter and one column grid**. Nothing is aligned by eye.
 
-- **The gutter is 1.5rem from `sm`.** The `app-container`'s `sm:px-6` and the sidebar's `p-3` panel plus each row's own `px-3` both land on it, so the navbar's logo, the sidebar's icons, the page heading and the footer text all start on the same vertical line.
+- **The gutter is 1.5rem from `sm`.** The `app-container`'s `sm:px-6` and the sidebar's `p-3` panel plus each row's own `px-3` both land on it, so the navbar's logo, the sidebar's icons and the page heading all start on the same vertical line.
 - **An interactive box may bleed into the gutter; its text may not.** A row's padding is cancelled with an equal negative margin, exactly as the sidebar's `p-3` panel and `px-3` rows do it. The hover and focus surface then has room to breathe while the words stay on the line — the navbar's brand link and its action are built this way.
 - **The navbar is read as the top of the sidebar's column**, so its two levels line up with the sidebar's: a 24px mark plus an 8px gap reaches the same 32px as the sidebar's 20px icon plus its 12px gap, which puts the wordmark exactly where the sidebar's labels start. Changing one size means changing the other.
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
@@ -331,7 +330,7 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
 - [ ] Scrolling up and down, including up past the very top, leaves nothing showing above or through the navbar, and the sidebar's top edge meets it with no seam
 - [ ] "Skip to content", the heading focus lands on after a delete, and anything else scrolled into view all clear the navbar rather than landing under it
-- [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge, and the wordmark starts where the sidebar labels do
+- [ ] Navbar logo, sidebar icons and page heading all start on the same left edge, and the wordmark starts where the sidebar labels do
 - [ ] The navbar row is vertically centred in the bar, and its action is a 40px target ending on the right gutter
 - [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
