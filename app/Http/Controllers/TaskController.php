@@ -27,7 +27,25 @@ class TaskController extends Controller
         // TaskSorter works on plain arrays, so serialize through the resource first.
         $rows = TaskResource::collection($tasks)->resolve($request);
 
-        return response()->json(['data' => $sorter->sortTasks($rows)]);
+        return response()->json(['data' => $this->pendingFirst($sorter->sortTasks($rows))]);
+    }
+
+    /**
+     * TaskSorter ranks by priority then age, which would let a finished task from last week sit
+     * above today's urgent one. Splitting the sorted list keeps each group in TaskSorter's order
+     * while leaving the actionable work on top.
+     *
+     * @param  array<int, array{status: string}>  $tasks
+     * @return array<int, array{status: string}>
+     */
+    private function pendingFirst(array $tasks): array
+    {
+        $isPending = fn (array $task) => $task['status'] === TaskStatus::Pending->value;
+
+        return [
+            ...array_filter($tasks, $isPending),
+            ...array_filter($tasks, fn (array $task) => ! $isPending($task)),
+        ];
     }
 
     public function stats(): JsonResponse
@@ -59,6 +77,14 @@ class TaskController extends Controller
     public function complete(Task $task): TaskResource
     {
         $task->status = TaskStatus::Completed;
+        $task->save();
+
+        return TaskResource::make($task);
+    }
+
+    public function reopen(Task $task): TaskResource
+    {
+        $task->status = TaskStatus::Pending;
         $task->save();
 
         return TaskResource::make($task);

@@ -159,16 +159,26 @@ function renderTask(task) {
 
     const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
 
-    if (!isCompleted) {
-        const completeButton = createElement(
-            'button',
-            `${BUTTON_BASE} flex-1 border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500 md:flex-none`,
-            'Complete',
-        );
-        completeButton.type = 'button';
-        completeButton.addEventListener('click', () => completeTask(task, completeButton));
-        actions.append(completeButton);
-    }
+    const primaryAction = isCompleted
+        ? {
+              label: 'Reopen',
+              classes: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-indigo-500',
+              run: reopenTask,
+          }
+        : {
+              label: 'Complete',
+              classes: 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
+              run: completeTask,
+          };
+
+    const primaryButton = createElement(
+        'button',
+        `${BUTTON_BASE} flex-1 md:flex-none ${primaryAction.classes}`,
+        primaryAction.label,
+    );
+    primaryButton.type = 'button';
+    primaryButton.addEventListener('click', () => primaryAction.run(task, primaryButton));
+    actions.append(primaryButton);
 
     const deleteButton = createElement(
         'button',
@@ -331,6 +341,14 @@ function completeTask(task, button) {
         busyLabel: 'Completing…',
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
         successMessage: 'Task completed',
+    });
+}
+
+function reopenTask(task, button) {
+    return runRowAction(button, {
+        busyLabel: 'Reopening…',
+        request: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
+        successMessage: 'Task reopened',
     });
 }
 

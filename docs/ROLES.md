@@ -80,13 +80,15 @@ Start every response that changes code with one line naming the active role(s), 
   | GET | `/api/tasks/stats` | 200 + counts | none |
   | POST | `/api/tasks` | 201 + created task | 400 validation failure |
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
+  | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
 
 - Validation errors return **400** because the exam rubric lists 400. Laravel's default is 422, so override it in one place (a Form Request `failedValidation`, or the exception handler) and document the choice in the README.
 - Every error is JSON: `{ "message": "...", "errors": { ... } }`. No HTML error pages from `/api/*`.
 - Validation: `title` required|string|max:255, trimmed (whitespace-only is empty); `description` nullable|string; `priority` required|in:low,medium,high.
 - Use a Form Request for create validation and route model binding for `{task}` (gives 404 for free).
-- `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app.
+- `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app. The controller then moves pending tasks ahead of completed ones, keeping each group in TaskSorter's order. `TaskSorter` itself stays exactly as the exam specifies (priority, then oldest first) and must never learn about status.
+- `reopen` is beyond the exam's four endpoints. It exists because completing a task by mistake would otherwise be a dead end, with deleting and retyping the only way back.
 - Controllers stay thin. No business logic in routes.
 - Responses go through `TaskResource`, so the JSON shape is explicit and separate from the database columns.
 - All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs three requests (the action, then a list and a stats refresh), so a tighter limit locks out ordinary clicking.

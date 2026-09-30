@@ -88,12 +88,13 @@ Additional rules:
 | Type | Use | Style |
 |---|---|---|
 | Primary | Add task, Open app, Open task tracker | Solid indigo, white text |
-| Secondary | Complete | Outlined or light green |
+| Secondary | Complete | Outlined light green |
+| Secondary | Reopen | Outlined neutral grey, shown in Complete's place once a task is done |
 | Destructive | Delete | Red text or outline, never the most prominent button on the row. It keeps its natural width, so it never stretches to fill the row when a task is already completed and Delete is the only action left. |
 
 - Every button has explicit `type="button"` or `type="submit"`.
 - Minimum touch target of 40×40px (`py-2 px-3` or larger).
-- The Complete button is hidden or disabled for tasks that are already completed.
+- A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
 - Delete asks for confirmation (`confirm("Delete \"<title>\"?")` is enough) because it cannot be undone.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
 
@@ -120,7 +121,7 @@ Every data view needs all four states:
 | Loading | "Loading tasks…" text or a skeleton on first load. Never a blank area. |
 | Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
 | Error | A red inline banner with a retry button. The stat cards reset to "–" so stale counts never sit beside an error. |
-| Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task deleted". |
+| Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". |
 
 - Action errors show the server's `message` when one exists, otherwise a generic "Something went wrong."
 - A 429 always shows "Too many requests. Please wait a moment and try again.", never Laravel's raw "Too Many Attempts."
@@ -163,7 +164,8 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
 - [ ] Buttons disable while loading; Delete asks for confirmation
-- [ ] Complete, Delete, Add, and Filter all work without a page reload
+- [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
+- [ ] Pending tasks appear above completed ones in the All view
 - [ ] Loading, empty (per filter), error, and success states all appear correctly
 - [ ] Full keyboard navigation with visible focus rings
 - [ ] No `innerHTML` with task data

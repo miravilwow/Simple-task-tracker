@@ -28,6 +28,30 @@ class TaskApiTest extends TestCase
         );
     }
 
+    public function test_lists_pending_tasks_before_completed_ones(): void
+    {
+        $completedHighOld = Task::factory()->completed()->create([
+            'priority' => TaskPriority::High,
+            'created_at' => '2026-09-01 08:00:00',
+        ]);
+        $pendingLowNew = Task::factory()->create([
+            'priority' => TaskPriority::Low,
+            'created_at' => '2026-09-09 08:00:00',
+        ]);
+        $pendingHigh = Task::factory()->create([
+            'priority' => TaskPriority::High,
+            'created_at' => '2026-09-05 08:00:00',
+        ]);
+
+        $response = $this->getJson('/api/tasks');
+
+        $response->assertOk();
+        $this->assertSame(
+            [$pendingHigh->id, $pendingLowNew->id, $completedHighOld->id],
+            array_column($response->json('data'), 'id')
+        );
+    }
+
     public function test_filters_tasks_by_status(): void
     {
         $pending = Task::factory()->create();
@@ -97,6 +121,24 @@ class TaskApiTest extends TestCase
     public function test_complete_returns_404_for_missing_task(): void
     {
         $this->patchJson('/api/tasks/999/complete')
+            ->assertNotFound()
+            ->assertExactJson(['message' => 'Task not found.']);
+    }
+
+    public function test_reopens_a_completed_task(): void
+    {
+        $task = Task::factory()->completed()->create();
+
+        $this->patchJson("/api/tasks/{$task->id}/reopen")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending');
+
+        $this->assertSame(TaskStatus::Pending, $task->fresh()->status);
+    }
+
+    public function test_reopen_returns_404_for_missing_task(): void
+    {
+        $this->patchJson('/api/tasks/999/reopen')
             ->assertNotFound()
             ->assertExactJson(['message' => 'Task not found.']);
     }
