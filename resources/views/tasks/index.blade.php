@@ -68,7 +68,8 @@
 
                 <section aria-labelledby="tasks-heading" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:col-span-2">
                     <div class="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                        <h2 id="tasks-heading" class="text-lg font-medium">Tasks</h2>
+                        {{-- tabindex allows focus to return here after a task row is removed. --}}
+                        <h2 id="tasks-heading" tabindex="-1" class="text-lg font-medium focus:outline-none">Tasks</h2>
 
                         <div role="group" aria-label="Filter tasks by status" class="inline-flex self-start rounded-lg border border-gray-200 bg-white p-1 sm:self-auto">
                             @foreach (['' => 'All', 'pending' => 'Pending', 'completed' => 'Completed'] as $value => $label)
@@ -82,7 +83,7 @@
 
                     <div id="load-error" class="hidden p-4 sm:px-6" role="alert">
                         <div class="flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                            <span>Couldn't load tasks. Try again.</span>
+                            <span id="load-error-message">Couldn't load tasks. Try again.</span>
                             <button type="button" id="retry-button"
                                 class="min-h-10 rounded-md border border-red-300 bg-white px-3 font-medium hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                                 Retry

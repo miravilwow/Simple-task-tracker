@@ -147,9 +147,11 @@ class TaskApiTest extends TestCase
             ]]);
     }
 
-    public function test_api_is_rate_limited_to_60_requests_per_minute(): void
+    public function test_api_is_rate_limited_per_minute(): void
     {
-        for ($i = 0; $i < 60; $i++) {
+        $this->getJson('/api/tasks/stats')->assertHeader('X-RateLimit-Limit', 300);
+
+        for ($i = 0; $i < 299; $i++) {
             $this->getJson('/api/tasks/stats')->assertOk();
         }
 

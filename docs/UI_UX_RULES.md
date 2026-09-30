@@ -89,7 +89,7 @@ Additional rules:
 |---|---|---|
 | Primary | Add task, Open app, Open task tracker | Solid indigo, white text |
 | Secondary | Complete | Outlined or light green |
-| Destructive | Delete | Red text or outline, never the most prominent button on the card |
+| Destructive | Delete | Red text or outline, never the most prominent button on the row. It keeps its natural width, so it never stretches to fill the row when a task is already completed and Delete is the only action left. |
 
 - Every button has explicit `type="button"` or `type="submit"`.
 - Minimum touch target of 40×40px (`py-2 px-3` or larger).
@@ -118,11 +118,13 @@ Every data view needs all four states:
 | State | Behaviour |
 |---|---|
 | Loading | "Loading tasks…" text or a skeleton on first load. Never a blank area. |
-| Empty | A friendly message per filter: "No tasks yet. Add one above." / "No pending tasks." / "No completed tasks yet." |
-| Error | A red inline banner: "Couldn't load tasks. Try again." with a retry button. |
+| Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
+| Error | A red inline banner with a retry button. The stat cards reset to "–" so stale counts never sit beside an error. |
 | Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task deleted". |
 
 - Action errors show the server's `message` when one exists, otherwise a generic "Something went wrong."
+- A 429 always shows "Too many requests. Please wait a moment and try again.", never Laravel's raw "Too Many Attempts."
+- Completing or deleting a task destroys the button that was clicked. When that button held focus, move focus to the "Tasks" heading so keyboard users keep their place.
 
 ## 7. Accessibility (WCAG 2.1 AA)
 

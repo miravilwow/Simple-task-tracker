@@ -16,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+        // Each user action costs three requests (the action itself, then a list and a stats refresh),
+        // so the ceiling has to stay well clear of normal clicking.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(300)->by($request->ip()));
     }
 }

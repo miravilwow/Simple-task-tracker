@@ -89,7 +89,7 @@ Start every response that changes code with one line naming the active role(s), 
 - `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app.
 - Controllers stay thin. No business logic in routes.
 - Responses go through `TaskResource`, so the JSON shape is explicit and separate from the database columns.
-- All API routes are rate limited to 60 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429.
+- All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs three requests (the action, then a list and a stats refresh), so a tighter limit locks out ordinary clicking.
 
 **Definition of Done:** every row in the table above is verified by a feature test.
 
