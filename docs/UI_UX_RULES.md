@@ -109,19 +109,16 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **The navbar is read as the top of the sidebar's column**, so its two levels line up with the sidebar's: a 24px mark plus an 8px gap reaches the same 32px as the sidebar's 20px icon plus its 12px gap, which puts the wordmark exactly where the sidebar's labels start. Changing one size means changing the other.
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
 - **The column grid is 4 columns with `gap-6` from `xl`.** The stat row, the list layout and the calendar layout all use it, so a tile's edge is also a panel's edge.
-- **The two layouts occupy the same columns.** Column 1 holds the New task form in List and the "No due date" tray in Calendar; columns 2–4 hold the task panel and the month grid. Switching layouts must not move anything sideways.
+- **The two layouts share the same outer edges.** List is one panel across the full width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
 - **Order, top to bottom:**
-  1. Page heading "Your tasks" and a one-line description.
+  1. Page heading and a one-line description, with the layout switch and the **New task** button on the right.
   2. Stat cards.
   3. Main area.
 - **Stat cards:** four `<x-stat-card>` tiles, 2 per row on mobile and 4 per row from `lg`. Each pairs a tinted icon with its number: Total tasks, Pending, Completed, High priority pending. Below `sm` the icon stacks above the label so the text never gets squeezed.
 - **Progress meter:** a ratio against a total belongs in a meter, not a fifth number. One bar on a single-hue track, with the label "N of M done (P%)" always visible, so the value never depends on the bar's colour alone. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
-- **Main area from `xl` (1280px):** four columns.
-  - Column 1: the New task form, `sticky` so it stays in view while scrolling.
-  - Columns 2–4: the task panel, which needs the width for its four table columns.
-- **Main area below `xl`:** stacked, with the form first.
+- **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
   - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
@@ -189,6 +186,14 @@ Additional rules:
 
 ## 4. Form
 
+**The New task form is a modal, not a column.** It opens from the **New task** button in the page header and lives in `<dialog id="task-dialog">`.
+
+- A form that is only used to add something does not earn a permanent quarter of the screen; the list it feeds does. Behind a dialog it also stops shifting the layout between the List and Calendar views.
+- A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, which is the same reason Delete uses one.
+- **Its due date is the `:inline` grid, never the popover.** A `<dialog>` is `overflow: auto` in the UA stylesheet, so a floating panel inside one is clipped rather than layered over it. This is the rule under "Date fields" below, and the New task form is the case that most easily forgets it.
+- The dialog is capped at `max-h-[calc(100dvh-2rem)]` and scrolls inside, because an inline month grid plus five fields is taller than a short viewport.
+- Opening focuses Title. Closing — by Cancel, Escape, the backdrop, or a successful save — clears the form and returns focus to the button that opened it, so a half-typed task is never waiting the next time it opens.
+
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
 - Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority.
 - Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
@@ -206,7 +211,7 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 - Placeholders show an example; they never replace a label.
 - Validate `title` client-side (not empty after trimming), and still rely on the server's 400 response as the source of truth.
 - Show field errors directly under the field in `text-sm text-red-600`, and link them with `aria-describedby`.
-- On error, keep what the user typed. On success, reset the form and return focus to Title.
+- On error, keep what the user typed and leave the dialog open. On success, the dialog closes, which clears the form and returns focus to the New task button.
 
 ## 5. Filter
 
@@ -269,6 +274,8 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
+- [ ] New task opens the dialog, Escape and the backdrop close it, and a half-typed task is gone the next time it opens
+- [ ] The due date inside the New task dialog is the inline grid and is not clipped
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
 - [ ] Buttons disable while loading; Delete asks for confirmation
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow

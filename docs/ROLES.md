@@ -121,6 +121,7 @@ Start every response that changes code with one line naming the active role(s), 
 **Stack:** Blade + vanilla JS (`fetch`) + Tailwind CSS v4 through Vite, which is already configured. No extra framework unless the user asks for one.
 
 **Standards**
+- The New task form is a modal (`<dialog id="task-dialog">`) opened from the page header, not a column in the page. Its date field must be the `:inline` grid, because a `<dialog>` clips a floating popover.
 - Two pages share the `<x-layout>` component (`resources/views/components/layout.blade.php`): the landing page `/` (`home.blade.php`) and the tracker `/tasks` (`tasks/index.blade.php`). All task data flows through the JSON API.
 - Page-specific JS is added with `@push('scripts')` only on the page that needs it, so the landing page loads no tracker JS.
 - JS lives in `resources/js/`, split by job, not in inline `<script>` blocks:

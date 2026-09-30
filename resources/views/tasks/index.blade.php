@@ -99,7 +99,8 @@
                 </div>
             </div>
 
-            <div role="group" aria-label="Switch layout" class="flex gap-1 rounded-lg bg-gray-100 p-1">
+            <div class="flex items-center gap-3">
+                <div role="group" aria-label="Switch layout" class="flex gap-1 rounded-lg bg-gray-100 p-1">
                 @foreach ([['list', 'List', 'list'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
                     <button type="button" data-mode="{{ $mode }}" aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}"
                         class="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-indigo-700 aria-pressed:shadow-sm">
@@ -107,6 +108,13 @@
                         {{ $label }}
                     </button>
                 @endforeach
+                </div>
+
+                <button type="button" id="new-task-trigger"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                    <x-icon name="plus" class="size-4" />
+                    New task
+                </button>
             </div>
         </div>
 
@@ -148,85 +156,10 @@
         </div>
 
         {{-- List layout --}}
-        {{-- The form takes a quarter so the task table keeps enough room for its four columns. --}}
-        <div id="list-view" class="mt-6 grid gap-6 xl:grid-cols-4 xl:items-start">
-            <section aria-labelledby="new-task-heading"
-                class="rounded-xl border border-gray-200 bg-white shadow-sm xl:sticky xl:app-sticky-top">
-                <div class="flex items-center gap-2 border-b border-gray-200 px-4 py-3 sm:px-6">
-                    <x-icon name="plus" class="size-5 text-indigo-600" />
-                    <h2 id="new-task-heading" class="font-medium">New task</h2>
-                </div>
-
-                <form id="task-form" class="space-y-4 p-4 sm:p-6" novalidate>
-                    <div>
-                        <label for="title" class="block text-sm font-medium text-gray-700">
-                            Title <span class="text-red-600" aria-hidden="true">*</span>
-                        </label>
-                        <input id="title" name="title" type="text" maxlength="255" required
-                            placeholder="e.g. Fix the checkout timeout" aria-describedby="title-error"
-                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
-                        <p id="title-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                    </div>
-
-                    <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700">
-                            Description <span class="font-normal text-gray-500">(optional)</span>
-                        </label>
-                        <textarea id="description" name="description" rows="2" placeholder="Add any details worth remembering"
-                            aria-describedby="description-error"
-                            class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
-                        <p id="description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                    </div>
-
-                    <fieldset>
-                        <legend class="block text-sm font-medium text-gray-700">Priority</legend>
-                        <p id="priority-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-
-                        {{-- Radio cards make the three options visible at once, unlike a closed select. --}}
-                        <div class="mt-1.5 grid grid-cols-3 gap-2">
-                            @foreach ([
-                                'low' => ['label' => 'Low', 'active' => 'has-checked:border-slate-400 has-checked:bg-slate-50 has-checked:text-slate-800'],
-                                'medium' => ['label' => 'Medium', 'active' => 'has-checked:border-amber-400 has-checked:bg-amber-50 has-checked:text-amber-900'],
-                                'high' => ['label' => 'High', 'active' => 'has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800'],
-                            ] as $value => $option)
-                                <label
-                                    class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
-                                    <input type="radio" name="priority" value="{{ $value }}" class="sr-only"
-                                        @checked($value === 'medium')>
-                                    {{ $option['label'] }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </fieldset>
-
-                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                        <div>
-                            <label for="category_id" class="block text-sm font-medium text-gray-700">
-                                Category <span class="font-normal text-gray-500">(optional)</span>
-                            </label>
-                            <select id="category_id" name="category_id" aria-describedby="category_id-error"
-                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
-                                <option value="">No category</option>
-                            </select>
-                            <p id="category_id-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                        </div>
-
-                        <x-date-field id="due_date" name="due_date" label="Due date" :optional="true"
-                            describedby="due_date-error">
-                            <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                        </x-date-field>
-                    </div>
-
-                    <button type="submit" id="submit-button"
-                        class="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
-                        <x-icon name="plus" class="size-4" />
-                        <span data-label>Add task</span>
-                    </button>
-                </form>
-            </section>
-
+        {{-- With the form behind a dialog, the panel has the whole width to itself. --}}
+        <div id="list-view" class="mt-6">
             <section aria-labelledby="tasks-heading"
-                class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm xl:col-span-3">
+                class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     {{-- tabindex allows focus to return here after a task row is removed. --}}
                     <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>
@@ -364,6 +297,91 @@
     </dialog>
 
     {{-- Dragging is a pointer-only gesture, so rescheduling also has to work from a dialog. --}}
+    {{-- The New task form lives here rather than in the page, so the list keeps the full width.
+         A <dialog> clips a floating panel, so its date field is the inline grid. --}}
+    <dialog id="task-dialog"
+        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <div class="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+            <x-icon name="plus" class="size-5 text-indigo-600" />
+            <h2 id="new-task-heading" class="font-medium">New task</h2>
+        </div>
+
+        <div class="space-y-4 p-6">
+<form id="task-form" novalidate>
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700">
+                            Title <span class="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        <input id="title" name="title" type="text" maxlength="255" required
+                            placeholder="e.g. Fix the checkout timeout" aria-describedby="title-error"
+                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
+                        <p id="title-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">
+                            Description <span class="font-normal text-gray-500">(optional)</span>
+                        </label>
+                        <textarea id="description" name="description" rows="2" placeholder="Add any details worth remembering"
+                            aria-describedby="description-error"
+                            class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                        <p id="description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                    </div>
+
+                    <fieldset>
+                        <legend class="block text-sm font-medium text-gray-700">Priority</legend>
+                        <p id="priority-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+
+                        {{-- Radio cards make the three options visible at once, unlike a closed select. --}}
+                        <div class="mt-1.5 grid grid-cols-3 gap-2">
+                            @foreach ([
+                                'low' => ['label' => 'Low', 'active' => 'has-checked:border-slate-400 has-checked:bg-slate-50 has-checked:text-slate-800'],
+                                'medium' => ['label' => 'Medium', 'active' => 'has-checked:border-amber-400 has-checked:bg-amber-50 has-checked:text-amber-900'],
+                                'high' => ['label' => 'High', 'active' => 'has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800'],
+                            ] as $value => $option)
+                                <label
+                                    class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
+                                    <input type="radio" name="priority" value="{{ $value }}" class="sr-only"
+                                        @checked($value === 'medium')>
+                                    {{ $option['label'] }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="category_id" class="block text-sm font-medium text-gray-700">
+                                Category <span class="font-normal text-gray-500">(optional)</span>
+                            </label>
+                            <select id="category_id" name="category_id" aria-describedby="category_id-error"
+                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
+                                <option value="">No category</option>
+                            </select>
+                            <p id="category_id-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                        </div>
+
+                        <x-date-field id="due_date" name="due_date" label="Due date" :optional="true" :inline="true"
+                            describedby="due_date-error">
+                            <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                        </x-date-field>
+                    </div>
+
+                    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <button type="button" id="task-cancel"
+                            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            Cancel
+                        </button>
+                        <button type="submit" id="submit-button"
+                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
+                            <x-icon name="plus" class="size-4" />
+                            <span data-label>Add task</span>
+                        </button>
+                    </div>
+                </form>
+        </div>
+    </dialog>
+
     <dialog id="schedule-dialog"
         class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
         <form id="schedule-form" method="dialog" class="p-6">

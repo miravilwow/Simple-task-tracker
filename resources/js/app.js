@@ -63,6 +63,9 @@ const elements = {
     viewTitle: $('view-title'),
     viewSubtitle: $('view-subtitle'),
     categoryList: $('category-list'),
+    taskDialog: $('task-dialog'),
+    newTaskTrigger: $('new-task-trigger'),
+    taskCancel: $('task-cancel'),
     categoryEmpty: $('category-empty'),
     categoryForm: $('category-form'),
     categoryToggle: $('category-toggle'),
@@ -571,6 +574,19 @@ function showFieldErrors(errors, scope) {
 
 const TASK_FIELDS = ['title', 'description', 'priority', 'category_id', 'due_date'];
 
+// The form sits in a dialog so the list keeps the full width. <dialog> traps focus and closes
+// on Escape by itself; what it does not do is clear a half-filled form, so closing does.
+function openTaskDialog() {
+    clearFieldErrors(TASK_FIELDS);
+    elements.taskDialog.showModal();
+    elements.title.focus();
+}
+
+function closeTaskDialog() {
+    // The close handler below does the clearing, because Escape and the backdrop get there too.
+    elements.taskDialog.close();
+}
+
 async function createTask(event) {
     event.preventDefault();
 
@@ -599,8 +615,7 @@ async function createTask(event) {
 
     try {
         await api('/tasks', { method: 'POST', body: payload });
-        elements.form.reset();
-        elements.title.focus();
+        closeTaskDialog();
         showToast('Task added');
         await load();
     } catch (error) {
@@ -858,6 +873,20 @@ function shiftMonth(offset) {
 elements.form.addEventListener('submit', createTask);
 elements.categoryForm.addEventListener('submit', createCategory);
 elements.categoryName.addEventListener('input', (event) => suggestIcons(event.target.value));
+elements.newTaskTrigger.addEventListener('click', openTaskDialog);
+elements.taskCancel.addEventListener('click', closeTaskDialog);
+// Escape and the backdrop close the dialog without going through the Cancel button, so the
+// form is cleared here too rather than in each handler.
+elements.taskDialog.addEventListener('close', () => {
+    elements.form.reset();
+    clearFieldErrors(TASK_FIELDS);
+    elements.newTaskTrigger.focus();
+});
+elements.taskDialog.addEventListener('click', (event) => {
+    if (event.target === elements.taskDialog) {
+        elements.taskDialog.close();
+    }
+});
 elements.retry.addEventListener('click', load);
 
 elements.categoryToggle.addEventListener('click', () => {
