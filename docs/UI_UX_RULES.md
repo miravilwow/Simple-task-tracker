@@ -14,7 +14,21 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 The tracker is a three-part shell: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
 - **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the category list. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
-- From `lg` the sidebar is a sticky column. Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, or choosing anything inside it. While closed it is `invisible`, not merely translated off-screen, so it stays out of the tab order.
+
+#### Sidebar behaviour
+
+The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS. Three widths, set as CSS variables on `:root`:
+
+| Variable | Value | Used when |
+|---|---|---|
+| `--sidebar-width` | 16rem | expanded, from `lg` |
+| `--sidebar-width-icon` | 3.5rem | collapsed to the rail, from `lg` |
+| `--sidebar-width-mobile` | 18rem | the drawer, below `lg` |
+
+- From `lg` it is a sticky column that **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form) and centres the icons, which keep a `title` so each button is still identifiable.
+- The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
+- Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
+- Rows built by JavaScript use the same `sidebar-menu-button` / `sidebar-menu-action` / `sidebar-menu-badge` utilities as the Blade ones, so the two can never drift apart.
 - **Layout switch** toggles between List and Calendar. Only one is in the DOM flow at a time.
 - Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0".
 
@@ -36,6 +50,11 @@ Everything reusable lives in `resources/views/components/`. Add to these rather 
 | `<x-layout>` | Page shell: skip link, navbar, `<main>`, footer |
 | `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG. The only icon source; never paste raw `<path>` data into a page |
 | `<x-stat-card>` | One KPI tile: icon, label, value |
+| `<x-sidebar>` | Sidebar shell, with `header` and `footer` slots |
+| `<x-sidebar.group>` | A labelled section, with an optional `action` slot |
+| `<x-sidebar.menu-button>` | One sidebar row: icon, label, optional count |
+| `<x-sidebar.trigger>` | Opens the drawer below `lg` |
+| `<x-sidebar.rail>` | Collapses and expands the sidebar from `lg` |
 
 Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app.js`, which mirrors the Blade component. Keep the two in sync.
 
@@ -200,6 +219,7 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
 - [ ] Sidebar views and categories filter the list, and the title names the current one
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
+- [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view

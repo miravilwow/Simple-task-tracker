@@ -1,6 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { confirmAction, openScheduleDialog } from './dialogs.js';
+import { closeDrawer } from './sidebar.js';
 import {
     clearBusy,
     createBadge,
@@ -52,10 +53,6 @@ const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' 
 const $ = (id) => document.getElementById(id);
 
 const elements = {
-    sidebar: $('sidebar'),
-    sidebarOpen: $('sidebar-open'),
-    sidebarClose: $('sidebar-close'),
-    sidebarBackdrop: $('sidebar-backdrop'),
     viewTitle: $('view-title'),
     viewSubtitle: $('view-subtitle'),
     categoryList: $('category-list'),
@@ -301,31 +298,23 @@ function renderCategories(categories) {
     elements.categoryList.replaceChildren(
         ...categories.map((category) => {
             const item = createElement('li');
-            const row = createElement(
-                'div',
-                `flex items-center rounded-lg transition-colors hover:bg-gray-100 ${
-                    state.categoryId === category.id ? 'bg-indigo-50' : ''
-                }`,
-            );
+            const row = createElement('div', 'flex items-center gap-1');
 
-            const select = createElement(
-                'button',
-                `flex min-h-10 flex-1 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
-                    state.categoryId === category.id ? 'text-indigo-700' : 'text-gray-600'
-                }`,
-            );
+            // Same sidebar utilities the Blade menu buttons use, so both stay in step.
+            const select = createElement('button', 'sidebar-menu-button flex-1');
             select.type = 'button';
+            select.title = category.name;
             select.setAttribute('aria-pressed', String(state.categoryId === category.id));
             select.append(
                 createElement('span', `size-2.5 shrink-0 rounded-full ${CATEGORY_DOTS[category.color]}`),
-                createElement('span', 'flex-1 truncate text-left', category.name),
-                createElement('span', 'text-xs text-gray-400 tabular-nums', String(category.task_count)),
+                createElement('span', 'sidebar-collapsible flex-1 truncate text-left', category.name),
+                createElement('span', 'sidebar-collapsible sidebar-menu-badge', String(category.task_count)),
             );
             select.addEventListener('click', () => selectCategory(category));
 
             const remove = createElement(
                 'button',
-                'flex size-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+                'sidebar-collapsible sidebar-menu-action hover:bg-red-50 hover:text-red-600 focus-visible:ring-red-500',
             );
             remove.type = 'button';
             remove.append(createIcon('close', 'size-4'));
@@ -687,7 +676,7 @@ function setView(key) {
     state.categoryId = null;
     state.status = key === 'completed' ? 'completed' : '';
     applyView();
-    closeSidebar();
+    closeDrawer();
     load();
 }
 
@@ -696,7 +685,7 @@ function selectCategory(category) {
     state.view = 'all';
     state.status = '';
     applyView();
-    closeSidebar();
+    closeDrawer();
     load();
 }
 
@@ -712,24 +701,6 @@ function setMode(mode) {
 function shiftMonth(offset) {
     state.month = new Date(state.month.getFullYear(), state.month.getMonth() + offset, 1);
     load();
-}
-
-function openSidebar() {
-    elements.sidebar.dataset.open = 'true';
-    elements.sidebarOpen.setAttribute('aria-expanded', 'true');
-    elements.sidebarBackdrop.classList.remove('hidden');
-    elements.sidebarClose.focus();
-}
-
-function closeSidebar() {
-    if (elements.sidebar.dataset.open !== 'true') {
-        return;
-    }
-
-    delete elements.sidebar.dataset.open;
-    elements.sidebarOpen.setAttribute('aria-expanded', 'false');
-    elements.sidebarBackdrop.classList.add('hidden');
-    elements.sidebarOpen.focus();
 }
 
 // ---------------------------------------------------------------- wiring
@@ -756,11 +727,6 @@ statusButtons.forEach((button) =>
         load();
     }),
 );
-
-elements.sidebarOpen.addEventListener('click', openSidebar);
-elements.sidebarClose.addEventListener('click', closeSidebar);
-elements.sidebarBackdrop.addEventListener('click', closeSidebar);
-document.addEventListener('keydown', (event) => event.key === 'Escape' && closeSidebar());
 
 $('calendar-prev').addEventListener('click', () => shiftMonth(-1));
 $('calendar-next').addEventListener('click', () => shiftMonth(1));

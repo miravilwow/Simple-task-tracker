@@ -16,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Uses the "api" limiter defined in AppServiceProvider (60 requests/minute per IP).
+        // Uses the "api" limiter defined in AppServiceProvider.
         $middleware->throttleApi();
+
+        // JavaScript writes sidebar_state, so Laravel must not expect an encrypted value.
+        // It holds no sensitive data: just "expanded" or "collapsed".
+        $middleware->encryptCookies(except: ['sidebar_state']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

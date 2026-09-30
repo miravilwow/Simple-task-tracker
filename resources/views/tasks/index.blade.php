@@ -13,54 +13,36 @@
         ];
     @endphp
 
-    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:flex lg:gap-8 lg:px-8">
-        <button type="button" id="sidebar-backdrop"
-            class="fixed inset-0 z-30 hidden cursor-default bg-gray-900/40 lg:hidden" tabindex="-1" aria-hidden="true"></button>
+    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:flex lg:gap-6 lg:px-8">
+        <x-sidebar id="sidebar">
+            <x-slot:header>
+                <p class="truncate font-medium">Views</p>
+            </x-slot:header>
 
-        <aside id="sidebar" aria-label="Views and categories"
-            {{-- `invisible` while closed keeps the off-screen drawer out of the tab order;
-                 translate alone would leave it keyboard-reachable. --}}
-            class="invisible fixed inset-y-0 left-0 z-40 w-72 -translate-x-full overflow-y-auto border-r border-gray-200 bg-white p-4 transition-transform duration-200 motion-reduce:transition-none data-[open=true]:visible data-[open=true]:translate-x-0 lg:visible lg:sticky lg:top-6 lg:z-auto lg:inset-auto lg:w-60 lg:shrink-0 lg:translate-x-0 lg:self-start lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0">
-            <div class="mb-4 flex items-center justify-between lg:hidden">
-                <p class="font-medium">Views</p>
-                <button type="button" id="sidebar-close" aria-label="Close menu"
-                    class="flex size-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
-                    <x-icon name="close" />
-                </button>
-            </div>
+            <x-sidebar.group>
+                <nav aria-label="Task views">
+                    <ul class="flex flex-col gap-1">
+                        @foreach ($views as $view)
+                            <li>
+                                <x-sidebar.menu-button :icon="$view['icon']" :label="$view['label']"
+                                    :badge="$view['count']" :active="$view['key'] === 'all'"
+                                    data-view="{{ $view['key'] }}" />
+                            </li>
+                        @endforeach
+                    </ul>
+                </nav>
+            </x-sidebar.group>
 
-            <nav aria-label="Task views">
-                <ul class="space-y-1">
-                    @foreach ($views as $view)
-                        <li>
-                            <button type="button" data-view="{{ $view['key'] }}"
-                                aria-pressed="{{ $view['key'] === 'all' ? 'true' : 'false' }}"
-                                class="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
-                                <x-icon :name="$view['icon']" class="size-5 shrink-0" />
-                                <span class="flex-1 text-left">{{ $view['label'] }}</span>
-                                @if ($view['count'])
-                                    <span data-view-count="{{ $view['count'] }}"
-                                        class="text-xs text-gray-400 tabular-nums"></span>
-                                @endif
-                            </button>
-                        </li>
-                    @endforeach
-                </ul>
-            </nav>
-
-            <div class="mt-6">
-                <div class="flex items-center justify-between px-3">
-                    <h2 id="categories-heading" class="text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                        Categories
-                    </h2>
+            <x-sidebar.group label="Categories">
+                <x-slot:action>
                     <button type="button" id="category-toggle" aria-expanded="false" aria-controls="category-form"
-                        class="flex size-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                        class="sidebar-menu-action">
                         <x-icon name="plus" class="size-4" />
                         <span class="sr-only">New category</span>
                     </button>
-                </div>
+                </x-slot:action>
 
-                <form id="category-form" class="mt-2 hidden space-y-2 rounded-lg border border-gray-200 bg-white p-3" novalidate>
+                <form id="category-form" class="sidebar-collapsible mb-1 hidden space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3" novalidate>
                     <div>
                         <label for="category-name" class="sr-only">Category name</label>
                         <input id="category-name" name="name" type="text" maxlength="40" required placeholder="Category name"
@@ -90,18 +72,24 @@
                     </button>
                 </form>
 
-                <ul id="category-list" class="mt-2 space-y-1"></ul>
-                <p id="category-empty" class="hidden px-3 py-2 text-sm text-gray-500">No categories yet.</p>
-            </div>
-        </aside>
+                <ul id="category-list" class="flex flex-col gap-1"></ul>
+                <p id="category-empty" class="sidebar-collapsible hidden px-3 py-2 text-sm text-gray-500">
+                    No categories yet.
+                </p>
+            </x-sidebar.group>
+
+            <x-slot:footer>
+                <p class="px-3 text-xs text-gray-400">
+                    Press <kbd class="rounded border border-gray-300 bg-gray-50 px-1 font-sans">Ctrl</kbd> +
+                    <kbd class="rounded border border-gray-300 bg-gray-50 px-1 font-sans">B</kbd> to toggle
+                </p>
+            </x-slot:footer>
+        </x-sidebar>
 
         <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                    <button type="button" id="sidebar-open" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar"
-                        class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:hidden">
-                        <x-icon name="menu" />
-                    </button>
+                    <x-sidebar.trigger />
                     <div>
                         <h1 id="view-title" tabindex="-1" class="text-2xl font-semibold tracking-tight focus:outline-none">All tasks</h1>
                         <p id="view-subtitle" class="text-sm text-gray-500">Create tasks, set priorities, and track what's done.</p>
@@ -156,7 +144,8 @@
             </div>
 
             {{-- List layout --}}
-            <div id="list-view" class="mt-6 grid gap-6 xl:grid-cols-3 xl:items-start">
+            {{-- The form takes a quarter so the task table keeps enough room for its four columns. --}}
+            <div id="list-view" class="mt-6 grid gap-6 xl:grid-cols-4 xl:items-start">
                 <section aria-labelledby="new-task-heading"
                     class="rounded-xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-6">
                     <div class="flex items-center gap-2 border-b border-gray-200 px-4 py-3 sm:px-6">
@@ -237,7 +226,7 @@
                 </section>
 
                 <section aria-labelledby="tasks-heading"
-                    class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm xl:col-span-2">
+                    class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm xl:col-span-3">
                     <div class="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         {{-- tabindex allows focus to return here after a task row is removed. --}}
                         <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>

@@ -125,6 +125,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `api.js` | `fetch` wrapper, `ApiError`, query-string building |
   | `dom.js` | element/icon/badge builders, toasts, busy states, local-time date helpers |
   | `dialogs.js` | the confirm and reschedule modals |
+  | `sidebar.js` | drawer, icon rail, Ctrl/Cmd+B, cookie persistence |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
   | `app.js` | state, data loading, list rendering, wiring |
 
@@ -134,6 +135,8 @@ Start every response that changes code with one line naming the active role(s), 
 - Complete, delete, create, and filter all update the DOM without a full page reload.
 - Update the UI only after the API confirms success (no optimistic updates), and show the server's error message on failure.
 - Tailwind v4 is configured in CSS (`resources/css/app.css`). There is no `tailwind.config.js`, so don't create one.
+- Repeated class strings that both Blade and JavaScript need become an `@utility` in `app.css` rather than being copied into each. The sidebar's utilities work this way.
+- Third-party designs that get ported (currently shadcn/ui's Sidebar, MIT) are credited in the code comment where they land and in the README.
 - Follow every rule in [UI_UX_RULES.md](UI_UX_RULES.md).
 
 **Definition of Done:** each action works in the browser with no console errors, at both mobile and desktop widths.

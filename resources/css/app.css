@@ -43,3 +43,86 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/*
+ * Sidebar. The structure and behaviour follow shadcn/ui's Sidebar (MIT) — a fixed drawer on
+ * small screens, a sticky column that collapses to an icon rail on large ones — rebuilt here
+ * for Blade and vanilla JS. Its mechanics live in CSS rather than utility classes because they
+ * key off `data-state` on the root and are shared with rows that JavaScript builds.
+ */
+:root {
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3.5rem;
+    --sidebar-width-mobile: 18rem;
+}
+
+.sidebar {
+    position: fixed;
+    inset-block: 0;
+    left: 0;
+    z-index: 40;
+    width: var(--sidebar-width-mobile);
+    overflow-y: auto;
+    /* Off-screen alone would leave the drawer in the tab order. */
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition:
+        transform 200ms ease,
+        width 200ms ease;
+}
+
+.sidebar[data-open='true'] {
+    visibility: visible;
+    transform: none;
+}
+
+@media (min-width: 64rem) {
+    .sidebar {
+        position: sticky;
+        top: calc(var(--spacing) * 6);
+        inset-block: auto;
+        z-index: auto;
+        width: var(--sidebar-width);
+        flex-shrink: 0;
+        align-self: flex-start;
+        overflow-y: visible;
+        visibility: visible;
+        transform: none;
+    }
+
+    .sidebar[data-state='collapsed'] {
+        width: var(--sidebar-width-icon);
+    }
+
+    /* Everything that only makes sense at full width: labels, counts, group headings. */
+    .sidebar[data-state='collapsed'] .sidebar-collapsible {
+        display: none;
+    }
+
+    .sidebar[data-state='collapsed'] .sidebar-menu-button {
+        justify-content: center;
+        padding-inline: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar {
+        transition: none;
+    }
+}
+
+@utility sidebar-menu-button {
+    @apply flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700;
+}
+
+@utility sidebar-menu-action {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none;
+}
+
+@utility sidebar-menu-badge {
+    @apply text-xs text-gray-400 tabular-nums;
+}
+
+@utility sidebar-group-label {
+    @apply px-3 text-xs font-semibold tracking-wide text-gray-500 uppercase;
+}
