@@ -26,7 +26,10 @@ The tracker runs the **full-bleed app shell**; the landing page keeps the boxed 
 
 The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
-- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the **My projects** list. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
+- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed), a **Favorites** group, and the **My projects** tree. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
+  - **Favorites** appears only when something is in it, and it is flat: the point of the group is to skip the tree, not to repeat it. A favourite still appears in My projects, because removing it from there would make the tree lie about what is in it.
+  - **My projects** is a tree. A child is indented under its parent with a rule down the left edge. A project whose parent is not in the list — archived, say — is drawn as a root, so a branch can never disappear from the sidebar because of where its parent happens to be.
+  - **Archived** sits at the foot of My projects and appears only when something is archived. It is the way back: archiving is reversible, so the undo cannot be hidden somewhere the user has to remember.
 
 #### Sidebar behaviour
 
@@ -47,21 +50,40 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 
 #### A project's actions
 
-Every action a project offers sits behind one **"…"** at the end of its row, so the row carries a single action however many it has. Delete is inside it too: throwing work away is not a button to be brushed past on the way to selecting a project.
+Every action a project offers sits behind one **"…"** at the end of its row, so the row carries a single control however many it has. Delete is inside it too: throwing work away is not a button to be brushed past on the way to selecting a project.
 
-| Item | What it does |
+The items are grouped by what they are for, with a rule between the groups:
+
+| Group | Items |
 |---|---|
-| Edit project | Swaps the row for the project form, in place |
-| New task | Opens the New task dialog with that project already chosen |
-| Activity | Opens the project's recent history |
-| Delete project | The usual confirm dialog, styled destructive |
+| The project itself | Edit, Add to favorites / Remove from favorites |
+| Where it sits | Project actions ▸ (Move, Duplicate) |
+| What is on it | Comments, View activity |
+| Getting rid of it | Archive, Delete |
 
-- The menu is appended to `<body>` and positioned `fixed`. The sidebar scrolls on its own, so a panel placed inside it would be clipped by that overflow; the cost is that the panel does not follow the page, so any scroll closes it.
-- It is a real `role="menu"`: arrows move between items and wrap, Home and End reach the ends, Escape closes it and hands focus back to the "…", and clicking or tabbing away dismisses it without stealing focus.
-- **Editing reuses the create form rather than adding a second one**, moving that same node into the row. There is one 224-option icon grid in the page, not one per project. Rebuilding the list puts the form back first, or the row it was living in would take it out of the DOM.
-- **The icon a project already has stays on offer however its name is retyped.** The picker normally hides anything the name stops matching, which on a rename would quietly swap someone's chosen icon for Folder.
-- **New task from a project still shows that project in the select**, rather than deciding it behind the scenes, so it can be seen and changed.
+- The menu is appended to `<body>` and positioned `fixed`. The sidebar scrolls on its own, so a panel placed inside it would be clipped by that overflow; the cost is that a panel does not follow the page, so any scroll closes the whole menu.
+- It is a real `role="menu"`: arrows move between items and wrap, Home and End reach the ends, and clicking or tabbing away dismisses it without stealing focus.
+- **A submenu opens to the side**, flipping to the other side rather than hanging off the viewport. ArrowRight and a click both open it, hovering opens it for a pointer, and ArrowLeft steps back out. **Escape closes one level at a time**, so a submenu opened by mistake is cheap to undo.
 - Focus follows the row through a re-render: the list is rebuilt after every action, and the "…" that had focus is found again by its project id.
+- **Move and "move into folder" are the same operation.** A folder here is simply a project with children, so there is one tree and not two. The reference app keeps folders and parent projects apart; building both would be two ways to say the same thing.
+- **Favourite is set, not toggled.** The menu already knows which of the two labels it is showing, and two clicks racing each other would otherwise undo one another.
+- **Archive is not delete.** An archived project keeps its tasks and is only out of the way, so the sidebar always shows the way back to it.
+
+#### The project dialog
+
+Add and Edit are **one** `<dialog>`. Two would mean two copies of the 224-option icon grid in the page, and two places for the picker's behaviour to drift apart.
+
+- Fields: Name (required, with a live `n/40` count because the server's limit is otherwise invisible), Description, Color, Parent project, Icon.
+- **There is no Access or Move-to-team field.** The reference app has both; this app has no accounts, so a "Restricted" control would be decoration that does nothing. A field that cannot work does not go in.
+- **The parent select leaves out the project itself and its own children**, because choosing one would cut the branch off the tree. The server refuses it as well; leaving the options out is what stops the user reaching for something that cannot work.
+- Opening focuses and selects Name. Closing — by Cancel, the close button, Escape, the backdrop, or a successful save — clears the form and returns focus to whatever opened it, which is the "…" when the dialog was opened from a row.
+
+#### Comments
+
+- One dialog holding the thread and the box to add to it, so reading and replying are not two trips.
+- **Oldest first**, unlike the activity feed: a thread is read from the top, while a feed is scanned for the latest thing that happened.
+- Comment text is user input and is rendered with `textContent` only.
+- All four states: "Loading…", the thread, "No comments yet.", and the server's message on failure. An empty or whitespace-only comment is refused by the server and the error appears under the box.
 
 #### Activity
 
@@ -105,7 +127,8 @@ Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app
 
 The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
 
-- A project carries **an icon and nothing else**. There is no colour: two ways to mark the same project is one more decision than a sidebar row is worth, and an icon already says what a dot only hints at.
+- A project carries **an icon and a colour**. The colour was dropped once, on the grounds that two marks for one project is one decision too many; it came back when projects gained a tree. Down a nested list the icon says what the project is and the colour is what tells two similar icons apart at a glance.
+- The colours are the seven in `App\Enums\CategoryColor`, not a free colour field, so nobody can pick one that fails contrast against the panel. The matching Tailwind classes are literal strings in `PROJECT_COLORS` in `resources/js/app.js`, the same way `PRIORITY_BADGES` works, and a test fails if the two drift apart.
 - The 224 choices are fixed in `App\Enums\CategoryIcon`, not free text, so the class name can never come from user input. The column is a `varchar`, not a database enum, because 224 values would make the schema unreadable; `Rule::enum()` closes the set instead.
 - **The project's name is the search; there is no second box to fill in.** Nothing is shown until something is typed, because 224 icons in a sidebar is a wall rather than a choice. A typed word matches the start of an icon's whole name or of any word in it, so "music" offers the music notes and "m" offers mail, money and music alike.
 - Fluent names its icons after the picture, not after the word a person would type: "Work" does not contain "briefcase" and "Gym" does not contain "dumbbell". `ICON_ALIASES` in `resources/js/app.js` carries the common words across, and a test checks every target is a real `CategoryIcon`, since a typo there would simply never show a suggestion.
@@ -307,10 +330,15 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
 - [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
 - [ ] Sidebar views and categories filter the list, and the title names the current one
-- [ ] A project's "…" opens with the four actions, arrows and Escape work, and focus returns to it
-- [ ] Edit project renames and re-icons in place, Cancel leaves it untouched, and a duplicate name shows the error under the field
+- [ ] A project's "…" opens with its four groups; arrows, Home/End and Escape work, and focus returns to it
+- [ ] Project actions opens to the side, ArrowRight/ArrowLeft walk in and out, and Escape closes one level at a time
+- [ ] Edit opens the dialog filled in, Cancel leaves the project untouched, and a duplicate name shows the error under the field
 - [ ] Editing a project and retyping its name keeps the icon it already had
-- [ ] New task from a project opens the dialog with that project chosen
+- [ ] The parent select never offers the project itself or one of its children
+- [ ] Favorites group appears only when something is in it, and a favourite still shows in the tree
+- [ ] Archive removes the project from the tree, the Archived section shows it, and Unarchive brings it back
+- [ ] Duplicate copies the tasks and lands as "<name> (copy)"
+- [ ] Comments add, list oldest first, delete, and refuse an empty comment
 - [ ] Activity lists what happened to that project, and reads correctly for a task that was deleted
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
