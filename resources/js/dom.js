@@ -98,6 +98,10 @@ export function showToast(message, type = 'success', action = null) {
             action.onClick();
         });
         toast.append(button);
+
+        // #toast-region is pointer-events-none so a toast never swallows a click meant for the
+        // page behind it. A toast with something to press has to take its clicks back.
+        toast.classList.add('pointer-events-auto');
     }
 
     toastRegion.append(toast);
