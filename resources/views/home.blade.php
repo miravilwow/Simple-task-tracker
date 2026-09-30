@@ -7,6 +7,12 @@
         'completed' => 'bg-green-100 text-green-700',
     ];
 
+    $accents = [
+        'high' => 'bg-red-400',
+        'medium' => 'bg-amber-400',
+        'low' => 'bg-slate-300',
+    ];
+
     // Decorative preview rows, already in the order TaskSorter would return them.
     $previewTasks = [
         ['title' => 'Fix checkout payment timeout', 'priority' => 'high', 'status' => 'pending'],
@@ -15,27 +21,26 @@
         ['title' => 'Clean up unused CSS classes', 'priority' => 'low', 'status' => 'completed'],
     ];
 
-    // Icon paths from Heroicons (MIT), 24px outline set.
     $features = [
         [
+            'icon' => 'fire',
             'title' => 'Priorities that sort themselves',
-            'text' => 'High-priority tasks always rise to the top, with older tasks first when priorities match.',
-            'icon' => 'M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25',
+            'text' => 'High-priority work rises to the top, and pending tasks always sit above finished ones.',
         ],
         [
+            'icon' => 'check-circle',
             'title' => 'One-click completion',
-            'text' => 'Mark a task done and the list updates instantly, with no page reload.',
-            'icon' => 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+            'text' => 'Mark a task done and the list updates instantly, with no page reload. Reopen it if you change your mind.',
         ],
         [
+            'icon' => 'filter',
             'title' => 'Focus with filters',
             'text' => 'Switch between all, pending, and completed tasks to see exactly what you need.',
-            'icon' => 'M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z',
         ],
         [
+            'icon' => 'chart',
             'title' => 'Progress at a glance',
-            'text' => 'Live counts of total, pending, completed, and high-priority work keep you on track.',
-            'icon' => 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
+            'text' => 'Live counts and a progress bar show how much is done and what still needs attention.',
         ],
     ];
 
@@ -68,18 +73,33 @@
                 </div>
             </div>
 
-            <div aria-hidden="true" class="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm sm:p-6">
+            <div aria-hidden="true" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm sm:p-6">
                 <div class="grid grid-cols-3 gap-3">
-                    @foreach (['Pending' => 3, 'Completed' => 1, 'High priority' => 1] as $label => $count)
-                        <div class="rounded-lg border border-gray-200 bg-white p-3">
-                            <p class="text-xs text-gray-500">{{ $label }}</p>
-                            <p class="mt-1 text-xl font-semibold">{{ $count }}</p>
+                    @foreach ([['Pending', 3, 'clock', 'bg-blue-100 text-blue-700'], ['Done', 1, 'check-circle', 'bg-green-100 text-green-700'], ['High', 1, 'fire', 'bg-red-100 text-red-700']] as [$label, $count, $icon, $tone])
+                        <div class="rounded-xl border border-gray-200 bg-white p-3">
+                            <span class="flex size-8 items-center justify-center rounded-lg {{ $tone }}">
+                                <x-icon :name="$icon" class="size-4" />
+                            </span>
+                            <p class="mt-2 text-xs text-gray-500">{{ $label }}</p>
+                            <p class="text-xl font-semibold tabular-nums">{{ $count }}</p>
                         </div>
                     @endforeach
                 </div>
-                <ul class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
+
+                <div class="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                    <div class="flex items-baseline justify-between">
+                        <p class="text-xs font-medium text-gray-700">Progress</p>
+                        <p class="text-xs text-gray-500 tabular-nums">1 of 4 done (25%)</p>
+                    </div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div class="h-full w-1/4 rounded-full bg-indigo-600"></div>
+                    </div>
+                </div>
+
+                <ul class="mt-3 divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200 bg-white">
                     @foreach ($previewTasks as $task)
-                        <li class="flex items-center justify-between gap-3 px-4 py-3">
+                        <li class="relative flex items-center justify-between gap-3 py-3 pr-4 pl-5">
+                            <span class="absolute inset-y-0 left-0 w-1 {{ $accents[$task['priority']] }}"></span>
                             <span @class([
                                 'min-w-0 truncate text-sm font-medium',
                                 'text-gray-400 line-through' => $task['status'] === 'completed',
@@ -101,11 +121,9 @@
 
         <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($features as $feature)
-                <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
                     <div class="flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $feature['icon'] }}" />
-                        </svg>
+                        <x-icon :name="$feature['icon']" class="size-6" />
                     </div>
                     <h3 class="mt-4 font-medium">{{ $feature['title'] }}</h3>
                     <p class="mt-2 text-sm text-gray-600">{{ $feature['text'] }}</p>

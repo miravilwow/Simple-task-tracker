@@ -7,7 +7,36 @@
 
 /* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task row. */
 @utility task-columns {
-    grid-template-columns: minmax(0, 1fr) 6rem 7rem 13rem;
+    grid-template-columns: minmax(0, 1fr) 5.5rem 6.5rem 13.5rem;
+}
+
+/* Entrance animations, skipped entirely for anyone who asked for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes task-enter {
+        from {
+            opacity: 0;
+            transform: translateY(-0.25rem);
+        }
+    }
+
+    @keyframes toast-enter {
+        from {
+            opacity: 0;
+            transform: translateY(0.5rem);
+        }
+    }
+
+    .task-enter {
+        animation: task-enter 200ms ease-out both;
+    }
+
+    .toast-enter {
+        animation: toast-enter 200ms ease-out both;
+    }
+
+    #confirm-dialog[open] {
+        animation: toast-enter 150ms ease-out both;
+    }
 }
 
 @theme {

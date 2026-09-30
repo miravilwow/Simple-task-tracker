@@ -9,6 +9,18 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 | `/` | `home.blade.php` | Public landing page that explains the app and links to it |
 | `/tasks` | `tasks/index.blade.php` | The task tracker dashboard |
 
+### Shared components
+
+Everything reusable lives in `resources/views/components/`. Add to these rather than repeating markup.
+
+| Component | Purpose |
+|---|---|
+| `<x-layout>` | Page shell: skip link, navbar, `<main>`, footer |
+| `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG. The only icon source; never paste raw `<path>` data into a page |
+| `<x-stat-card>` | One KPI tile: icon, label, value |
+
+Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app.js`, which mirrors the Blade component. Keep the two in sync.
+
 - Both pages use the `<x-layout>` component, which provides the shared structure:
   - a "Skip to content" link
   - the top navbar (logo and app name on the left, one action on the right)
@@ -26,16 +38,13 @@ A dashboard in the shared container.
   1. Page heading "Your tasks" and a one-line description.
   2. Stat cards.
   3. Main area.
-- **Stat cards:** four cards, shown 2 per row on mobile and 4 per row from `lg`:
-  - Total tasks
-  - Pending
-  - Completed
-  - High priority pending
+- **Stat cards:** four `<x-stat-card>` tiles, 2 per row on mobile and 4 per row from `lg`. Each pairs a tinted icon with its number: Total tasks, Pending, Completed, High priority pending. Below `sm` the icon stacks above the label so the text never gets squeezed.
+- **Progress meter:** a ratio against a total belongs in a meter, not a fifth number. One bar on a single-hue track, with the label "N of M done (P%)" always visible, so the value never depends on the bar's colour alone. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
 - **Main area from `lg` (1024px):** two columns.
   - Left third: the New task form, `sticky` so it stays in view while scrolling.
   - Right two-thirds: the task panel.
 - **Main area below `lg`:** stacked, with the form first.
-- **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers.
+- **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
   - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
 - **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
@@ -95,13 +104,15 @@ Additional rules:
 - Every button has explicit `type="button"` or `type="submit"`.
 - Minimum touch target of 40×40px (`py-2 px-3` or larger).
 - A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
-- Delete asks for confirmation (`confirm("Delete \"<title>\"?")` is enough) because it cannot be undone.
+- Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it cannot be undone. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
 
 ## 4. Form
 
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
-- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority (`<select>` defaulting to Medium).
+- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority.
+- Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
+- Placeholders show an example; they never replace a label.
 - Validate `title` client-side (not empty after trimming), and still rely on the server's 400 response as the source of truth.
 - Show field errors directly under the field in `text-sm text-red-600`, and link them with `aria-describedby`.
 - On error, keep what the user typed. On success, reset the form and return focus to Title.
@@ -118,7 +129,7 @@ Every data view needs all four states:
 
 | State | Behaviour |
 |---|---|
-| Loading | "Loading tasks…" text or a skeleton on first load. Never a blank area. |
+| Loading | Skeleton rows on first load, so the panel keeps its height instead of collapsing. Never a blank area. |
 | Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
 | Error | A red inline banner with a retry button. The stat cards reset to "–" so stale counts never sit beside an error. |
 | Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". |
@@ -148,6 +159,7 @@ Every data view needs all four states:
 - Task text is user input. Render it with `textContent` only, never `innerHTML`.
 - Use no extra UI libraries beyond Tailwind. The page should load fast with a single Vite bundle.
 - Avoid layout shift: buttons keep their width when the label changes to `Saving…`.
+- Motion is decoration. Every animation sits inside `@media (prefers-reduced-motion: no-preference)` in `resources/css/app.css`, so nothing moves for anyone who asked it not to.
 
 ## 10. Scope guard
 
@@ -160,7 +172,9 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
 - [ ] Landing page: both CTAs work, "See how it works" scrolls to the section, and the navbar action matches the page
 - [ ] "Skip to content" appears on the first Tab press
-- [ ] Stat cards update after every add, complete, and delete
+- [ ] Stat cards and the progress meter update after every add, complete, reopen, and delete
+- [ ] Skeleton rows show on first load and are gone afterwards
+- [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
 - [ ] Buttons disable while loading; Delete asks for confirmation
