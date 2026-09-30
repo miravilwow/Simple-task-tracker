@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\CategoryColor;
 use App\Enums\CategoryIcon;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -19,7 +18,6 @@ class CategoryFactory extends Factory
     {
         return [
             'name' => fake()->unique()->word(),
-            'color' => fake()->randomElement(CategoryColor::cases()),
             'icon' => fake()->randomElement(CategoryIcon::cases()),
         ];
     }

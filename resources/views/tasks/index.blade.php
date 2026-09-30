@@ -33,44 +33,32 @@
                 </nav>
             </x-sidebar.group>
 
-            <x-sidebar.group label="Categories">
+            <x-sidebar.group label="My projects">
                 <x-slot:action>
                     <button type="button" id="category-toggle" aria-expanded="false" aria-controls="category-form"
                         class="sidebar-menu-action">
                         <x-icon name="plus" class="size-4" />
-                        <span class="sr-only">New category</span>
+                        <span class="sr-only">New project</span>
                     </button>
                 </x-slot:action>
 
                 <form id="category-form" class="sidebar-collapsible mb-1 hidden space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3" novalidate>
                     <div>
-                        <label for="category-name" class="sr-only">Category name</label>
-                        <input id="category-name" name="name" type="text" maxlength="40" required placeholder="Category name"
+                        <label for="category-name" class="sr-only">Project name</label>
+                        <input id="category-name" name="name" type="text" maxlength="40" required placeholder="Project name"
                             aria-describedby="category-name-error"
                             class="block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
                         <p id="category-name-error" class="mt-1 hidden text-sm text-red-600"></p>
                     </div>
 
                     <fieldset>
-                        <legend class="sr-only">Colour</legend>
-                        <div class="flex flex-wrap gap-1.5">
-                            @foreach (['slate' => 'bg-slate-400', 'red' => 'bg-red-400', 'amber' => 'bg-amber-400', 'green' => 'bg-green-400', 'blue' => 'bg-blue-400', 'violet' => 'bg-violet-400', 'pink' => 'bg-pink-400'] as $value => $dot)
-                                <label
-                                    class="flex size-8 cursor-pointer items-center justify-center rounded-md border border-transparent transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
-                                    <input type="radio" name="color" value="{{ $value }}" class="sr-only" @checked($value === 'slate')>
-                                    <span class="size-4 rounded-full {{ $dot }}"></span>
-                                    <span class="sr-only">{{ ucfirst($value) }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                        <p id="category-color-error" class="mt-1 hidden text-sm text-red-600"></p>
-                    </fieldset>
-
-                    <fieldset>
                         <legend class="sr-only">Icon</legend>
-                        <div class="flex flex-wrap gap-1">
+                        <label for="icon-search" class="sr-only">Search icons</label>
+                        <input id="icon-search" type="search" autocomplete="off" placeholder="Search icons"
+                            class="mb-2 block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                        <div id="icon-grid" class="flex max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain">
                             @foreach (\App\Enums\CategoryIcon::cases() as $icon)
-                                <label
+                                <label data-icon="{{ $icon->value }}" title="{{ $icon->label() }}"
                                     class="flex size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
                                     <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
                                         @checked($icon === \App\Enums\CategoryIcon::Folder)>
@@ -79,18 +67,19 @@
                                 </label>
                             @endforeach
                         </div>
+                        <p id="icon-empty" class="mt-2 hidden text-sm text-gray-500">No icon matches that.</p>
                         <p id="category-icon-error" class="mt-1 hidden text-sm text-red-600"></p>
                     </fieldset>
 
                     <button type="submit" id="category-submit"
                         class="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
-                        <span data-label>Add category</span>
+                        <span data-label>Add project</span>
                     </button>
                 </form>
 
                 <ul id="category-list" class="flex flex-col gap-1"></ul>
                 <p id="category-empty" class="sidebar-collapsible hidden px-3 py-2 text-sm text-gray-500">
-                    No categories yet.
+                    No projects yet.
                 </p>
             </x-sidebar.group>
 

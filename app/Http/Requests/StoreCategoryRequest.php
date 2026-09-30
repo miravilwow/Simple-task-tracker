@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\CategoryColor;
 use App\Enums\CategoryIcon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,7 +21,6 @@ class StoreCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:40', Rule::unique('categories', 'name')],
-            'color' => ['required', Rule::enum(CategoryColor::class)],
             'icon' => ['required', Rule::enum(CategoryIcon::class)],
         ];
     }

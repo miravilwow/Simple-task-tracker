@@ -26,7 +26,7 @@ The tracker runs the **full-bleed app shell**; the landing page keeps the boxed 
 
 The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
-- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the category list. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
+- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the **My projects** list. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
 
 #### Sidebar behaviour
 
@@ -75,13 +75,15 @@ Everything reusable lives in `resources/views/components/`. Add to these rather 
 
 Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app.js`, which mirrors the Blade component. Keep the two in sync.
 
-#### Category icons
+#### Project icons
 
 The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
 
-- The choices are fixed in `App\Enums\CategoryIcon`, not free text, so the class name can never come from user input.
+- A project carries **an icon and nothing else**. There is no colour: two ways to mark the same project is one more decision than a sidebar row is worth, and an icon already says what a dot only hints at.
+- The 224 choices are fixed in `App\Enums\CategoryIcon`, not free text, so the class name can never come from user input. The column is a `varchar`, not a database enum, because 224 values would make the schema unreadable; `Rule::enum()` closes the set instead.
+- The picker has a search box. A query matches the start of the whole icon name or the start of any word in it, so "m" reaches mail, money and music alike, and "music" reaches the music notes at once. Filtering only hides choices, never removes them, so the icon already chosen can never be dropped from the form.
 - The class is `icon-[fluent--{value}-24-regular]` and it is built at runtime, which **Tailwind cannot see**. Every value is therefore repeated in `@source inline(...)` in `resources/css/app.css`. A case added to the enum without that line renders as an empty box, and a test fails if the two drift apart.
-- The icon is tinted with the category's colour and is always `aria-hidden`, because the category's name is already beside it.
+- The icon is always `aria-hidden`, because the project's name sits right beside it.
 
 - Both pages use the `<x-layout>` component, which provides the shared structure:
   - a "Skip to content" link

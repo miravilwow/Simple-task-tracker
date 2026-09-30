@@ -7,11 +7,12 @@
 @source '../**/*.js';
 
 /*
- * Category icons are chosen by the user and their classes are built at runtime, so Tailwind
- * never sees them in a source file. This list is the safelist, and it has to stay in step
- * with App\Enums\CategoryIcon.
+ * Project icons are chosen by the user and their classes are built at runtime, so Tailwind
+ * never sees them in a source file. This one line is the safelist, and it has to stay in step
+ * with App\Enums\CategoryIcon; CategoryApiTest fails if the two ever drift apart.
  */
-@source inline("icon-[fluent--{folder,briefcase,person,hat-graduation,book,home,cart,heart,dumbbell,money,airplane,food,games,people,lightbulb,calendar,code,paint-brush,vehicle-car,animal-paw-print,music-note-2,pill,gift,leaf}-24-regular]");
+/* prettier-ignore */
+@source inline("icon-[fluent--{folder,folder-open,archive,briefcase,box,building,building-bank,building-home,building-shop,building-factory,building-retail,building-government,building-multiple,home,home-more,desktop,laptop,phone,tablet,device-meeting-room,document,document-text,document-pdf,notepad,note,book,book-open,bookmark,clipboard,clipboard-task,library,reading-list,text-paragraph,slide-text,form,table,grid,apps,board,board-split,folder-zip,calendar,calendar-day,calendar-week-start,calendar-month,clock,clock-alarm,timer,hourglass,history,mail,mail-inbox,send,chat,comment,person-chat,call,video,person,people,person-star,person-support,people-team,people-community,handshake,globe,location,map,earth,flag,compass-northwest,cart,shopping-bag,store-microsoft,receipt,money,money-hand,wallet,credit-card-person,payment,coin-multiple,savings,tag,ticket-diagonal,gift,gift-card,cube,heart,heart-pulse,pill,syringe,stethoscope,dumbbell,sport,sport-soccer,sport-basketball,sport-baseball,sport-american-football,sport-hockey,sport-cricket-ball,run,person-walking,bed,weather-moon,showerhead,food,food-apple,food-pizza,food-cake,food-egg,food-fish,food-chicken-leg,drink,drink-coffee,drink-beer,drink-wine,bowl-chopsticks,cookies,airplane,airplane-take-off,vehicle-car,vehicle-bus,vehicle-truck,vehicle-bicycle,vehicle-ship,vehicle-subway,vehicle-motorcycle,luggage,beach,mountain-trail,tent,city,animal-cat,animal-dog,animal-rabbit,animal-turtle,leaf,tree-deciduous,plant-grass,plant-ragweed,weather-sunny,weather-rain,weather-snowflake,water,drop,music-note-1,music-note-2,headphones,mic,speaker-2,play-circle,video-clip,movies-and-tv,camera,camera-dome,image,image-multiple,paint-brush,paint-bucket,color,pen,highlight,draw-shape,design-ideas,wand,code,code-block,branch,bug,database,server,cloud,wifi-2,bluetooth,plug-connected,battery-charge,lightbulb,flash,rocket,puzzle-piece,toolbox,wrench,wrench-screwdriver,settings,key,shield-task,lock-closed,fingerprint,hat-graduation,backpack,ribbon,trophy,star-emphasis,premium,certificate,broom,dust,couch,seat,lightbulb-filament,bin-recycle,target-arrow,chart-multiple,data-trending,data-pie,board-heart,accessibility,earth-leaf,emoji,emoji-laugh,emoji-sad,hand-wave,thumb-like,heart-circle,sparkle,glasses,scales,balloon,fireplace,games,xbox-console,puzzle-cube,wheelchair-access,walkie-talkie}-24-regular]");
 
 /* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task row. */
 @utility task-columns {

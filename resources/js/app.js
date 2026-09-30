@@ -28,16 +28,6 @@ const STATUS_BADGES = {
     completed: { label: 'Completed', classes: 'bg-green-100 text-green-700' },
 };
 
-const CATEGORY_TINTS = {
-    slate: 'text-slate-500',
-    red: 'text-red-500',
-    amber: 'text-amber-500',
-    green: 'text-green-500',
-    blue: 'text-blue-500',
-    violet: 'text-violet-500',
-    pink: 'text-pink-500',
-};
-
 /**
  * One category icon, tinted with its colour. The Iconify class is built from the name the API
  * sent, which Tailwind cannot see, so every one of them is safelisted in app.css through
@@ -46,7 +36,7 @@ const CATEGORY_TINTS = {
 function categoryIcon(category, size) {
     const icon = createElement(
         'span',
-        `icon-[fluent--${category.icon}-24-regular] ${size} shrink-0 ${CATEGORY_TINTS[category.color]}`,
+        `icon-[fluent--${category.icon}-24-regular] ${size} shrink-0 text-gray-500`,
     );
     icon.setAttribute('aria-hidden', 'true');
 
@@ -78,6 +68,9 @@ const elements = {
     categoryToggle: $('category-toggle'),
     categoryName: $('category-name'),
     categorySubmit: $('category-submit'),
+    iconSearch: $('icon-search'),
+    iconGrid: $('icon-grid'),
+    iconEmpty: $('icon-empty'),
     categorySelect: $('category_id'),
     listView: $('list-view'),
     calendarView: $('calendar-view'),
@@ -148,7 +141,7 @@ function dueLabel(task) {
 
 function emptyMessage() {
     if (state.categoryId) {
-        return 'No tasks in this category.';
+        return 'No tasks in this project.';
     }
 
     if (state.status === 'completed') {
@@ -622,6 +615,29 @@ async function createTask(event) {
     }
 }
 
+// ---------------------------------------------------------------- icon picker
+
+// Typing "m" should reach music, mail and money alike, so a query matches the start of the
+// whole name or the start of any word inside it. Every choice stays in the DOM and only its
+// visibility changes, so a filter can never quietly drop the icon that is already chosen.
+function filterIcons(query) {
+    const term = query.trim().toLowerCase();
+    let shown = 0;
+
+    for (const option of elements.iconGrid.querySelectorAll('[data-icon]')) {
+        const name = option.dataset.icon;
+        const match = term === '' || name.startsWith(term) || name.split('-').some((word) => word.startsWith(term));
+
+        option.classList.toggle('hidden', !match);
+
+        if (match) {
+            shown += 1;
+        }
+    }
+
+    elements.iconEmpty.classList.toggle('hidden', shown > 0);
+}
+
 async function createCategory(event) {
     event.preventDefault();
 
@@ -629,7 +645,7 @@ async function createCategory(event) {
         return;
     }
 
-    clearFieldErrors(['category-name', 'category-color', 'category-icon']);
+    clearFieldErrors(['category-name', 'category-icon']);
     setBusy(elements.categorySubmit, 'Adding…');
 
     try {
@@ -637,12 +653,12 @@ async function createCategory(event) {
             method: 'POST',
             body: {
                 name: elements.categoryName.value.trim(),
-                color: elements.categoryForm.querySelector('input[name="color"]:checked')?.value,
                 icon: elements.categoryForm.querySelector('input[name="icon"]:checked')?.value,
             },
         });
         elements.categoryForm.reset();
-        showToast('Category added');
+        filterIcons('');
+        showToast('Project added');
         await load();
         elements.categoryName.focus();
     } catch (error) {
@@ -662,10 +678,10 @@ async function createCategory(event) {
 
 async function deleteCategory(category) {
     const confirmed = await confirmAction({
-        title: 'Delete category',
+        title: 'Delete project',
         message:
             category.task_count > 0
-                ? `Delete "${category.name}"? Its ${category.task_count} task(s) will stay, without a category.`
+                ? `Delete "${category.name}"? Its ${category.task_count} task(s) will stay, without a project.`
                 : `Delete "${category.name}"?`,
     });
 
@@ -681,7 +697,7 @@ async function deleteCategory(category) {
             applyView();
         }
 
-        showToast('Category deleted');
+        showToast('Project deleted');
         await load();
     } catch (error) {
         showToast(errorMessage(error), 'error');
@@ -695,7 +711,7 @@ function applyView() {
     const category = state.categories.find((item) => item.id === state.categoryId);
 
     elements.viewTitle.textContent = category ? category.name : view.title;
-    elements.viewSubtitle.textContent = category ? 'Tasks in this category.' : view.subtitle;
+    elements.viewSubtitle.textContent = category ? 'Tasks in this project.' : view.subtitle;
 
     viewButtons.forEach((button) => {
         button.setAttribute('aria-pressed', String(!state.categoryId && button.dataset.view === state.view));
@@ -741,6 +757,13 @@ function shiftMonth(offset) {
 
 elements.form.addEventListener('submit', createTask);
 elements.categoryForm.addEventListener('submit', createCategory);
+elements.iconSearch.addEventListener('input', (event) => filterIcons(event.target.value));
+// Enter in a search field would otherwise submit the form and add the project half-filled.
+elements.iconSearch.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+    }
+});
 elements.retry.addEventListener('click', load);
 
 elements.categoryToggle.addEventListener('click', () => {

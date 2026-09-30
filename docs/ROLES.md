@@ -59,14 +59,14 @@ Start every response that changes code with one line naming the active role(s), 
 
 **Standards**
 - `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
-- `categories` table: `id`, `name` (unique), `color` enum, `timestamps()`.
+- `categories` table: `id`, `name` (unique), `icon` (varchar 40, default `folder`), `timestamps()`. The UI calls these "projects"; the schema has not been renamed.
 - Index `status` and `due_date`, since the list endpoint filters on both. `deleted_at` is left unindexed: it is NULL for nearly every row, so the index would not pay for itself.
 - `tasks` carries `deleted_at` (`softDeletes()`). Deleting is the one irreversible action, so the row is stamped rather than removed and `restore` can bring it back. Every read excludes stamped rows through the trait's global scope, including `stats`, whose `toBase()` applies scopes before dropping to the query builder.
 - `tasks.category_id` uses `nullOnDelete`: deleting a category must never delete someone's tasks, it only leaves them uncategorised.
 - Never edit a migration that has already run. Schema changes land as a new migration, which is why the category and due-date columns arrive in `add_category_and_due_date_to_tasks_table` rather than in the original `create_tasks_table`.
 - Two migrations generated in the same second sort by filename, so a table can end up referenced before it exists. Rename the file rather than rely on luck.
-- Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\CategoryColor`, `App\Enums\CategoryIcon`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
-- `categories.icon` is an enum, never free text: its value goes straight into a CSS class name, so the set of allowed values has to be closed.
+- Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\CategoryIcon`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
+- `categories.icon` is closed by `App\Enums\CategoryIcon`, never free text: its value goes straight into a CSS class name. The column itself is a `varchar`, because a 224-value database enum would be unreadable, so the application is what enforces the set.
 - Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. Every one of them is validated by `StoreTaskRequest`. `status` is deliberately absent, because it changes only through the complete and reopen endpoints.
 - `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.

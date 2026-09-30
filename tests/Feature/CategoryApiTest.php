@@ -27,10 +27,10 @@ class CategoryApiTest extends TestCase
 
     public function test_creates_a_category(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'green', 'icon' => 'folder'])
+        $this->postJson('/api/categories', ['name' => 'Errands', 'icon' => 'folder'])
             ->assertCreated()
             ->assertJsonPath('data.name', 'Errands')
-            ->assertJsonPath('data.color', 'green')
+            ->assertJsonPath('data.icon', 'folder')
             ->assertJsonPath('data.task_count', 0);
 
         $this->assertDatabaseHas('categories', ['name' => 'Errands']);
@@ -40,7 +40,7 @@ class CategoryApiTest extends TestCase
     {
         Category::factory()->create(['name' => 'Work']);
 
-        $this->postJson('/api/categories', ['name' => 'Work', 'color' => 'blue', 'icon' => 'briefcase'])
+        $this->postJson('/api/categories', ['name' => 'Work', 'icon' => 'briefcase'])
             ->assertStatus(400)
             ->assertJsonValidationErrors('name');
 
@@ -49,17 +49,16 @@ class CategoryApiTest extends TestCase
 
     public function test_creates_a_category_with_an_icon(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Fitness', 'color' => 'green', 'icon' => 'dumbbell'])
+        $this->postJson('/api/categories', ['name' => 'Fitness', 'icon' => 'dumbbell'])
             ->assertCreated()
-            ->assertJsonPath('data.icon', 'dumbbell')
-            ->assertJsonPath('data.color', 'green');
+            ->assertJsonPath('data.icon', 'dumbbell');
 
         $this->assertDatabaseHas('categories', ['name' => 'Fitness', 'icon' => 'dumbbell']);
     }
 
     public function test_rejects_an_unknown_icon(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Nope', 'color' => 'red', 'icon' => 'rocket-ship'])
+        $this->postJson('/api/categories', ['name' => 'Nope', 'icon' => 'rocket-ship'])
             ->assertStatus(400)
             ->assertJsonValidationErrors('icon');
     }
@@ -79,11 +78,11 @@ class CategoryApiTest extends TestCase
         }
     }
 
-    public function test_rejects_an_invalid_colour(): void
+    public function test_requires_an_icon(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'turquoise', 'icon' => 'folder'])
+        $this->postJson('/api/categories', ['name' => 'Errands'])
             ->assertStatus(400)
-            ->assertJsonValidationErrors('color');
+            ->assertJsonValidationErrors('icon');
     }
 
     public function test_deleting_a_category_keeps_its_tasks_but_clears_the_link(): void
