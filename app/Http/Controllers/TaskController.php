@@ -111,9 +111,20 @@ class TaskController extends Controller
 
     public function destroy(Task $task): JsonResponse
     {
+        // Soft delete: the row is stamped, not removed, so restore() can bring it back.
         $task->delete();
 
         return response()->json(['message' => 'Task deleted.']);
+    }
+
+    /**
+     * Backs the Undo action on the delete toast.
+     */
+    public function restore(Task $task): TaskResource
+    {
+        $task->restore();
+
+        return TaskResource::make($task->load('category'));
     }
 
     /**

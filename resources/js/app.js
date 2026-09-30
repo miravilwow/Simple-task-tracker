@@ -436,7 +436,7 @@ async function load() {
 // ---------------------------------------------------------------- task actions
 
 // Re-rendering destroys the button that was clicked, so focus has to be parked somewhere.
-async function runAction(button, { busyLabel, request, successMessage, restoreFocus }) {
+async function runAction(button, { busyLabel, request, successMessage, restoreFocus, undo, undoMessage }) {
     const hadFocus = restoreFocus ?? document.activeElement === button;
 
     if (button) {
@@ -445,7 +445,7 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
 
     try {
         await request();
-        showToast(successMessage);
+        showToast(successMessage, 'success', undo ? { label: 'Undo', onClick: () => runUndo(undo, undoMessage) } : null);
         await load();
 
         if (hadFocus) {
@@ -460,11 +460,25 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
     }
 }
 
+// The button that started the action is gone by the time Undo is clicked, so there is nothing
+// left to put in a busy state. The toast reports how the reversal went instead.
+async function runUndo(request, message) {
+    try {
+        await request();
+        showToast(message);
+        await load();
+    } catch (error) {
+        showToast(errorMessage(error), 'error');
+    }
+}
+
 const completeTask = (task, button) =>
     runAction(button, {
         busyLabel: 'Completing…',
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
         successMessage: 'Task completed',
+        undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
+        undoMessage: 'Task reopened',
     });
 
 const reopenTask = (task, button) =>
@@ -479,7 +493,7 @@ async function deleteTask(task, button) {
     const hadFocus = document.activeElement === button;
     const confirmed = await confirmAction({
         title: 'Delete task',
-        message: `Delete "${task.title}"? This can't be undone.`,
+        message: `Delete "${task.title}"? You can undo this from the toast straight after.`,
     });
 
     if (!confirmed) {
@@ -493,6 +507,8 @@ async function deleteTask(task, button) {
         request: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
         successMessage: 'Task deleted',
         restoreFocus: hadFocus,
+        undo: () => api(`/tasks/${task.id}/restore`, { method: 'PATCH' }),
+        undoMessage: 'Task restored',
     });
 }
 

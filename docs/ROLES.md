@@ -60,7 +60,8 @@ Start every response that changes code with one line naming the active role(s), 
 **Standards**
 - `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
 - `categories` table: `id`, `name` (unique), `color` enum, `timestamps()`.
-- Index `status` and `due_date`, since the list endpoint filters on both.
+- Index `status` and `due_date`, since the list endpoint filters on both. `deleted_at` is left unindexed: it is NULL for nearly every row, so the index would not pay for itself.
+- `tasks` carries `deleted_at` (`softDeletes()`). Deleting is the one irreversible action, so the row is stamped rather than removed and `restore` can bring it back. Every read excludes stamped rows through the trait's global scope, including `stats`, whose `toBase()` applies scopes before dropping to the query builder.
 - `tasks.category_id` uses `nullOnDelete`: deleting a category must never delete someone's tasks, it only leaves them uncategorised.
 - Never edit a migration that has already run. Schema changes land as a new migration, which is why the category and due-date columns arrive in `add_category_and_due_date_to_tasks_table` rather than in the original `create_tasks_table`.
 - Two migrations generated in the same second sort by filename, so a table can end up referenced before it exists. Rename the file rather than rely on luck.
@@ -88,6 +89,7 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
   | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
+  | PATCH | `/api/tasks/{id}/restore` | 200 + restored task | 404 not found |
   | GET | `/api/categories` | 200 + task counts | none |
   | POST | `/api/categories` | 201 + created category | 400 validation failure |
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
@@ -101,6 +103,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Use a Form Request for create validation and route model binding for `{task}` (gives 404 for free).
 - `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app. The controller then moves pending tasks ahead of completed ones, keeping each group in TaskSorter's order. `TaskSorter` itself stays exactly as the exam specifies (priority, then oldest first) and must never learn about status.
 - `reopen` is beyond the exam's four endpoints. It exists because completing a task by mistake would otherwise be a dead end, with deleting and retyping the only way back.
+- `restore` is the same argument carried to its end. `DELETE` soft-deletes, so the row survives and the delete toast can offer Undo. Its route is bound `->withTrashed()`, because the default binding hides exactly the task it needs to reach. Deleting an already-deleted task is a 404, since the binding no longer finds it.
 - Controllers stay thin. No business logic in routes.
 - Responses go through `TaskResource` / `CategoryResource`, so the JSON shape is explicit and separate from the database columns.
 - Any endpoint returning tasks eager-loads `category`. A test pins the list to two queries so an N+1 cannot creep back in.

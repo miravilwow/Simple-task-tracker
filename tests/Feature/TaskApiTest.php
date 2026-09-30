@@ -151,7 +151,9 @@ class TaskApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Task deleted.');
 
-        $this->assertModelMissing($task);
+        // Soft delete: gone from every read, but the row survives so Undo can restore it.
+        $this->assertSoftDeleted($task);
+        $this->getJson('/api/tasks')->assertOk()->assertJsonCount(0, 'data');
     }
 
     public function test_delete_returns_404_for_missing_task(): void

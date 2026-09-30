@@ -8,11 +8,16 @@ use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
     use HasFactory;
+
+    // A deleted task is only stamped, never removed, so the UI can offer Undo.
+    // Every query excludes the stamped rows through the trait's global scope.
+    use SoftDeletes;
 
     protected $fillable = [
         'title',
