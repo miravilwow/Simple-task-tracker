@@ -68,7 +68,6 @@ const elements = {
     categoryToggle: $('category-toggle'),
     categoryName: $('category-name'),
     categorySubmit: $('category-submit'),
-    iconSearch: $('icon-search'),
     iconGrid: $('icon-grid'),
     iconEmpty: $('icon-empty'),
     categorySelect: $('category_id'),
@@ -617,25 +616,125 @@ async function createTask(event) {
 
 // ---------------------------------------------------------------- icon picker
 
-// Typing "m" should reach music, mail and money alike, so a query matches the start of the
-// whole name or the start of any word inside it. Every choice stays in the DOM and only its
-// visibility changes, so a filter can never quietly drop the icon that is already chosen.
-function filterIcons(query) {
-    const term = query.trim().toLowerCase();
+// Fluent names its icons after the picture, not after the word someone would type: nobody
+// calls a gym session "dumbbell" or work "briefcase". These carry the common words onto the
+// set's own names. Every target is checked against App\Enums\CategoryIcon by a test.
+const ICON_ALIASES = {
+    work: ['briefcase', 'building'],
+    job: ['briefcase'],
+    office: ['building', 'briefcase'],
+    business: ['briefcase', 'building'],
+    gym: ['dumbbell', 'run'],
+    fitness: ['dumbbell', 'run'],
+    workout: ['dumbbell', 'run'],
+    exercise: ['dumbbell', 'run'],
+    running: ['run'],
+    travel: ['airplane', 'luggage', 'beach'],
+    trip: ['airplane', 'luggage'],
+    vacation: ['beach', 'airplane'],
+    holiday: ['beach', 'airplane'],
+    flight: ['airplane'],
+    school: ['hat-graduation', 'backpack'],
+    study: ['book', 'hat-graduation'],
+    college: ['hat-graduation'],
+    thesis: ['document', 'book'],
+    homework: ['book', 'backpack'],
+    budget: ['money', 'wallet', 'savings'],
+    finance: ['money', 'wallet', 'savings'],
+    bills: ['receipt', 'payment'],
+    expenses: ['receipt', 'money'],
+    shopping: ['cart', 'shopping-bag'],
+    groceries: ['cart', 'food'],
+    errands: ['cart', 'vehicle-car'],
+    health: ['heart', 'pill', 'stethoscope'],
+    doctor: ['stethoscope', 'pill'],
+    medical: ['stethoscope', 'syringe', 'pill'],
+    medicine: ['pill'],
+    pets: ['animal-dog', 'animal-cat'],
+    dog: ['animal-dog'],
+    cat: ['animal-cat'],
+    coding: ['code', 'code-block'],
+    dev: ['code', 'bug'],
+    programming: ['code', 'code-block'],
+    website: ['code', 'globe'],
+    band: ['music-note-1', 'headphones'],
+    cooking: ['food', 'bowl-chopsticks'],
+    recipes: ['food', 'notepad'],
+    chores: ['broom', 'home'],
+    cleaning: ['broom', 'dust'],
+    house: ['home', 'building-home'],
+    driving: ['vehicle-car'],
+    photo: ['camera', 'image'],
+    photography: ['camera', 'image-multiple'],
+    reading: ['book-open', 'reading-list'],
+    design: ['paint-brush', 'design-ideas', 'color'],
+    art: ['paint-brush', 'color'],
+    drawing: ['draw-shape', 'pen'],
+    game: ['games', 'xbox-console'],
+    gaming: ['games', 'xbox-console'],
+    meeting: ['device-meeting-room', 'calendar'],
+    event: ['calendar', 'balloon'],
+    birthday: ['gift', 'balloon'],
+    wedding: ['heart', 'balloon'],
+    garden: ['leaf', 'plant-grass', 'tree-deciduous'],
+    plants: ['plant-grass', 'leaf'],
+    sleep: ['bed', 'weather-moon'],
+    idea: ['lightbulb', 'design-ideas'],
+    ideas: ['lightbulb', 'design-ideas'],
+    personal: ['person'],
+    family: ['people', 'people-community'],
+    team: ['people-team'],
+    goals: ['target-arrow', 'trophy'],
+    fix: ['wrench', 'toolbox'],
+    repair: ['wrench', 'wrench-screwdriver'],
+    move: ['box', 'vehicle-truck'],
+    moving: ['box', 'vehicle-truck'],
+};
+// The project's own name is the search: there is no second box to fill in. A word matches the
+// start of an icon's whole name or the start of any word in it, so "music" offers the music
+// notes and "m" offers mail, money and music alike.
+function iconMatches(name, terms) {
+    const words = name.split('-');
+
+    return terms.some(
+        (term) =>
+            name.startsWith(term) ||
+            words.some((word) => word.startsWith(term)) ||
+            (ICON_ALIASES[term] ?? []).includes(name),
+    );
+}
+
+// Nothing is offered until the name suggests something, so the form stays small until it has
+// a reason not to be. An icon that stops matching is also unchecked, because the picker must
+// never save something it is no longer showing; the form falls back to Folder in that case.
+function suggestIcons(name) {
+    const terms = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     let shown = 0;
+    let checked = false;
 
     for (const option of elements.iconGrid.querySelectorAll('[data-icon]')) {
-        const name = option.dataset.icon;
-        const match = term === '' || name.startsWith(term) || name.split('-').some((word) => word.startsWith(term));
+        const match = terms.length > 0 && iconMatches(option.dataset.icon, terms);
+        const radio = option.querySelector('input');
 
         option.classList.toggle('hidden', !match);
+        option.classList.toggle('flex', match);
 
-        if (match) {
+        if (!match) {
+            radio.checked = false;
+        } else {
             shown += 1;
+            checked = checked || radio.checked;
         }
     }
 
-    elements.iconEmpty.classList.toggle('hidden', shown > 0);
+    // Offer the closest name as the choice, so picking one is a glance rather than a step.
+    if (shown > 0 && !checked) {
+        elements.iconGrid.querySelector('[data-icon]:not(.hidden) input').checked = true;
+    }
+
+    elements.iconGrid.classList.toggle('hidden', shown === 0);
+    elements.iconGrid.classList.toggle('flex', shown > 0);
+    elements.iconEmpty.classList.toggle('hidden', terms.length === 0 || shown > 0);
 }
 
 async function createCategory(event) {
@@ -653,11 +752,12 @@ async function createCategory(event) {
             method: 'POST',
             body: {
                 name: elements.categoryName.value.trim(),
-                icon: elements.categoryForm.querySelector('input[name="icon"]:checked')?.value,
+                // Nothing matched the name, so no icon is on offer and none is checked.
+                icon: elements.categoryForm.querySelector('input[name="icon"]:checked')?.value ?? 'folder',
             },
         });
         elements.categoryForm.reset();
-        filterIcons('');
+        suggestIcons('');
         showToast('Project added');
         await load();
         elements.categoryName.focus();
@@ -757,13 +857,7 @@ function shiftMonth(offset) {
 
 elements.form.addEventListener('submit', createTask);
 elements.categoryForm.addEventListener('submit', createCategory);
-elements.iconSearch.addEventListener('input', (event) => filterIcons(event.target.value));
-// Enter in a search field would otherwise submit the form and add the project half-filled.
-elements.iconSearch.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-    }
-});
+elements.categoryName.addEventListener('input', (event) => suggestIcons(event.target.value));
 elements.retry.addEventListener('click', load);
 
 elements.categoryToggle.addEventListener('click', () => {

@@ -78,6 +78,25 @@ class CategoryApiTest extends TestCase
         }
     }
 
+    public function test_every_icon_alias_in_the_picker_points_at_a_real_icon(): void
+    {
+        // The picker maps the words people type ("gym") onto the set's own names ("dumbbell").
+        // A typo there is invisible: the suggestion simply never appears.
+        $js = file_get_contents(base_path('resources/js/app.js'));
+
+        preg_match('/const ICON_ALIASES = \{(.*?)\n\};/s', $js, $block);
+        $this->assertNotEmpty($block, 'ICON_ALIASES was not found in app.js');
+
+        preg_match_all("/'([a-z0-9-]+)'/", $block[1], $targets);
+        $this->assertNotEmpty($targets[1]);
+
+        foreach (array_unique($targets[1]) as $target) {
+            $this->assertNotNull(
+                CategoryIcon::tryFrom($target),
+                "ICON_ALIASES points at \"{$target}\", which is not a CategoryIcon"
+            );
+        }
+    }
     public function test_requires_an_icon(): void
     {
         $this->postJson('/api/categories', ['name' => 'Errands'])

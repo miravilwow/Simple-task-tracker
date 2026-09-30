@@ -53,13 +53,10 @@
 
                     <fieldset>
                         <legend class="sr-only">Icon</legend>
-                        <label for="icon-search" class="sr-only">Search icons</label>
-                        <input id="icon-search" type="search" autocomplete="off" placeholder="Search icons"
-                            class="mb-2 block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
-                        <div id="icon-grid" class="flex max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain">
+                        <div id="icon-grid" class="hidden max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain">
                             @foreach (\App\Enums\CategoryIcon::cases() as $icon)
                                 <label data-icon="{{ $icon->value }}" title="{{ $icon->label() }}"
-                                    class="flex size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
+                                    class="hidden size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
                                     <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
                                         @checked($icon === \App\Enums\CategoryIcon::Folder)>
                                     <span class="{{ $icon->cssClass() }} size-4" aria-hidden="true"></span>
@@ -67,7 +64,7 @@
                                 </label>
                             @endforeach
                         </div>
-                        <p id="icon-empty" class="mt-2 hidden text-sm text-gray-500">No icon matches that.</p>
+                        <p id="icon-empty" class="mt-1 hidden text-sm text-gray-500">No icon matches that name, so Folder will be used.</p>
                         <p id="category-icon-error" class="mt-1 hidden text-sm text-red-600"></p>
                     </fieldset>
 
