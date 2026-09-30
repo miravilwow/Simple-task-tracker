@@ -5,6 +5,11 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task row. */
+@utility task-columns {
+    grid-template-columns: minmax(0, 1fr) 6rem 7rem 13rem;
+}
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

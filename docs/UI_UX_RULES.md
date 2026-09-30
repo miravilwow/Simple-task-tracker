@@ -4,15 +4,30 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 
 ## 1. Layout
 
-- A single page with a centered content column: `max-w-3xl mx-auto`, `px-4` gutter on mobile, `sm:px-6`.
-- Order top to bottom: header (app name and a short task count summary) → task form → filter control → task list.
-- Mobile-first. Design at 360px wide, then enhance at `sm` (640px) and `md` (768px).
-- No horizontal scroll at any width. Long titles wrap (`break-words`) and never overflow.
-- On mobile, the task list is stacked cards. From `md` up, it can be a table or wider cards.
+A single-page dashboard in a centered container: `max-w-6xl mx-auto`, with gutters `px-4 sm:px-6 lg:px-8`.
+
+- **Order, top to bottom:**
+  1. Header: app name and a one-line description.
+  2. Stat cards.
+  3. Main area.
+- **Stat cards:** four cards, shown 2 per row on mobile and 4 per row from `lg`:
+  - Total tasks
+  - Pending
+  - Completed
+  - High priority pending
+- **Main area from `lg` (1024px):** two columns.
+  - Left third: the New task form, `sticky` so it stays in view while scrolling.
+  - Right two-thirds: the task panel.
+- **Main area below `lg`:** stacked, with the form first.
+- **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers.
+  - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
+  - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
+- **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
+- **No horizontal scroll** at any width. Long titles wrap (`break-words`) and never overflow.
 
 ## 2. Visual design
 
-- **Spacing:** use Tailwind's scale only (`2, 3, 4, 6, 8`). No arbitrary values like `mt-[13px]`.
+- **Spacing:** use Tailwind's scale only (`2, 3, 4, 6, 8`). No arbitrary values like `mt-[13px]`. The one exception is the task table's column template, which is defined once as the `task-columns` utility in `resources/css/app.css`.
 - **Typography:** the `font-sans` theme font. Page title `text-2xl font-semibold`, section headings `text-lg font-medium`, body `text-sm`/`text-base`, secondary text `text-gray-500`.
 - **Surfaces:** white cards on a `bg-gray-50` page, `rounded-lg`, `border border-gray-200`, at most `shadow-sm`.
 - **Color is meaningful, not decorative.** Keep one accent color (indigo) for primary actions.
@@ -89,7 +104,7 @@ Every data view needs all four states:
 - Sentence case everywhere: "Add task", not "ADD TASK" or "Add Task".
 - Buttons say what they do: "Add task", "Complete", "Delete".
 - Dates are human-readable (e.g. "Sep 30, 2026, 10:15 AM"), never raw ISO strings.
-- The header shows counts, e.g. "3 pending · 5 completed".
+- The stat cards show live counts. They are recalculated from the full task list after every action, whichever filter is active, and show "–" until the first load finishes.
 
 ## 9. Security and performance
 
@@ -105,7 +120,8 @@ Build only what the exam asks for. No dark mode, drag-and-drop, edit-task, auth,
 
 ## UI/UX checklist (run before marking any UI task done)
 
-- [ ] Works at 360px, 768px, and 1280px with no horizontal scroll
+- [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
+- [ ] Stat cards update after every add, complete, and delete
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
 - [ ] Buttons disable while loading; Delete asks for confirmation

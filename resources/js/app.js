@@ -17,7 +17,7 @@ const EMPTY_MESSAGES = {
 };
 
 const BUTTON_BASE =
-    'inline-flex min-h-10 min-w-24 items-center justify-center rounded-md px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+    'inline-flex min-h-10 min-w-24 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 md:flex-none';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -26,7 +26,13 @@ const titleInput = document.getElementById('title');
 const descriptionInput = document.getElementById('description');
 const priorityInput = document.getElementById('priority');
 const submitButton = document.getElementById('submit-button');
-const summary = document.getElementById('task-summary');
+const statElements = {
+    total: document.getElementById('stat-total'),
+    pending: document.getElementById('stat-pending'),
+    completed: document.getElementById('stat-completed'),
+    high: document.getElementById('stat-high'),
+};
+const columnHeaders = document.getElementById('column-headers');
 const taskList = document.getElementById('task-list');
 const listMessage = document.getElementById('list-message');
 const loadError = document.getElementById('load-error');
@@ -106,19 +112,18 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 3000);
 }
 
+// Mobile: a stacked card (content, badges, full-width actions). From md: one row of the task-columns grid.
 function renderTask(task) {
     const isCompleted = task.status === 'completed';
-    const item = createElement('li', 'rounded-lg border border-gray-200 bg-white p-4 shadow-sm');
-    const layout = createElement('div', 'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between');
-    const content = createElement('div', 'min-w-0 flex-1');
+    const item = createElement(
+        'li',
+        'flex flex-wrap items-center gap-x-2 gap-y-3 px-4 py-4 sm:px-6 md:grid md:task-columns md:gap-4',
+    );
+    const content = createElement('div', 'w-full min-w-0 md:w-auto');
 
     content.append(
         createElement('h3', `font-medium break-words ${isCompleted ? 'text-gray-400 line-through' : ''}`, task.title),
     );
-
-    const badges = createElement('div', 'mt-2 flex flex-wrap gap-2');
-    badges.append(createBadge(PRIORITY_BADGES[task.priority]), createBadge(STATUS_BADGES[task.status]));
-    content.append(badges);
 
     if (task.description) {
         content.append(
@@ -128,11 +133,17 @@ function renderTask(task) {
 
     const createdAt = createElement('time', '', dateFormatter.format(new Date(task.created_at)));
     createdAt.dateTime = task.created_at;
-    const meta = createElement('p', 'mt-2 text-xs text-gray-500', 'Created ');
+    const meta = createElement('p', 'mt-1 text-xs text-gray-500', 'Created ');
     meta.append(createdAt);
     content.append(meta);
 
-    const actions = createElement('div', 'flex gap-2 sm:shrink-0');
+    const priorityCell = createElement('div');
+    priorityCell.append(createBadge(PRIORITY_BADGES[task.priority]));
+
+    const statusCell = createElement('div');
+    statusCell.append(createBadge(STATUS_BADGES[task.status]));
+
+    const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
 
     if (!isCompleted) {
         const completeButton = createElement(
@@ -154,22 +165,25 @@ function renderTask(task) {
     deleteButton.addEventListener('click', () => deleteTask(task, deleteButton));
     actions.append(deleteButton);
 
-    layout.append(content, actions);
-    item.append(layout);
+    item.append(content, priorityCell, statusCell, actions);
 
     return item;
 }
 
-function renderSummary(tasks) {
-    const completed = tasks.filter((task) => task.status === 'completed').length;
+function renderStats(tasks) {
+    const pending = tasks.filter((task) => task.status === 'pending');
 
-    summary.textContent = `${tasks.length - completed} pending · ${completed} completed`;
+    statElements.total.textContent = tasks.length;
+    statElements.pending.textContent = pending.length;
+    statElements.completed.textContent = tasks.length - pending.length;
+    statElements.high.textContent = pending.filter((task) => task.priority === 'high').length;
 }
 
 function renderList(tasks) {
     taskList.replaceChildren(...tasks.map(renderTask));
     listMessage.textContent = EMPTY_MESSAGES[currentFilter];
     listMessage.classList.toggle('hidden', tasks.length > 0);
+    columnHeaders.classList.toggle('md:grid', tasks.length > 0);
 }
 
 async function loadTasks() {
@@ -187,7 +201,7 @@ async function loadTasks() {
         }
 
         loadError.classList.add('hidden');
-        renderSummary(allTasks.data);
+        renderStats(allTasks.data);
         renderList((filteredTasks ?? allTasks).data);
     } catch {
         if (requestId !== latestRequestId) {
@@ -196,6 +210,7 @@ async function loadTasks() {
 
         loadError.classList.remove('hidden');
         listMessage.classList.add('hidden');
+        columnHeaders.classList.remove('md:grid');
     }
 }
 
