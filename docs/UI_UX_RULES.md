@@ -9,6 +9,24 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 | `/` | `home.blade.php` | Public landing page that explains the app and links to it |
 | `/tasks` | `tasks/index.blade.php` | The task tracker dashboard |
 
+### Tracker shell
+
+The tracker is a three-part shell: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
+
+- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the category list. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
+- From `lg` the sidebar is a sticky column. Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, or choosing anything inside it. While closed it is `invisible`, not merely translated off-screen, so it stays out of the tab order.
+- **Layout switch** toggles between List and Calendar. Only one is in the DOM flow at a time.
+- Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0".
+
+### Calendar
+
+- The month grid starts on Monday and always renders whole weeks, so it reaches into the neighbouring months; those days are dimmed. Today's date sits in a filled circle.
+- Tasks appear as chips coloured by priority, with a `title` attribute because day cells truncate.
+- **Rescheduling has two paths, and both must keep working:**
+  1. Dragging a chip onto a day, or into the "No due date" tray to clear the date. Pointer only.
+  2. Opening any chip, or the due-date button on a list row, which opens the reschedule dialog. This is the keyboard and touch path, and it is the baseline — dragging is the enhancement on top, never the only way.
+- Below `md` the month grid is replaced by an agenda grouped by day, because seven columns on a phone leave about 50px per day. The hint text changes with it: no "drag" instruction where dragging does not exist.
+
 ### Shared components
 
 Everything reusable lives in `resources/views/components/`. Add to these rather than repeating markup.
@@ -102,7 +120,8 @@ Additional rules:
 | Destructive | Delete | Red text or outline, never the most prominent button on the row. It keeps its natural width, so it never stretches to fill the row when a task is already completed and Delete is the only action left. |
 
 - Every button has explicit `type="button"` or `type="submit"`.
-- Minimum touch target of 40×40px (`py-2 px-3` or larger).
+- Buttons that carry a row's main actions, and every control in a form, are at least 40px tall (`min-h-10`).
+- Inline controls sitting inside a line of metadata, such as the due-date button on a task row, are at least 32px (`min-h-8`). That stays clear of the 24px WCAG 2.2 AA minimum without making a metadata line as tall as a button bar. Nothing smaller than 32px is ever tappable.
 - A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it cannot be undone. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
@@ -179,6 +198,10 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
 - [ ] Buttons disable while loading; Delete asks for confirmation
 - [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
+- [ ] Sidebar views and categories filter the list, and the title names the current one
+- [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
+- [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
+- [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Loading, empty (per filter), error, and success states all appear correctly
 - [ ] Full keyboard navigation with visible focus rings

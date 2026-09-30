@@ -1,4 +1,19 @@
-// Full class strings are listed here (not built dynamically) so Tailwind can find them when scanning this file.
+import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
+import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
+import { confirmAction, openScheduleDialog } from './dialogs.js';
+import {
+    clearBusy,
+    createBadge,
+    createElement,
+    createIcon,
+    parseDate,
+    setBusy,
+    showToast,
+    startOfToday,
+    toIsoDate,
+} from './dom.js';
+
+// Full class strings are listed here (not built dynamically) so Tailwind can find them.
 const PRIORITY_BADGES = {
     high: { label: 'High', classes: 'bg-red-100 text-red-700', accent: 'bg-red-400' },
     medium: { label: 'Medium', classes: 'bg-amber-100 text-amber-800', accent: 'bg-amber-400' },
@@ -10,198 +25,155 @@ const STATUS_BADGES = {
     completed: { label: 'Completed', classes: 'bg-green-100 text-green-700' },
 };
 
-const EMPTY_MESSAGES = {
-    '': 'No tasks yet. Use the form to add your first one.',
-    pending: 'No pending tasks. Everything is done.',
-    completed: 'No completed tasks yet.',
+const CATEGORY_DOTS = {
+    slate: 'bg-slate-400',
+    red: 'bg-red-400',
+    amber: 'bg-amber-400',
+    green: 'bg-green-400',
+    blue: 'bg-blue-400',
+    violet: 'bg-violet-400',
+    pink: 'bg-pink-400',
 };
 
-const RATE_LIMIT_MESSAGE = 'Too many requests. Please wait a moment and try again.';
-
-// Heroicons v2 (MIT) outline paths, matching resources/views/components/icon.blade.php.
-const ICONS = {
-    check: 'm4.5 12.75 6 6 9-13.5',
-    undo: 'M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3',
-    trash: 'm14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',
-    'check-circle': 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
-    warning:
-        'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z',
+const VIEWS = {
+    all: { title: 'All tasks', subtitle: "Create tasks, set priorities, and track what's done.", params: {} },
+    today: { title: 'Today', subtitle: 'Everything due today.', params: { due: 'today' } },
+    upcoming: { title: 'Upcoming', subtitle: 'Today and everything still ahead.', params: { due: 'upcoming' } },
+    overdue: { title: 'Overdue', subtitle: 'Past their due date and still pending.', params: { due: 'overdue' } },
+    completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
 };
 
 const BUTTON_BASE =
     'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60';
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+const dueFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
-const form = document.getElementById('task-form');
-const titleInput = document.getElementById('title');
-const descriptionInput = document.getElementById('description');
-const submitButton = document.getElementById('submit-button');
-const statElements = {
-    total: document.getElementById('stat-total'),
-    pending: document.getElementById('stat-pending'),
-    completed: document.getElementById('stat-completed'),
-    high: document.getElementById('stat-high'),
+const $ = (id) => document.getElementById(id);
+
+const elements = {
+    sidebar: $('sidebar'),
+    sidebarOpen: $('sidebar-open'),
+    sidebarClose: $('sidebar-close'),
+    sidebarBackdrop: $('sidebar-backdrop'),
+    viewTitle: $('view-title'),
+    viewSubtitle: $('view-subtitle'),
+    categoryList: $('category-list'),
+    categoryEmpty: $('category-empty'),
+    categoryForm: $('category-form'),
+    categoryToggle: $('category-toggle'),
+    categoryName: $('category-name'),
+    categorySubmit: $('category-submit'),
+    categorySelect: $('category_id'),
+    listView: $('list-view'),
+    calendarView: $('calendar-view'),
+    form: $('task-form'),
+    title: $('title'),
+    description: $('description'),
+    dueDate: $('due_date'),
+    submit: $('submit-button'),
+    taskList: $('task-list'),
+    tasksHeading: $('tasks-heading'),
+    columnHeaders: $('column-headers'),
+    skeleton: $('skeleton'),
+    listMessage: $('list-message'),
+    listMessageText: $('list-message-text'),
+    loadError: $('load-error'),
+    loadErrorMessage: $('load-error-message'),
+    retry: $('retry-button'),
+    progressBar: $('progress-bar'),
+    progressTrack: $('progress-track'),
+    progressLabel: $('progress-label'),
+    calendarGrid: $('calendar-grid'),
+    calendarAgenda: $('calendar-agenda'),
+    calendarMonth: $('calendar-month'),
+    unscheduledList: $('unscheduled-list'),
+    unscheduledEmpty: $('unscheduled-empty'),
+    unscheduledCount: $('unscheduled-count'),
 };
-const progressTrack = document.getElementById('progress-track');
-const progressBar = document.getElementById('progress-bar');
-const progressLabel = document.getElementById('progress-label');
-const columnHeaders = document.getElementById('column-headers');
-const tasksHeading = document.getElementById('tasks-heading');
-const taskList = document.getElementById('task-list');
-const skeleton = document.getElementById('skeleton');
-const listMessage = document.getElementById('list-message');
-const listMessageText = document.getElementById('list-message-text');
-const loadError = document.getElementById('load-error');
-const loadErrorMessage = document.getElementById('load-error-message');
-const retryButton = document.getElementById('retry-button');
-const toastRegion = document.getElementById('toast-region');
-const filterButtons = document.querySelectorAll('[data-filter]');
-const confirmDialog = document.getElementById('confirm-dialog');
-const confirmMessage = document.getElementById('confirm-message');
-const confirmAccept = document.getElementById('confirm-accept');
-const confirmCancel = document.getElementById('confirm-cancel');
 
-let currentFilter = '';
+const stats = {
+    total: $('stat-total'),
+    pending: $('stat-pending'),
+    completed: $('stat-completed'),
+    overdue: $('stat-overdue'),
+};
+
+const viewButtons = document.querySelectorAll('[data-view]');
+const modeButtons = document.querySelectorAll('[data-mode]');
+const statusButtons = document.querySelectorAll('[data-filter]');
+
+const today = startOfToday();
+
+const state = {
+    view: 'all',
+    mode: 'list',
+    status: '',
+    categoryId: null,
+    month: new Date(today.getFullYear(), today.getMonth(), 1),
+    categories: [],
+};
+
 let latestRequestId = 0;
 
-class ApiError extends Error {
-    constructor(message, { errors = {}, status = 0 } = {}) {
-        super(message);
-        this.errors = errors;
-        this.status = status;
-    }
-}
+// ---------------------------------------------------------------- formatting
 
-async function api(path, { method = 'GET', body } = {}) {
-    const headers = { Accept: 'application/json' };
-
-    if (body !== undefined) {
-        headers['Content-Type'] = 'application/json';
+function dueLabel(task) {
+    if (!task.due_date) {
+        return 'No due date';
     }
 
-    const response = await fetch(`/api${path}`, {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({}));
+    const formatted = dueFormatter.format(parseDate(task.due_date));
 
-    if (!response.ok) {
-        throw new ApiError(data.message ?? 'Something went wrong.', {
-            errors: data.errors,
-            status: response.status,
-        });
+    if (task.is_overdue) {
+        return `Overdue · ${formatted}`;
     }
 
-    return data;
+    return task.due_date === toIsoDate(today) ? 'Due today' : `Due ${formatted}`;
 }
 
-// Laravel's own 429 body says "Too Many Attempts.", which means little to a user.
-function errorMessage(error) {
-    if (!(error instanceof ApiError)) {
-        return 'Something went wrong.';
+function emptyMessage() {
+    if (state.categoryId) {
+        return 'No tasks in this category.';
     }
 
-    return error.status === 429 ? RATE_LIMIT_MESSAGE : error.message;
-}
-
-function createElement(tag, className, text) {
-    const element = document.createElement(tag);
-
-    if (className) {
-        element.className = className;
+    if (state.status === 'completed') {
+        return 'No completed tasks yet.';
     }
 
-    if (text !== undefined) {
-        element.textContent = text;
+    if (state.status === 'pending') {
+        return 'No pending tasks. Everything is done.';
     }
 
-    return element;
+    return {
+        all: 'No tasks yet. Use the form to add your first one.',
+        today: 'Nothing due today.',
+        upcoming: 'Nothing scheduled yet.',
+        overdue: 'Nothing overdue. Nice work.',
+        completed: 'No completed tasks yet.',
+    }[state.view];
 }
 
-function createIcon(name, className = 'size-4') {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '1.5');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('class', className);
+// ---------------------------------------------------------------- list view
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', ICONS[name]);
-    svg.append(path);
-
-    return svg;
-}
-
-function createBadge({ label, classes }) {
-    return createElement('span', `inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`, label);
-}
-
-// The submit button wraps its text in a span so the icon beside it survives a label swap.
-const labelOf = (button) => button.querySelector('[data-label]') ?? button;
-
-function setBusy(button, label) {
-    const target = labelOf(button);
-
-    target.dataset.previous = target.textContent;
-    target.textContent = label;
-    button.disabled = true;
-}
-
-function clearBusy(button) {
-    const target = labelOf(button);
-
-    target.textContent = target.dataset.previous;
-    button.disabled = false;
-}
-
-function showToast(message, type = 'success') {
-    const styles =
-        type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white';
-    const toast = createElement(
-        'div',
-        `toast-enter flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm shadow-lg ${styles}`,
+function createDueButton(task) {
+    const button = createElement(
+        'button',
+        `-mx-1 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+            task.is_overdue ? 'text-red-600' : 'text-gray-500'
+        }`,
     );
+    button.type = 'button';
+    button.append(createIcon('calendar', 'size-3.5 shrink-0'), createElement('span', '', dueLabel(task)));
+    button.addEventListener('click', () => rescheduleFromDialog(task));
 
-    toast.append(createIcon(type === 'error' ? 'warning' : 'check-circle', 'size-4 shrink-0'));
-    toast.append(createElement('span', '', message));
-    toastRegion.append(toast);
-    setTimeout(() => toast.remove(), 3000);
+    return button;
 }
 
-// A real dialog can be styled, traps focus, and closes on Escape, which window.confirm cannot.
-function confirmDelete(title) {
-    return new Promise((resolve) => {
-        confirmMessage.textContent = `Delete "${title}"? This can't be undone.`;
-
-        const controller = new AbortController();
-        const finish = (result) => {
-            controller.abort();
-
-            if (confirmDialog.open) {
-                confirmDialog.close();
-            }
-
-            resolve(result);
-        };
-
-        confirmAccept.addEventListener('click', () => finish(true), { signal: controller.signal });
-        confirmCancel.addEventListener('click', () => finish(false), { signal: controller.signal });
-        confirmDialog.addEventListener('close', () => finish(false), { signal: controller.signal });
-
-        confirmDialog.showModal();
-    });
-}
-
-// Mobile: a stacked card (content, badges, full-width actions). From md: one row of the task-columns grid.
+// Mobile: a stacked card. From md: one row of the task-columns grid.
 function renderTask(task) {
-    const isCompleted = task.status === 'completed';
     const priority = PRIORITY_BADGES[task.priority];
+    const isCompleted = task.status === 'completed';
 
     const item = createElement(
         'li',
@@ -224,20 +196,30 @@ function renderTask(task) {
         );
     }
 
-    const createdAt = createElement('time', '', dateFormatter.format(new Date(task.created_at)));
-    createdAt.dateTime = task.created_at;
-    const meta = createElement('p', 'mt-1 text-xs whitespace-nowrap text-gray-500', 'Created ');
-    meta.append(createdAt);
+    const meta = createElement('div', 'mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1');
+
+    if (task.category) {
+        const chip = createElement('span', 'inline-flex items-center gap-1.5 text-xs text-gray-600');
+        chip.append(
+            createElement('span', `size-2 rounded-full ${CATEGORY_DOTS[task.category.color]}`),
+            createElement('span', '', task.category.name),
+        );
+        meta.append(chip);
+    }
+
+    meta.append(createDueButton(task));
+    meta.append(
+        createElement('span', 'text-xs text-gray-400', `Added ${createdFormatter.format(new Date(task.created_at))}`),
+    );
     content.append(meta);
 
     const priorityCell = createElement('div');
-    priorityCell.append(createBadge(priority));
+    priorityCell.append(createBadge(priority.label, priority.classes));
 
     const statusCell = createElement('div');
-    statusCell.append(createBadge(STATUS_BADGES[task.status]));
+    statusCell.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
     const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
-
     const primary = isCompleted
         ? {
               label: 'Reopen',
@@ -272,82 +254,282 @@ function renderTask(task) {
     return item;
 }
 
-function renderStats(stats) {
-    statElements.total.textContent = stats.total;
-    statElements.pending.textContent = stats.pending;
-    statElements.completed.textContent = stats.completed;
-    statElements.high.textContent = stats.high_priority_pending;
-
-    const percent = stats.total === 0 ? 0 : Math.round((stats.completed / stats.total) * 100);
-
-    progressBar.style.width = `${percent}%`;
-    progressTrack.setAttribute('aria-valuenow', String(percent));
-    progressLabel.textContent =
-        stats.total === 0 ? 'No tasks yet' : `${stats.completed} of ${stats.total} done (${percent}%)`;
-}
-
-function clearStats() {
-    for (const element of Object.values(statElements)) {
-        element.textContent = '–';
-    }
-
-    progressBar.style.width = '0%';
-    progressTrack.setAttribute('aria-valuenow', '0');
-    progressLabel.textContent = 'Unavailable';
-}
-
 function renderList(tasks) {
     const hasTasks = tasks.length > 0;
 
-    taskList.replaceChildren(...tasks.map(renderTask));
-    listMessageText.textContent = EMPTY_MESSAGES[currentFilter];
-    listMessage.classList.toggle('hidden', hasTasks);
-    listMessage.classList.toggle('flex', !hasTasks);
-    columnHeaders.classList.toggle('md:grid', hasTasks);
+    elements.taskList.replaceChildren(...tasks.map(renderTask));
+    elements.listMessageText.textContent = emptyMessage();
+    elements.listMessage.classList.toggle('hidden', hasTasks);
+    elements.listMessage.classList.toggle('flex', !hasTasks);
+    elements.columnHeaders.classList.toggle('md:grid', hasTasks);
 }
 
-async function loadTasks() {
-    // Ignore responses from older requests if the filter changed while they were in flight.
+// ---------------------------------------------------------------- stats & sidebar
+
+function renderStats(data) {
+    stats.total.textContent = data.total;
+    stats.pending.textContent = data.pending;
+    stats.completed.textContent = data.completed;
+    stats.overdue.textContent = data.overdue;
+
+    for (const element of document.querySelectorAll('[data-view-count]')) {
+        const value = data[element.dataset.viewCount];
+        element.textContent = value > 0 ? value : '';
+    }
+
+    const percent = data.total === 0 ? 0 : Math.round((data.completed / data.total) * 100);
+
+    elements.progressBar.style.width = `${percent}%`;
+    elements.progressTrack.setAttribute('aria-valuenow', String(percent));
+    elements.progressLabel.textContent =
+        data.total === 0 ? 'No tasks yet' : `${data.completed} of ${data.total} done (${percent}%)`;
+}
+
+function clearStats() {
+    for (const element of Object.values(stats)) {
+        element.textContent = '–';
+    }
+
+    elements.progressBar.style.width = '0%';
+    elements.progressTrack.setAttribute('aria-valuenow', '0');
+    elements.progressLabel.textContent = 'Unavailable';
+}
+
+function renderCategories(categories) {
+    state.categories = categories;
+
+    elements.categoryList.replaceChildren(
+        ...categories.map((category) => {
+            const item = createElement('li');
+            const row = createElement(
+                'div',
+                `flex items-center rounded-lg transition-colors hover:bg-gray-100 ${
+                    state.categoryId === category.id ? 'bg-indigo-50' : ''
+                }`,
+            );
+
+            const select = createElement(
+                'button',
+                `flex min-h-10 flex-1 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+                    state.categoryId === category.id ? 'text-indigo-700' : 'text-gray-600'
+                }`,
+            );
+            select.type = 'button';
+            select.setAttribute('aria-pressed', String(state.categoryId === category.id));
+            select.append(
+                createElement('span', `size-2.5 shrink-0 rounded-full ${CATEGORY_DOTS[category.color]}`),
+                createElement('span', 'flex-1 truncate text-left', category.name),
+                createElement('span', 'text-xs text-gray-400 tabular-nums', String(category.task_count)),
+            );
+            select.addEventListener('click', () => selectCategory(category));
+
+            const remove = createElement(
+                'button',
+                'flex size-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+            );
+            remove.type = 'button';
+            remove.append(createIcon('close', 'size-4'));
+            remove.append(createElement('span', 'sr-only', `Delete ${category.name}`));
+            remove.addEventListener('click', () => deleteCategory(category));
+
+            row.append(select, remove);
+            item.append(row);
+
+            return item;
+        }),
+    );
+
+    elements.categoryEmpty.classList.toggle('hidden', categories.length > 0);
+
+    // Keep the form's picker in step with the sidebar, preserving any choice already made.
+    const selected = elements.categorySelect.value;
+    const placeholder = createElement('option', '', 'No category');
+    // An <option> with no value attribute submits its own text, which would post "No category".
+    placeholder.value = '';
+
+    elements.categorySelect.replaceChildren(
+        placeholder,
+        ...categories.map((category) => {
+            const option = createElement('option', '', category.name);
+            option.value = String(category.id);
+
+            return option;
+        }),
+    );
+    elements.categorySelect.value = selected;
+}
+
+// ---------------------------------------------------------------- loading
+
+function currentParams() {
+    const params = { ...VIEWS[state.view].params };
+
+    if (state.status) {
+        params.status = state.status;
+    }
+
+    if (state.categoryId) {
+        params.category_id = state.categoryId;
+    }
+
+    return params;
+}
+
+function showLoadError(error) {
+    clearStats();
+    elements.skeleton.classList.add('hidden');
+    elements.taskList.replaceChildren();
+    elements.listMessage.classList.add('hidden');
+    elements.listMessage.classList.remove('flex');
+    elements.columnHeaders.classList.remove('md:grid');
+    elements.loadErrorMessage.textContent =
+        error instanceof ApiError && error.status === 429 ? RATE_LIMIT_MESSAGE : "Couldn't load tasks. Try again.";
+    elements.loadError.classList.remove('hidden');
+}
+
+async function load() {
+    // Ignore responses from older requests if the view changed while they were in flight.
     const requestId = ++latestRequestId;
+    const range = monthRange(state.month);
 
     try {
-        const [tasks, stats] = await Promise.all([
-            api(currentFilter ? `/tasks?status=${currentFilter}` : '/tasks'),
-            api('/tasks/stats'),
-        ]);
+        const requests = [api('/tasks/stats'), api('/categories')];
+
+        requests.push(
+            state.mode === 'calendar'
+                ? api('/tasks', { params: { ...currentParams(), ...range } })
+                : api('/tasks', { params: currentParams() }),
+        );
+
+        if (state.mode === 'calendar') {
+            requests.push(api('/tasks', { params: { ...currentParams(), due: 'none' } }));
+        }
+
+        const [statsResponse, categoriesResponse, tasksResponse, unscheduledResponse] = await Promise.all(requests);
 
         if (requestId !== latestRequestId) {
             return;
         }
 
-        skeleton.classList.add('hidden');
-        loadError.classList.add('hidden');
-        renderStats(stats.data);
-        renderList(tasks.data);
+        elements.skeleton.classList.add('hidden');
+        elements.loadError.classList.add('hidden');
+        renderStats(statsResponse.data);
+        renderCategories(categoriesResponse.data);
+
+        if (state.mode === 'calendar') {
+            elements.calendarMonth.textContent = monthLabel(state.month);
+            renderMonthGrid(elements.calendarGrid, {
+                tasks: tasksResponse.data,
+                month: state.month,
+                onOpen: rescheduleFromDialog,
+                onReschedule: scheduleTask,
+            });
+            renderAgenda(elements.calendarAgenda, { tasks: tasksResponse.data, onOpen: rescheduleFromDialog });
+            renderUnscheduled(elements.unscheduledList, {
+                tasks: unscheduledResponse.data,
+                onOpen: rescheduleFromDialog,
+                onReschedule: scheduleTask,
+            });
+            elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
+            elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
+        } else {
+            renderList(tasksResponse.data);
+        }
     } catch (error) {
-        if (requestId !== latestRequestId) {
-            return;
+        if (requestId === latestRequestId) {
+            showLoadError(error);
         }
-
-        // Stale counts next to an error banner would be misleading.
-        skeleton.classList.add('hidden');
-        clearStats();
-        taskList.replaceChildren();
-        loadErrorMessage.textContent =
-            error instanceof ApiError && error.status === 429
-                ? RATE_LIMIT_MESSAGE
-                : "Couldn't load tasks. Try again.";
-        loadError.classList.remove('hidden');
-        listMessage.classList.add('hidden');
-        listMessage.classList.remove('flex');
-        columnHeaders.classList.remove('md:grid');
     }
 }
 
+// ---------------------------------------------------------------- task actions
+
+// Re-rendering destroys the button that was clicked, so focus has to be parked somewhere.
+async function runAction(button, { busyLabel, request, successMessage, restoreFocus }) {
+    const hadFocus = restoreFocus ?? document.activeElement === button;
+
+    if (button) {
+        setBusy(button, busyLabel);
+    }
+
+    try {
+        await request();
+        showToast(successMessage);
+        await load();
+
+        if (hadFocus) {
+            elements.tasksHeading.focus();
+        }
+    } catch (error) {
+        showToast(errorMessage(error), 'error');
+    } finally {
+        if (button) {
+            clearBusy(button);
+        }
+    }
+}
+
+const completeTask = (task, button) =>
+    runAction(button, {
+        busyLabel: 'Completing…',
+        request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
+        successMessage: 'Task completed',
+    });
+
+const reopenTask = (task, button) =>
+    runAction(button, {
+        busyLabel: 'Reopening…',
+        request: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
+        successMessage: 'Task reopened',
+    });
+
+async function deleteTask(task, button) {
+    // The dialog steals focus, so record where it came from before opening.
+    const hadFocus = document.activeElement === button;
+    const confirmed = await confirmAction({
+        title: 'Delete task',
+        message: `Delete "${task.title}"? This can't be undone.`,
+    });
+
+    if (!confirmed) {
+        button.focus();
+
+        return;
+    }
+
+    await runAction(button, {
+        busyLabel: 'Deleting…',
+        request: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
+        successMessage: 'Task deleted',
+        restoreFocus: hadFocus,
+    });
+}
+
+/** Shared by dragging onto a day, dropping into the tray, and the reschedule dialog. */
+async function scheduleTask(taskId, date) {
+    try {
+        await api(`/tasks/${taskId}/schedule`, { method: 'PATCH', body: { due_date: date } });
+        showToast(date ? 'Task rescheduled' : 'Due date cleared');
+        await load();
+    } catch (error) {
+        showToast(errorMessage(error), 'error');
+    }
+}
+
+async function rescheduleFromDialog(task) {
+    const result = await openScheduleDialog(task);
+
+    if (result) {
+        await scheduleTask(task.id, result.date);
+    }
+}
+
+// ---------------------------------------------------------------- forms
+
 const errorElementFor = (field) => document.getElementById(`${field}-error`);
 
-function clearFieldErrors() {
-    for (const field of ['title', 'description', 'priority']) {
+function clearFieldErrors(fields) {
+    for (const field of fields) {
         document.getElementById(field)?.removeAttribute('aria-invalid');
 
         const errorElement = errorElementFor(field);
@@ -356,7 +538,7 @@ function clearFieldErrors() {
     }
 }
 
-function showFieldErrors(errors) {
+function showFieldErrors(errors, scope) {
     for (const [field, messages] of Object.entries(errors)) {
         const errorElement = errorElementFor(field);
 
@@ -370,113 +552,221 @@ function showFieldErrors(errors) {
         errorElement.classList.remove('hidden');
     }
 
-    form.querySelector('[aria-invalid="true"]')?.focus();
+    scope.querySelector('[aria-invalid="true"]')?.focus();
 }
+
+const TASK_FIELDS = ['title', 'description', 'priority', 'category_id', 'due_date'];
 
 async function createTask(event) {
     event.preventDefault();
 
     // Pressing Enter can re-submit the form even while the disabled button is mid-request.
-    if (submitButton.disabled) {
+    if (elements.submit.disabled) {
         return;
     }
 
-    clearFieldErrors();
+    clearFieldErrors(TASK_FIELDS);
 
     const payload = {
-        title: titleInput.value.trim(),
-        description: descriptionInput.value.trim() || null,
-        priority: form.querySelector('input[name="priority"]:checked')?.value,
+        title: elements.title.value.trim(),
+        description: elements.description.value.trim() || null,
+        priority: elements.form.querySelector('input[name="priority"]:checked')?.value,
+        category_id: elements.categorySelect.value || null,
+        due_date: elements.dueDate.value || null,
     };
 
     if (!payload.title) {
-        showFieldErrors({ title: ['The title field is required.'] });
+        showFieldErrors({ title: ['The title field is required.'] }, elements.form);
+
         return;
     }
 
-    setBusy(submitButton, 'Saving…');
+    setBusy(elements.submit, 'Saving…');
 
     try {
         await api('/tasks', { method: 'POST', body: payload });
-        form.reset();
-        titleInput.focus();
+        elements.form.reset();
+        elements.title.focus();
         showToast('Task added');
-        await loadTasks();
+        await load();
     } catch (error) {
         if (error instanceof ApiError && Object.keys(error.errors).length > 0) {
-            showFieldErrors(error.errors);
+            showFieldErrors(error.errors, elements.form);
         } else {
             showToast(errorMessage(error), 'error');
         }
     } finally {
-        clearBusy(submitButton);
+        clearBusy(elements.submit);
     }
 }
 
-// Re-rendering the list destroys the button that was clicked, so focus has to be parked somewhere.
-async function runRowAction(button, { busyLabel, request, successMessage, restoreFocus }) {
-    const hadFocus = restoreFocus ?? document.activeElement === button;
+async function createCategory(event) {
+    event.preventDefault();
 
-    setBusy(button, busyLabel);
-
-    try {
-        await request();
-        showToast(successMessage);
-        await loadTasks();
-
-        if (hadFocus) {
-            tasksHeading.focus();
-        }
-    } catch (error) {
-        showToast(errorMessage(error), 'error');
-    } finally {
-        clearBusy(button);
-    }
-}
-
-function completeTask(task, button) {
-    return runRowAction(button, {
-        busyLabel: 'Completing…',
-        request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
-        successMessage: 'Task completed',
-    });
-}
-
-function reopenTask(task, button) {
-    return runRowAction(button, {
-        busyLabel: 'Reopening…',
-        request: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
-        successMessage: 'Task reopened',
-    });
-}
-
-async function deleteTask(task, button) {
-    // The dialog steals focus, so record where it came from before opening.
-    const hadFocus = document.activeElement === button;
-
-    if (!(await confirmDelete(task.title))) {
-        button.focus();
+    if (elements.categorySubmit.disabled) {
         return;
     }
 
-    await runRowAction(button, {
-        busyLabel: 'Deleting…',
-        request: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
-        successMessage: 'Task deleted',
-        restoreFocus: hadFocus,
+    clearFieldErrors(['category-name', 'category-color']);
+    setBusy(elements.categorySubmit, 'Adding…');
+
+    try {
+        await api('/categories', {
+            method: 'POST',
+            body: {
+                name: elements.categoryName.value.trim(),
+                color: elements.categoryForm.querySelector('input[name="color"]:checked')?.value,
+            },
+        });
+        elements.categoryForm.reset();
+        showToast('Category added');
+        await load();
+        elements.categoryName.focus();
+    } catch (error) {
+        // The API names these fields "name" and "color"; the inputs are prefixed to stay unique.
+        if (error instanceof ApiError && Object.keys(error.errors).length > 0) {
+            const prefixed = Object.fromEntries(
+                Object.entries(error.errors).map(([field, messages]) => [`category-${field}`, messages]),
+            );
+            showFieldErrors(prefixed, elements.categoryForm);
+        } else {
+            showToast(errorMessage(error), 'error');
+        }
+    } finally {
+        clearBusy(elements.categorySubmit);
+    }
+}
+
+async function deleteCategory(category) {
+    const confirmed = await confirmAction({
+        title: 'Delete category',
+        message:
+            category.task_count > 0
+                ? `Delete "${category.name}"? Its ${category.task_count} task(s) will stay, without a category.`
+                : `Delete "${category.name}"?`,
+    });
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        await api(`/categories/${category.id}`, { method: 'DELETE' });
+
+        if (state.categoryId === category.id) {
+            state.categoryId = null;
+            applyView();
+        }
+
+        showToast('Category deleted');
+        await load();
+    } catch (error) {
+        showToast(errorMessage(error), 'error');
+    }
+}
+
+// ---------------------------------------------------------------- navigation
+
+function applyView() {
+    const view = VIEWS[state.view];
+    const category = state.categories.find((item) => item.id === state.categoryId);
+
+    elements.viewTitle.textContent = category ? category.name : view.title;
+    elements.viewSubtitle.textContent = category ? 'Tasks in this category.' : view.subtitle;
+
+    viewButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(!state.categoryId && button.dataset.view === state.view));
+    });
+    statusButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.filter === state.status));
     });
 }
 
-function setFilter(button) {
-    currentFilter = button.dataset.filter;
-    filterButtons.forEach((filterButton) => {
-        filterButton.setAttribute('aria-pressed', String(filterButton === button));
-    });
-    loadTasks();
+function setView(key) {
+    state.view = key;
+    state.categoryId = null;
+    state.status = key === 'completed' ? 'completed' : '';
+    applyView();
+    closeSidebar();
+    load();
 }
 
-form.addEventListener('submit', createTask);
-retryButton.addEventListener('click', loadTasks);
-filterButtons.forEach((button) => button.addEventListener('click', () => setFilter(button)));
+function selectCategory(category) {
+    state.categoryId = state.categoryId === category.id ? null : category.id;
+    state.view = 'all';
+    state.status = '';
+    applyView();
+    closeSidebar();
+    load();
+}
 
-loadTasks();
+function setMode(mode) {
+    state.mode = mode;
+    modeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+    elements.listView.classList.toggle('hidden', mode !== 'list');
+    elements.calendarView.classList.toggle('hidden', mode !== 'calendar');
+    elements.calendarView.classList.toggle('xl:grid', mode === 'calendar');
+    load();
+}
+
+function shiftMonth(offset) {
+    state.month = new Date(state.month.getFullYear(), state.month.getMonth() + offset, 1);
+    load();
+}
+
+function openSidebar() {
+    elements.sidebar.dataset.open = 'true';
+    elements.sidebarOpen.setAttribute('aria-expanded', 'true');
+    elements.sidebarBackdrop.classList.remove('hidden');
+    elements.sidebarClose.focus();
+}
+
+function closeSidebar() {
+    if (elements.sidebar.dataset.open !== 'true') {
+        return;
+    }
+
+    delete elements.sidebar.dataset.open;
+    elements.sidebarOpen.setAttribute('aria-expanded', 'false');
+    elements.sidebarBackdrop.classList.add('hidden');
+    elements.sidebarOpen.focus();
+}
+
+// ---------------------------------------------------------------- wiring
+
+elements.form.addEventListener('submit', createTask);
+elements.categoryForm.addEventListener('submit', createCategory);
+elements.retry.addEventListener('click', load);
+
+elements.categoryToggle.addEventListener('click', () => {
+    const open = elements.categoryForm.classList.toggle('hidden');
+    elements.categoryToggle.setAttribute('aria-expanded', String(!open));
+
+    if (!open) {
+        elements.categoryName.focus();
+    }
+});
+
+viewButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
+modeButtons.forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode)));
+statusButtons.forEach((button) =>
+    button.addEventListener('click', () => {
+        state.status = button.dataset.filter;
+        applyView();
+        load();
+    }),
+);
+
+elements.sidebarOpen.addEventListener('click', openSidebar);
+elements.sidebarClose.addEventListener('click', closeSidebar);
+elements.sidebarBackdrop.addEventListener('click', closeSidebar);
+document.addEventListener('keydown', (event) => event.key === 'Escape' && closeSidebar());
+
+$('calendar-prev').addEventListener('click', () => shiftMonth(-1));
+$('calendar-next').addEventListener('click', () => shiftMonth(1));
+$('calendar-today').addEventListener('click', () => {
+    state.month = new Date(today.getFullYear(), today.getMonth(), 1);
+    load();
+});
+
+load();

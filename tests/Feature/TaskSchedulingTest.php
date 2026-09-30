@@ -130,6 +130,7 @@ class TaskSchedulingTest extends TestCase
             'overdue' => ['overdue', ['yesterday']],
             'today' => ['today', ['today']],
             'upcoming' => ['upcoming', ['today', 'tomorrow']],
+            'none' => ['none', ['undated']],
         ];
     }
 

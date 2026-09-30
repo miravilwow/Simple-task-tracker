@@ -7,4 +7,5 @@ enum DueFilter: string
     case Overdue = 'overdue';
     case Today = 'today';
     case Upcoming = 'upcoming';
+    case None = 'none';
 }

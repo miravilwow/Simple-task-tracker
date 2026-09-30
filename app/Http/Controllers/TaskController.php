@@ -124,6 +124,7 @@ class TaskController extends Controller
             DueFilter::Overdue => $query->whereDate('due_date', '<', $today)->where('status', TaskStatus::Pending),
             DueFilter::Today => $query->whereDate('due_date', $today),
             DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today),
+            DueFilter::None => $query->whereNull('due_date'),
         };
     }
 
