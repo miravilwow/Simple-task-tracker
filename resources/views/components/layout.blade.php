@@ -11,7 +11,8 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="en" class="motion-safe:scroll-smooth">
+{{-- overscroll-y-none stops the rubber band at the top of the page; see app.css. --}}
+<html lang="en" @class(['motion-safe:scroll-smooth', 'overscroll-y-none' => $fluid])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -31,14 +32,17 @@
     </a>
 
     {{--
+        Fixed, not sticky, and for the same reason as the sidebar: the two are one chrome layer,
+        and only a shared positioning scheme keeps them locked together. A sticky navbar rides the
+        document, so an overscroll bounce slides it down over the fixed sidebar's heading.
+
         `app-header` sets the height on the <header>, not the <nav>, so the bottom border counts
         inside --header-height. Anything positioned against that variable then meets the header
         exactly instead of landing a pixel short of it.
-        The shadow separates the bar from whatever scrolls beneath it.
     --}}
     <header @if ($fluid) data-app-header @endif @class([
         'border-b border-gray-200 bg-white',
-        'app-header sticky top-0 z-30 shadow-sm' => $fluid,
+        'app-header fixed inset-x-0 top-0 z-30 shadow-sm' => $fluid,
     ])>
         <nav aria-label="Main" @class([
             'flex items-center justify-between gap-4',

@@ -15,10 +15,12 @@ The tracker runs the **full-bleed app shell**; the landing page keeps the boxed 
 
 | | Landing (`/`) | Tracker (`/tasks`) |
 |---|---|---|
-| Navbar | static, boxed at `max-w-6xl` | `sticky top-0 shadow-sm`, spans the viewport |
+| Navbar | static, boxed at `max-w-6xl` | `fixed top-0 shadow-sm`, spans the viewport |
 | Container | `max-w-6xl` | `app-container`: full width, capped at `--container-app` (112rem) so an ultrawide display does not stretch a task row across a metre of glass |
 | Sidebar | none | fixed, full height |
 | Gutter | `px-4 sm:px-6 lg:px-8` | `px-4 sm:px-6` |
+
+**The navbar and the sidebar are one chrome layer, and both are `fixed`.** They must share a positioning scheme, because anything else lets them drift apart: a sticky navbar rides the document, so an overscroll bounce — Chrome's rubber band when you scroll up past the top — slides it down over the fixed sidebar and swallows the sidebar's heading. `<html>` also carries `overscroll-y-none` so the bounce does not happen in the first place, and `<main>` reserves `--header-height` at the top because the navbar no longer takes space in the flow.
 
 The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
@@ -241,7 +243,7 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
-- [ ] Scrolling up and down leaves nothing showing above or through the sticky navbar, and the sidebar's top edge meets it with no seam
+- [ ] Scrolling up and down, including up past the very top, leaves nothing showing above or through the navbar, and the sidebar's top edge meets it with no seam
 - [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge
 - [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
