@@ -124,7 +124,7 @@ class CategoryApiTest extends TestCase
             ->assertJsonValidationErrors('icon');
     }
 
-    public function test_deleting_a_category_keeps_its_tasks_but_clears_the_link(): void
+    public function test_deleting_a_category_hides_it_and_leaves_its_tasks_uncategorised(): void
     {
         $category = Category::factory()->create();
         $task = Task::factory()->create(['category_id' => $category->id]);
@@ -133,8 +133,14 @@ class CategoryApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Category deleted.');
 
-        $this->assertModelMissing($category);
-        $this->assertNull($task->fresh()->category_id);
+        $this->assertSoftDeleted($category);
+        $this->assertSame([], $this->getJson('/api/categories')->json('data'));
+
+        // The row keeps its category_id: nothing was removed, so the foreign key never fired.
+        // That is what lets a restore put the task back under its project. Until then the
+        // relation reads null, because the project is hidden, so the task shows no project.
+        $this->assertSame($category->id, $task->fresh()->category_id);
+        $this->assertNull($this->getJson('/api/tasks')->json('data.0.category'));
     }
 
     public function test_delete_returns_404_for_missing_category(): void

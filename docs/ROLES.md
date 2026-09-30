@@ -68,6 +68,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\CategoryIcon`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
 - `categories.icon` is closed by `App\Enums\CategoryIcon`, never free text: its value goes straight into a CSS class name. The column itself is a `varchar`, because a 224-value database enum would be unreadable, so the application is what enforces the set.
 - Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. Every one of them is validated by `StoreTaskRequest`. `status` is deliberately absent, because it changes only through the complete and reopen endpoints.
+- `categories` carries `deleted_at` (`softDeletes()`) for the same reason `tasks` does, and `deleted_at` is left unindexed for the same reason too: it is NULL for nearly every row.
 - `categories` also carries `description`, `color` (closed by `App\Enums\CategoryColor`), `is_favorite`, `archived_at` and a self-referencing `parent_id`. The parent FK is `nullOnDelete`, so deleting a project promotes its children rather than taking them with it. `archived_at` is left unindexed for the same reason `deleted_at` is.
 - A folder and a parent project are **one tree**, not two. A folder is simply a project with children, so "move into folder" and "set parent" are the same operation; building both would be two ways to say the same thing.
 - `category_comments` is named for what it comments on, because a bare `comments` table would be ambiguous the day a task gets comments too. It cascades with its project.
@@ -110,6 +111,7 @@ Start every response that changes code with one line naming the active role(s), 
   | DELETE | `/api/categories/{id}/comments/{comment}` | 200 + message | 404 not found |
   | GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
+  | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), and a `from`/`to` date window for the calendar. Every one of them is used by the UI; do not add a filter nothing calls.
 - `overdue`, `today` and `upcoming` are **work queues**: each one adds `status = pending`, so completing a task drops it out of the view. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
@@ -119,6 +121,9 @@ Start every response that changes code with one line naming the active role(s), 
 - The comment thread reads its `reactor` token from the query string and a reaction sends it in the body, so `CategoryCommentResource` uses `input()` rather than `query()`. With `query()` the reply to a reaction reports it as not mine, and only a reload corrects the button.
 - Any endpoint returning comments eager-loads `reactions`. A test pins the thread to three queries so an N+1 cannot creep back in.
 - `move` takes `parent_id` as `present|nullable`, the same shape as `schedule`: sending `null` moves a project to the top level, while omitting the key is a 400 rather than a silent no-op. `App\Rules\NotItsOwnDescendant` refuses a move that would cut a branch off the tree.
+- `DELETE /api/categories/{id}` soft deletes, so the delete toast can offer Undo through `restore`, whose route is bound `->withTrashed()`. Deleting a project used to be the one irreversible action in the app, while deleting a single task inside it could be undone; a project holds tasks, comments, activity and children, so it was the worst thing to lose and the least protected.
+- Because nothing is removed, no foreign key fires: the project's tasks keep their `category_id` and its children keep their `parent_id` while the row is hidden. That is what makes a restore put the branch back exactly where it was, rather than leaving it orphaned.
+- A deleted project keeps its **name reserved**, because the unique index spans the stamped rows. That is the cost of the guarantee that Undo always works: the alternative is a restore that fails because something else took the name in the meantime.
 - `duplicate` copies tasks with `replicate()`, not `create()`: `status` is deliberately not fillable, and a copy has to keep it. The copy is top-level and never a favourite, because both describe where a project sits rather than what it holds.
 - Activity is written from the task endpoints, not from model events, so seeding does not fill the log. A task with no project records nothing: the feed is only reachable from a project's menu, so the entry could never be read. The task's title is snapshotted onto the entry, because "Deleted X" has to still read correctly once the task is gone.
 

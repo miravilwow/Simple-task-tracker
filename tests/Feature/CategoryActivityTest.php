@@ -90,7 +90,7 @@ class CategoryActivityTest extends TestCase
         $this->assertNotContains('File taxes', $titles);
     }
 
-    public function test_deleting_a_project_takes_its_activity_with_it(): void
+    public function test_a_deleted_project_keeps_its_activity_for_a_restore(): void
     {
         $category = Category::factory()->create();
         $task = Task::factory()->create(['category_id' => $category->id]);
@@ -98,7 +98,15 @@ class CategoryActivityTest extends TestCase
 
         $this->deleteJson("/api/categories/{$category->id}")->assertOk();
 
-        $this->assertDatabaseCount('activities', 0);
+        // A soft delete removes nothing, so the cascade never fires and the history survives.
+        // It is only out of reach: the feed is bound to a project the default scope hides.
+        $this->assertDatabaseCount('activities', 1);
+        $this->getJson("/api/categories/{$category->id}/activity")->assertNotFound();
+
+        $this->patchJson("/api/categories/{$category->id}/restore")->assertOk();
+        $this->getJson("/api/categories/{$category->id}/activity")
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'completed');
     }
 
     public function test_activity_returns_404_for_a_missing_project(): void

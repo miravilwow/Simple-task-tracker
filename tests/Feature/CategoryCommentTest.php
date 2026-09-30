@@ -80,14 +80,20 @@ class CategoryCommentTest extends TestCase
         $this->assertModelExists($comment);
     }
 
-    public function test_deleting_a_project_takes_its_comments_with_it(): void
+    public function test_a_deleted_project_keeps_its_comments_for_a_restore(): void
     {
         $category = Category::factory()->create();
-        $category->comments()->create(['body' => 'Gone too']);
+        $category->comments()->create(['body' => 'Still here']);
 
         $this->deleteJson("/api/categories/{$category->id}")->assertOk();
 
-        $this->assertDatabaseCount('category_comments', 0);
+        // A soft delete removes nothing, so the cascade never fires and the thread survives it.
+        $this->assertDatabaseCount('category_comments', 1);
+
+        $this->patchJson("/api/categories/{$category->id}/restore")->assertOk();
+        $this->getJson("/api/categories/{$category->id}/comments")
+            ->assertOk()
+            ->assertJsonPath('data.0.body', 'Still here');
     }
 
     public function test_the_project_list_carries_a_comment_count(): void

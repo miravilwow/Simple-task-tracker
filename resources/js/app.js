@@ -1205,7 +1205,13 @@ async function deleteCategory(category) {
             applyView();
         }
 
-        showToast('Project deleted');
+        // The same Undo a deleted task gets. A project holds more than a task does, so it would
+        // be the odd one out without it.
+        showToast('Project deleted', 'success', {
+            label: 'Undo',
+            onClick: () =>
+                runUndo(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
+        });
         await load();
     } catch (error) {
         showToast(errorMessage(error), 'error');

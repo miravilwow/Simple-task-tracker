@@ -126,14 +126,53 @@ class ProjectMenuTest extends TestCase
             ->assertJsonValidationErrors('parent_id');
     }
 
-    public function test_deleting_a_parent_promotes_its_children(): void
+    public function test_deleting_a_parent_leaves_its_children_listed(): void
     {
-        $parent = Category::factory()->create();
-        $child = Category::factory()->create(['parent_id' => $parent->id]);
+        $parent = Category::factory()->create(['name' => 'Work']);
+        $child = Category::factory()->create(['name' => 'Reports', 'parent_id' => $parent->id]);
 
         $this->deleteJson("/api/categories/{$parent->id}")->assertOk();
 
-        $this->assertNull($child->fresh()->parent_id);
+        // The child keeps its parent_id, because a soft delete removes nothing and the foreign
+        // key never fires. It is still listed, and the sidebar draws a project whose parent is
+        // missing as a root, so the branch stays reachable. Restoring the parent re-nests it.
+        $names = array_column($this->getJson('/api/categories')->json('data'), 'name');
+        $this->assertSame(['Reports'], $names);
+        $this->assertSame($parent->id, $child->fresh()->parent_id);
+    }
+
+    public function test_restoring_a_project_puts_its_branch_back(): void
+    {
+        $parent = Category::factory()->create(['name' => 'Work']);
+        Category::factory()->create(['name' => 'Reports', 'parent_id' => $parent->id]);
+        $task = Task::factory()->create(['category_id' => $parent->id]);
+
+        $this->deleteJson("/api/categories/{$parent->id}")->assertOk();
+        $this->patchJson("/api/categories/{$parent->id}/restore")
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Work')
+            ->assertJsonPath('data.task_count', 1);
+
+        $this->assertSame($parent->id, $task->fresh()->category_id);
+        $this->assertCount(2, $this->getJson('/api/categories')->json('data'));
+    }
+
+    public function test_a_deleted_project_keeps_its_name_reserved(): void
+    {
+        // The unique index spans the stamped rows, so the name is held for as long as the
+        // project can be restored. That is what stops Undo failing because something else took
+        // the name in the meantime, and it is a 400 rather than a database error.
+        $category = Category::factory()->create(['name' => 'Work']);
+        $this->deleteJson("/api/categories/{$category->id}")->assertOk();
+
+        $this->postJson('/api/categories', ['name' => 'Work', 'icon' => 'folder'])
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('name');
+    }
+
+    public function test_restore_returns_404_for_a_project_that_was_never_deleted(): void
+    {
+        $this->patchJson('/api/categories/999/restore')->assertNotFound();
     }
 
     // ------------------------------------------------------------ duplicating

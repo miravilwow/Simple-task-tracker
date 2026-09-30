@@ -149,11 +149,28 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): JsonResponse
     {
-        // The foreign key is nullOnDelete, so the category's tasks survive as uncategorised and
-        // its children are promoted to the top level rather than disappearing with it.
+        // Soft delete: the row is stamped, not removed, so restore() can bring it back. Because
+        // nothing is removed, the foreign keys never fire either: the project's tasks keep their
+        // category_id and its children keep their parent_id while the row is hidden, which is
+        // what lets a restore put everything back exactly where it was.
         $category->delete();
 
         return response()->json(['message' => 'Category deleted.']);
+    }
+
+    /**
+     * Backs the Undo action on the delete toast.
+     *
+     * A deleted project keeps its name reserved: the unique index spans the stamped rows too.
+     * That is the cost of the guarantee that Undo always works, and it is the cheaper half of
+     * the trade — a name held while a project is recoverable, rather than a restore that can
+     * fail because something else took the name in the meantime.
+     */
+    public function restore(Category $category): CategoryResource
+    {
+        $category->restore();
+
+        return CategoryResource::make($this->withCounts($category));
     }
 
     /**

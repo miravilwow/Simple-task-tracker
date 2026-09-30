@@ -25,6 +25,8 @@ Route::patch('/categories/{category}/unarchive', [CategoryController::class, 'un
 Route::post('/categories/{category}/duplicate', [CategoryController::class, 'duplicate']);
 Route::get('/categories/{category}/activity', [CategoryController::class, 'activity']);
 Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+// withTrashed, because the whole point of restore is to reach a project the default binding hides.
+Route::patch('/categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed();
 
 Route::get('/categories/{category}/comments', [CategoryCommentController::class, 'index']);
 Route::post('/categories/{category}/comments', [CategoryCommentController::class, 'store']);

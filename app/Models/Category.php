@@ -9,12 +9,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
+
+    // Deleting a project would otherwise throw away its tasks' link, its comments, its activity
+    // and its children all at once, with no way back. The row is stamped so Undo can reach it.
+    use SoftDeletes;
 
     protected $fillable = [
         'name',
