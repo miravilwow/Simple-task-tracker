@@ -105,8 +105,10 @@
             {{-- Four columns on the same gap as the layout below, so the tiles sit on its column edges. --}}
             <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:gap-6">
                 <x-stat-card id="stat-total" label="Total tasks" icon="list" tone="slate" />
-                <x-stat-card id="stat-pending" label="Pending" icon="clock" tone="blue" />
-                <x-stat-card id="stat-completed" label="Completed" icon="check-circle" tone="green" />
+                {{-- "Not done" rather than "Pending": it counts To do and In progress together, and a
+                     tile must not name one of the two things it is adding up. --}}
+                <x-stat-card id="stat-pending" label="Not done" icon="clock" tone="blue" />
+                <x-stat-card id="stat-completed" label="Done" icon="check-circle" tone="green" />
                 <x-stat-card id="stat-overdue" label="Overdue" icon="warning" tone="red" />
             </dl>
 
@@ -146,8 +148,8 @@
                     <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>
 
                     <div role="group" aria-label="Filter tasks by status"
-                        class="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 sm:flex">
-                        @foreach (['' => 'All', 'pending' => 'Pending', 'completed' => 'Completed'] as $value => $label)
+                        class="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 sm:flex">
+                        @foreach (['' => 'All', 'pending' => 'To do', 'in_progress' => 'In progress', 'completed' => 'Done'] as $value => $label)
                             <button type="button" data-filter="{{ $value }}"
                                 aria-pressed="{{ $value === '' ? 'true' : 'false' }}"
                                 class="min-h-9 rounded-md px-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-indigo-700 aria-pressed:shadow-sm">

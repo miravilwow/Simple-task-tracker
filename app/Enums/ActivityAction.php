@@ -6,6 +6,7 @@ enum ActivityAction: string
 {
     case Created = 'created';
     case Completed = 'completed';
+    case Started = 'started';
     case Reopened = 'reopened';
     case Scheduled = 'scheduled';
     case Unscheduled = 'unscheduled';
@@ -20,6 +21,7 @@ enum ActivityAction: string
         return match ($this) {
             self::Created => 'Added',
             self::Completed => 'Completed',
+            self::Started => 'Started',
             self::Reopened => 'Reopened',
             self::Scheduled => 'Scheduled',
             self::Unscheduled => 'Cleared the date on',

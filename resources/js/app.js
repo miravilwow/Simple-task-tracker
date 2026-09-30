@@ -27,8 +27,9 @@ const PRIORITY_BADGES = {
 };
 
 const STATUS_BADGES = {
-    pending: { label: 'Pending', classes: 'bg-blue-100 text-blue-700' },
-    completed: { label: 'Completed', classes: 'bg-green-100 text-green-700' },
+    pending: { label: 'To do', classes: 'bg-blue-100 text-blue-700' },
+    in_progress: { label: 'In progress', classes: 'bg-amber-100 text-amber-800' },
+    completed: { label: 'Done', classes: 'bg-green-100 text-green-700' },
 };
 
 // Full class strings, never built from the colour name, so Tailwind can find them. The set
@@ -188,12 +189,16 @@ function emptyMessage() {
         return 'No tasks in this project.';
     }
 
-    if (state.status === 'completed') {
-        return 'No completed tasks yet.';
-    }
+    // One message per status the filter offers, so an empty panel always says which of the
+    // three columns it is empty for.
+    const perStatus = {
+        completed: 'Nothing finished yet.',
+        in_progress: 'Nothing in progress. Start a task to see it here.',
+        pending: 'Nothing left to pick up.',
+    };
 
-    if (state.status === 'pending') {
-        return 'No pending tasks. Everything is done.';
+    if (state.status) {
+        return perStatus[state.status];
     }
 
     return {
@@ -271,6 +276,20 @@ function renderTask(task) {
     statusCell.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
     const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
+
+    // Only a task that has not been picked up yet can be started, so the button is on that row
+    // alone rather than shown disabled on the other two.
+    if (task.status === 'pending') {
+        const startButton = createElement(
+            'button',
+            `${BUTTON_BASE} border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-500`,
+        );
+        startButton.type = 'button';
+        startButton.append(createIcon('play'), createElement('span', '', 'Start'));
+        startButton.addEventListener('click', () => startTask(task, startButton));
+        actions.append(startButton);
+    }
+
     const primary = isCompleted
         ? {
               label: 'Reopen',
@@ -693,6 +712,17 @@ async function runAndReload(request, message) {
         showToast(errorMessage(error), 'error');
     }
 }
+
+// Undo is reopen, which puts a task back at the start. Starting something by mistake is meant
+// to cost one click to undo, the same as finishing it by mistake.
+const startTask = (task, button) =>
+    runAction(button, {
+        busyLabel: 'Starting…',
+        request: () => api(`/tasks/${task.id}/start`, { method: 'PATCH' }),
+        successMessage: 'Task started',
+        undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
+        undoMessage: 'Moved back to To do',
+    });
 
 const completeTask = (task, button) =>
     runAction(button, {

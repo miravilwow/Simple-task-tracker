@@ -58,7 +58,7 @@ Start every response that changes code with one line naming the active role(s), 
 **Owns:** schema, `Task` model.
 
 **Standards**
-- `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
+- `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|in_progress|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
 - `categories` table: `id`, `name` (unique), `icon` (varchar 40, default `folder`), `timestamps()`. The UI calls these "projects"; the schema has not been renamed.
 - Index `status` and `due_date`, since the list endpoint filters on both. `deleted_at` is left unindexed: it is NULL for nearly every row, so the index would not pay for itself.
 - `tasks` carries `deleted_at` (`softDeletes()`). Deleting is the one irreversible action, so the row is stamped rather than removed and `restore` can bring it back. Every read excludes stamped rows through the trait's global scope, including `stats`, whose `toBase()` applies scopes before dropping to the query builder.
@@ -92,6 +92,7 @@ Start every response that changes code with one line naming the active role(s), 
   | GET | `/api/tasks` | 200 | 400 invalid filter |
   | GET | `/api/tasks/stats` | 200 + counts | none |
   | POST | `/api/tasks` | 201 + created task | 400 validation failure |
+  | PATCH | `/api/tasks/{id}/start` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
@@ -114,7 +115,7 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), and a `from`/`to` date window for the calendar. Every one of them is used by the UI; do not add a filter nothing calls.
-- `overdue`, `today` and `upcoming` are **work queues**: each one adds `status = pending`, so completing a task drops it out of the view. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
+- `overdue`, `today` and `upcoming` are **work queues**: each one asks for `status` in `TaskStatus::unfinished()`, so completing a task drops it out of the view while starting one does not — the task someone is in the middle of is the one they are most likely looking for. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
 - `PATCH /api/categories/{id}` replaces the whole project: name, description, colour, icon and parent. Its unique rule ignores the row being edited, or changing only the icon would be a 400 against the project's own name.
 - `GET /api/categories` returns the active projects; `?archived=1` returns the archived ones instead. The sidebar asks for both, because it shows both and could not tell them apart in one list.
 - `favorite` takes the value it is setting rather than toggling, so two clicks racing each other cannot undo one another. The reactions endpoint has the same shape for the same reason.
@@ -134,6 +135,9 @@ Start every response that changes code with one line naming the active role(s), 
 - Validation: `title` required|string|max:255, trimmed (whitespace-only is empty); `description` nullable|string; `priority` required|in:low,medium,high.
 - Use a Form Request for create validation and route model binding for `{task}` (gives 404 for free).
 - `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app. The controller then moves pending tasks ahead of completed ones, keeping each group in TaskSorter's order. `TaskSorter` itself stays exactly as the exam specifies (priority, then oldest first) and must never learn about status.
+- **The status set is wider than the brief.** The exam pins `pending|completed`; this adds `in_progress` so the board's middle column has something to hold. It is a deliberate deviation and belongs in the README's disclosure. Both original values keep their meaning: `pending` is still the default a task is created with, and `completed` is still the end. `start` moves a task into the middle; `reopen` is the way back out of either later stage.
+- `TaskStatus::unfinished()` is what every "not done yet" condition asks, rather than each one naming `pending` itself. The stats' `pending` count, the three work queues and the list's ordering all use it, so none of them can disagree about what unfinished means.
+- `unfinishedFirst()` orders the list In progress, then To do, then Done, keeping each group in TaskSorter's order. **`TaskSorter` still knows nothing about status** — the split is in the controller, so Part 1 stays exactly as the exam specifies.
 - `reopen` is beyond the exam's four endpoints. It exists because completing a task by mistake would otherwise be a dead end, with deleting and retyping the only way back.
 - `restore` is the same argument carried to its end. `DELETE` soft-deletes, so the row survives and the delete toast can offer Undo. Its route is bound `->withTrashed()`, because the default binding hides exactly the task it needs to reach. Deleting an already-deleted task is a 404, since the binding no longer finds it.
 - Controllers stay thin. No business logic in routes.

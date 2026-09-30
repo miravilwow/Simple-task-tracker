@@ -188,10 +188,14 @@ Additional rules:
 
 ### Status
 
-| Status | Style |
-|---|---|
-| Pending | `bg-blue-100 text-blue-700` badge |
-| Completed | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
+| Status | Label | Style |
+|---|---|---|
+| Pending | To do | `bg-blue-100 text-blue-700` badge |
+| In progress | In progress | `bg-amber-100 text-amber-800` badge |
+| Completed | Done | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
+
+- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today, Upcoming and Overdue, and the "Not done" tile keeps counting it.
+- The tile is called **Not done**, not "Pending", because it adds To do and In progress together and a count must not name one of the two things it is adding up.
 
 - Badges always include the text label. Never rely on color alone.
 
@@ -208,6 +212,7 @@ Additional rules:
 - Buttons that carry a row's main actions, and every control in a form, are at least 40px tall (`min-h-10`).
 - Inline controls sitting inside a line of metadata, such as the due-date button on a task row, are at least 32px (`min-h-8`). That stays clear of the 24px WCAG 2.2 AA minimum without making a metadata line as tall as a button bar. Nothing smaller than 32px is ever tappable.
 - A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
+- A task that has not been picked up also shows **Start**, in amber, before Complete. It is only on that row: a task already in progress or already done has nothing to start, and a disabled button on those rows would say less than no button at all. Undo on its toast is `reopen`, so starting something by mistake costs one click, the same as finishing it by mistake.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it throws work away. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - Delete is recoverable, so the dialog must not claim otherwise. `DELETE` soft-deletes and the toast that follows offers **Undo**, which calls `PATCH /api/tasks/{id}/restore`. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
@@ -243,7 +248,7 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 
 ## 5. Filter
 
-- A segmented control with three buttons: **All**, **Pending**, **Completed**.
+- A segmented control with four buttons: **All**, **To do**, **In progress**, **Done**, matching the three stages plus everything.
 - The active option is visually distinct and marked with `aria-pressed="true"`.
 - Changing the filter refetches from `GET /api/tasks?status=...` without reloading the page.
 

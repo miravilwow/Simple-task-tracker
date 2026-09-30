@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/tasks/stats', [TaskController::class, 'stats']);
 Route::get('/tasks', [TaskController::class, 'index']);
 Route::post('/tasks', [TaskController::class, 'store']);
+Route::patch('/tasks/{task}/start', [TaskController::class, 'start']);
 Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete']);
 Route::patch('/tasks/{task}/reopen', [TaskController::class, 'reopen']);
 Route::patch('/tasks/{task}/schedule', [TaskController::class, 'schedule']);

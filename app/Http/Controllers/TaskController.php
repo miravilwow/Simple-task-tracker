@@ -42,33 +42,36 @@ class TaskController extends Controller
         // TaskSorter works on plain arrays, so serialize through the resource first.
         $rows = TaskResource::collection($tasks)->resolve($request);
 
-        return response()->json(['data' => $this->pendingFirst($sorter->sortTasks($rows))]);
+        return response()->json(['data' => $this->unfinishedFirst($sorter->sortTasks($rows))]);
     }
 
     public function stats(): JsonResponse
     {
-        $pending = TaskStatus::Pending->value;
+        // "Pending" counts everything not finished, To do and In progress alike. Starting a task
+        // is not finishing it, so it must not move the number that says how much is left.
+        $unfinished = TaskStatus::unfinished();
+        $placeholders = implode(', ', array_fill(0, count($unfinished), '?'));
 
         // One query with conditional counts instead of six separate COUNT queries.
         $counts = Task::query()->toBase()
             ->selectRaw('COUNT(*) AS total')
-            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS pending', [$pending])
+            ->selectRaw("SUM(CASE WHEN status IN ({$placeholders}) THEN 1 ELSE 0 END) AS pending", $unfinished)
             ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS completed', [TaskStatus::Completed->value])
             ->selectRaw(
-                'SUM(CASE WHEN status = ? AND priority = ? THEN 1 ELSE 0 END) AS high_priority_pending',
-                [$pending, TaskPriority::High->value]
+                "SUM(CASE WHEN status IN ({$placeholders}) AND priority = ? THEN 1 ELSE 0 END) AS high_priority_pending",
+                [...$unfinished, TaskPriority::High->value]
             )
             // DATE() because SQLite stores the cast date with a 00:00:00 time that a bare
             // comparison against 'Y-m-d' would never match.
             ->selectRaw(
-                'SUM(CASE WHEN status = ? AND DATE(due_date) < ? THEN 1 ELSE 0 END) AS overdue',
-                [$pending, today()->toDateString()]
+                "SUM(CASE WHEN status IN ({$placeholders}) AND DATE(due_date) < ? THEN 1 ELSE 0 END) AS overdue",
+                [...$unfinished, today()->toDateString()]
             )
-            // Pending only, because the Today view it labels is a work queue: finishing a task
+            // Unfinished only, because the Today view it labels is a work queue: finishing a task
             // drops it out of both. The badge and the rows it opens have to agree.
             ->selectRaw(
-                'SUM(CASE WHEN status = ? AND DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today',
-                [$pending, today()->toDateString()]
+                "SUM(CASE WHEN status IN ({$placeholders}) AND DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today",
+                [...$unfinished, today()->toDateString()]
             )
             ->first();
 
@@ -83,6 +86,22 @@ class TaskController extends Controller
         Activity::record($task, ActivityAction::Created);
 
         return TaskResource::make($task->load('category'))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Moves a task into the middle column of the board.
+     *
+     * Beyond the exam's four endpoints, like reopen and restore: a board with a column nothing
+     * can be put into is a column that is always empty.
+     */
+    public function start(Task $task): TaskResource
+    {
+        $task->status = TaskStatus::InProgress;
+        $task->save();
+
+        Activity::record($task, ActivityAction::Started);
+
+        return TaskResource::make($task->load('category'));
     }
 
     public function complete(Task $task): TaskResource
@@ -149,13 +168,14 @@ class TaskController extends Controller
         $today = today()->toDateString();
 
         // Overdue, Today and Upcoming are work queues: they answer "what is still left to do",
-        // so completing a task drops it out of them and the sidebar count follows. None backs the
+        // so completing a task drops it out of them and the sidebar count follows. Starting one
+        // does not: a task in progress is the one its owner is most likely looking for. None backs the
         // calendar's unscheduled tray, which is somewhere to park a task rather than a queue,
         // so it keeps completed ones.
         match ($due) {
-            DueFilter::Overdue => $query->whereDate('due_date', '<', $today)->where('status', TaskStatus::Pending),
-            DueFilter::Today => $query->whereDate('due_date', $today)->where('status', TaskStatus::Pending),
-            DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today)->where('status', TaskStatus::Pending),
+            DueFilter::Overdue => $query->whereDate('due_date', '<', $today)->whereIn('status', TaskStatus::unfinished()),
+            DueFilter::Today => $query->whereDate('due_date', $today)->whereIn('status', TaskStatus::unfinished()),
+            DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today)->whereIn('status', TaskStatus::unfinished()),
             DueFilter::None => $query->whereNull('due_date'),
         };
     }
@@ -165,16 +185,24 @@ class TaskController extends Controller
      * above today's urgent one. Splitting the sorted list keeps each group in TaskSorter's order
      * while leaving the actionable work on top.
      *
+     * In progress comes first, then to do, then done: the task someone is in the middle of is
+     * the one they came back for. TaskSorter itself never learns any of this — the split is here,
+     * so Part 1 stays exactly as the exam specifies it.
+     *
      * @param  array<int, array{status: string}>  $tasks
      * @return array<int, array{status: string}>
      */
-    private function pendingFirst(array $tasks): array
+    private function unfinishedFirst(array $tasks): array
     {
-        $isPending = fn (array $task) => $task['status'] === TaskStatus::Pending->value;
+        $inStage = fn (TaskStatus $status) => array_filter(
+            $tasks,
+            fn (array $task) => $task['status'] === $status->value,
+        );
 
         return [
-            ...array_filter($tasks, $isPending),
-            ...array_filter($tasks, fn (array $task) => ! $isPending($task)),
+            ...$inStage(TaskStatus::InProgress),
+            ...$inStage(TaskStatus::Pending),
+            ...$inStage(TaskStatus::Completed),
         ];
     }
 }
