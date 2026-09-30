@@ -78,50 +78,26 @@ Add and Edit are **one** `<dialog>`. Two would mean two copies of the 224-option
 - **The parent select leaves out the project itself and its own children**, because choosing one would cut the branch off the tree. The server refuses it as well; leaving the options out is what stops the user reaching for something that cannot work.
 - Opening focuses and selects Name. Closing — by Cancel, the close button, Escape, the backdrop, or a successful save — clears the form and returns focus to whatever opened it, which is the "…" when the dialog was opened from a row.
 
-#### Comments
+#### Comments and activity
 
-- One dialog holding the thread and the box to add to it, so reading and replying are not two trips.
-- **Oldest first**, unlike the activity feed: a thread is read from the top, while a feed is scanned for the latest thing that happened.
+They are **one dialog with a tab between them**, because both answer the same question: what has happened on this project. The menu keeps two entries so either one is a single click; they differ only in which tab opens.
+
+- The header is `#` and the project's name, and the tab switch is a segmented control with `aria-pressed` on the active tab.
+- **Comments are oldest first**, unlike the activity feed: a thread is read from the top, while a feed is scanned for the latest thing that happened.
+- **Activity is grouped by day**, newest day first, each day headed by its date, "Today" when it is, the weekday, and how many things happened. Times are relative ("2 hours ago") through `Intl.RelativeTimeFormat`, which is built into the browser; anything over a week old falls back to the date, because "23 days ago" is harder to place than the day it happened.
+- The empty state is an illustration with a sentence under it. The SVG is `aria-hidden` and is never the only thing there, because a picture alone says nothing to a screen reader.
 - Comment text is user input and is rendered with `textContent` only.
-- All four states: "Loading…", the thread, "No comments yet.", and the server's message on failure. An empty or whitespace-only comment is refused by the server and the error appears under the box.
+- All four states in both tabs: "Loading…", the content, an empty message, and the server's message on failure.
+- **The Comment button is indigo, not the red of the app this is modelled on.** Red is this app's destructive colour, and posting a comment is the least destructive thing on the screen.
+- **The compose toolbar carries the emoji button and nothing else.** An attachment or a microphone that does nothing is the same decoration the project dialog already refused for Access.
 
-#### Activity
+#### Reactions
 
-- One dialog, read-only: it is opened, read and dismissed, so it answers with nothing. It shows the 50 most recent entries for that project, newest first.
-- Each entry is a verb and the task's title, with a human-readable timestamp. The verb comes from `AppnumsActivityAction`, so the feed can never word an action differently from the rest of the app.
-- **The title is a snapshot taken when the action happened**, which is what lets "Deleted Cancel the trial" still read correctly after the task is gone.
-- All four states: "Loading…" while the request is out, the entries, "Nothing has happened in this project yet." when empty, and the server's message on failure.
-- A task with no project records nothing, because there is no menu it could be read from.
-- **Layout switch** toggles between List and Calendar. Only one is in the DOM flow at a time.
-- Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0". **A count must be built from the same condition as the view it labels**, or the badge reads one number while the rows below it say another.
-- Today, Upcoming and Overdue are what is **still to do**: completing a task removes it from them there and then, and the count drops with it. The task is not lost, it moves to Completed, and the Undo on its toast brings it straight back. The Completed view and All tasks are where finished work lives.
-
-### Calendar
-
-- The month grid starts on Monday and always renders whole weeks, so it reaches into the neighbouring months; those days are dimmed. Today's date sits in a filled circle.
-- Tasks appear as chips coloured by priority, with a `title` attribute because day cells truncate.
-- **Rescheduling has two paths, and both must keep working:**
-  1. Dragging a chip onto a day, or into the "No due date" tray to clear the date. Pointer only.
-  2. Opening any chip, or the due-date button on a list row, which opens the reschedule dialog. This is the keyboard and touch path, and it is the baseline — dragging is the enhancement on top, never the only way.
-- Below `md` the month grid is replaced by an agenda grouped by day, because seven columns on a phone leave about 50px per day. The hint text changes with it: no "drag" instruction where dragging does not exist.
-
-### Shared components
-
-Everything reusable lives in `resources/views/components/`. Add to these rather than repeating markup.
-
-| Component | Purpose |
-|---|---|
-| `<x-layout>` | Page shell: skip link, navbar, `<main>`, footer |
-| `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG, for the app's own chrome. Never paste raw `<path>` data into a page |
-| `<x-stat-card>` | One KPI tile: icon, label, value |
-| `<x-date-field>` | A date input with our own month grid, as a popover or `:inline` |
-| `<x-sidebar>` | Sidebar shell, with `header` and `footer` slots |
-| `<x-sidebar.group>` | A labelled section, with an optional `action` slot |
-| `<x-sidebar.menu-button>` | One sidebar row: icon, label, optional count |
-| `<x-sidebar.trigger>` | Opens the drawer below `lg` |
-| `<x-sidebar.rail>` | Collapses and expands the sidebar from `lg` |
-
-Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app.js`, which mirrors the Blade component. Keep the two in sync.
+- **Nothing is installed for these.** An emoji is Unicode text, so the eight in `App\Enums\Reaction` need no package and no dataset. A searchable picker over 1,900 emoji would need one, and it would have been the project's first UI dependency; the fixed row is what reactions are actually used for.
+- A chip shows the emoji and the count, and carries `aria-pressed` for "I reacted", so the state is in the markup rather than in the colour alone. Its `aria-label` names the emoji and the count, because an emoji on its own is read out inconsistently.
+- The button beside the chips offers **only the emoji nobody has used yet**, so the same one is never offered twice.
+- **A reaction belongs to a browser, not a person**, because the app has no accounts: a random token in `localStorage`. That is the honest limit of what "who reacted" can mean here, and it means reactions are anonymous — a count, never a name. Losing the token loses only which reactions were mine, never the counts.
+- `mine` is worked out on the server from the token the request carries, never trusted from the client, so a button's pressed state and the row in the database cannot disagree.
 
 #### Project icons
 
@@ -339,6 +315,11 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Archive removes the project from the tree, the Archived section shows it, and Unarchive brings it back
 - [ ] Duplicate copies the tasks and lands as "<name> (copy)"
 - [ ] Comments add, list oldest first, delete, and refuse an empty comment
+- [ ] The Comments / Activity tabs switch without closing the dialog, and the menu's two entries open the right one
+- [ ] A reaction adds, shows its count, and the chip reports itself pressed straight away
+- [ ] Pressing the same reaction again takes it back, and the chip disappears at zero
+- [ ] The add-reaction button stops offering an emoji once it is on the comment
+- [ ] Activity is grouped by day with relative times, and the empty state has a sentence, not only a picture
 - [ ] Activity lists what happened to that project, and reads correctly for a task that was deleted
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing

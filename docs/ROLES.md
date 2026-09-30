@@ -71,6 +71,7 @@ Start every response that changes code with one line naming the active role(s), 
 - `categories` also carries `description`, `color` (closed by `App\Enums\CategoryColor`), `is_favorite`, `archived_at` and a self-referencing `parent_id`. The parent FK is `nullOnDelete`, so deleting a project promotes its children rather than taking them with it. `archived_at` is left unindexed for the same reason `deleted_at` is.
 - A folder and a parent project are **one tree**, not two. A folder is simply a project with children, so "move into folder" and "set parent" are the same operation; building both would be two ways to say the same thing.
 - `category_comments` is named for what it comments on, because a bare `comments` table would be ambiguous the day a task gets comments too. It cascades with its project.
+- `comment_reactions` holds one row per (comment, emoji, browser). The app has no accounts, so `reactor` is a random token from the client's `localStorage`: it identifies a browser, not a person. The unique index across the three is what makes the count honest and lets the endpoint be retried safely. The emoji column is a `varchar(16)` and needs `utf8mb4` to hold a four-byte emoji at all; MySQL's older `utf8` would truncate it.
 - Activity entries live in `activities`: `category_id`, a snapshotted `task_title`, the `action`, and `created_at` alone, because an entry is a fact about a moment and is never edited. The index is `(category_id, created_at)`, which is exactly how the feed reads. The foreign key is `cascadeOnDelete`, not `nullOnDelete` as `tasks.category_id` is: the log is only ever reached through its project, so an orphaned entry could never be read again. The project's tasks still survive.
 - `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.
@@ -105,6 +106,7 @@ Start every response that changes code with one line naming the active role(s), 
   | POST | `/api/categories/{id}/duplicate` | 201 + the copy | 404 not found |
   | GET | `/api/categories/{id}/comments` | 200 + thread | 404 not found |
   | POST | `/api/categories/{id}/comments` | 201 + created comment | 400 validation failure, 404 not found |
+  | PATCH | `/api/categories/{id}/comments/{comment}/reactions` | 200 + updated comment | 400 validation failure, 404 not found |
   | DELETE | `/api/categories/{id}/comments/{comment}` | 200 + message | 404 not found |
   | GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
@@ -113,7 +115,9 @@ Start every response that changes code with one line naming the active role(s), 
 - `overdue`, `today` and `upcoming` are **work queues**: each one adds `status = pending`, so completing a task drops it out of the view. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
 - `PATCH /api/categories/{id}` replaces the whole project: name, description, colour, icon and parent. Its unique rule ignores the row being edited, or changing only the icon would be a 400 against the project's own name.
 - `GET /api/categories` returns the active projects; `?archived=1` returns the archived ones instead. The sidebar asks for both, because it shows both and could not tell them apart in one list.
-- `favorite` takes the value it is setting rather than toggling, so two clicks racing each other cannot undo one another.
+- `favorite` takes the value it is setting rather than toggling, so two clicks racing each other cannot undo one another. The reactions endpoint has the same shape for the same reason.
+- The comment thread reads its `reactor` token from the query string and a reaction sends it in the body, so `CategoryCommentResource` uses `input()` rather than `query()`. With `query()` the reply to a reaction reports it as not mine, and only a reload corrects the button.
+- Any endpoint returning comments eager-loads `reactions`. A test pins the thread to three queries so an N+1 cannot creep back in.
 - `move` takes `parent_id` as `present|nullable`, the same shape as `schedule`: sending `null` moves a project to the top level, while omitting the key is a 400 rather than a silent no-op. `App\Rules\NotItsOwnDescendant` refuses a move that would cut a branch off the tree.
 - `duplicate` copies tasks with `replicate()`, not `create()`: `status` is deliberately not fillable, and a copy has to keep it. The copy is top-level and never a favourite, because both describe where a project sits rather than what it holds.
 - Activity is written from the task endpoints, not from model events, so seeding does not fill the log. A task with no project records nothing: the feed is only reachable from a project's menu, so the entry could never be read. The task's title is snapshotted onto the entry, because "Deleted X" has to still read correctly once the task is gone.
