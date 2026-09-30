@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ActivityAction;
 use App\Enums\DueFilter;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Requests\ScheduleTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\Activity;
 use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -78,6 +80,8 @@ class TaskController extends Controller
     {
         $task = Task::create($request->validated());
 
+        Activity::record($task, ActivityAction::Created);
+
         return TaskResource::make($task->load('category'))->response()->setStatusCode(201);
     }
 
@@ -86,6 +90,8 @@ class TaskController extends Controller
         $task->status = TaskStatus::Completed;
         $task->save();
 
+        Activity::record($task, ActivityAction::Completed);
+
         return TaskResource::make($task->load('category'));
     }
 
@@ -93,6 +99,8 @@ class TaskController extends Controller
     {
         $task->status = TaskStatus::Pending;
         $task->save();
+
+        Activity::record($task, ActivityAction::Reopened);
 
         return TaskResource::make($task->load('category'));
     }
@@ -105,6 +113,9 @@ class TaskController extends Controller
         $task->due_date = $request->validated('due_date');
         $task->save();
 
+        // Clearing a date is its own event: "Scheduled X" would be a lie about what happened.
+        Activity::record($task, $task->due_date === null ? ActivityAction::Unscheduled : ActivityAction::Scheduled);
+
         return TaskResource::make($task->load('category'));
     }
 
@@ -112,6 +123,8 @@ class TaskController extends Controller
     {
         // Soft delete: the row is stamped, not removed, so restore() can bring it back.
         $task->delete();
+
+        Activity::record($task, ActivityAction::Deleted);
 
         return response()->json(['message' => 'Task deleted.']);
     }
@@ -122,6 +135,8 @@ class TaskController extends Controller
     public function restore(Task $task): TaskResource
     {
         $task->restore();
+
+        Activity::record($task, ActivityAction::Restored);
 
         return TaskResource::make($task->load('category'));
     }

@@ -16,4 +16,6 @@ Route::patch('/tasks/{task}/restore', [TaskController::class, 'restore'])->withT
 
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::post('/categories', [CategoryController::class, 'store']);
+Route::patch('/categories/{category}', [CategoryController::class, 'update']);
+Route::get('/categories/{category}/activity', [CategoryController::class, 'activity']);
 Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);

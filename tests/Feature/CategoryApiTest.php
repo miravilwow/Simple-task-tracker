@@ -123,4 +123,55 @@ class CategoryApiTest extends TestCase
             ->assertNotFound()
             ->assertExactJson(['message' => 'Category not found.']);
     }
+
+    public function test_renames_a_category_and_changes_its_icon(): void
+    {
+        $category = Category::factory()->create(['name' => 'Work', 'icon' => 'folder']);
+
+        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Day job', 'icon' => 'briefcase'])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Day job')
+            ->assertJsonPath('data.icon', 'briefcase')
+            ->assertJsonPath('data.task_count', 0);
+
+        $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Day job', 'icon' => 'briefcase']);
+    }
+
+    public function test_a_category_may_keep_its_own_name_while_being_updated(): void
+    {
+        // The unique rule has to ignore the row being edited, or changing only the icon is a 400.
+        $category = Category::factory()->create(['name' => 'Work', 'icon' => 'folder']);
+
+        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Work', 'icon' => 'briefcase'])
+            ->assertOk()
+            ->assertJsonPath('data.icon', 'briefcase');
+    }
+
+    public function test_rejects_renaming_a_category_onto_another_name(): void
+    {
+        Category::factory()->create(['name' => 'Gaming']);
+        $category = Category::factory()->create(['name' => 'Work']);
+
+        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Gaming', 'icon' => 'folder'])
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('name');
+
+        $this->assertSame('Work', $category->fresh()->name);
+    }
+
+    public function test_rejects_an_unknown_icon_on_update(): void
+    {
+        $category = Category::factory()->create();
+
+        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Work', 'icon' => 'rocket-ship'])
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('icon');
+    }
+
+    public function test_update_returns_404_for_missing_category(): void
+    {
+        $this->patchJson('/api/categories/999', ['name' => 'Work', 'icon' => 'folder'])
+            ->assertNotFound()
+            ->assertExactJson(['message' => 'Category not found.']);
+    }
 }
