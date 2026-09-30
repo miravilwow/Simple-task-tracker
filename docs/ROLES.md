@@ -131,7 +131,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Responses go through `TaskResource` / `CategoryResource`, so the JSON shape is explicit and separate from the database columns.
 - Any endpoint returning tasks eager-loads `category`. A test pins the list to two queries so an N+1 cannot creep back in.
 - Date comparisons in raw SQL wrap the column in `DATE()`. SQLite stores a cast date with a `00:00:00` time, so a bare comparison against `'Y-m-d'` matches nothing there while passing on MySQL.
-- All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs three requests (the action, then a list and a stats refresh), so a tighter limit locks out ordinary clicking.
+- All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs five requests (the action, then a refresh of the stats, the projects, the archived projects and the task list), so a tighter limit locks out ordinary clicking. The number grows every time the sidebar learns to show something new, which is the reason to keep the ceiling well clear of it rather than tuned to it.
 
 **Definition of Done:** every row in the table above is verified by a feature test.
 

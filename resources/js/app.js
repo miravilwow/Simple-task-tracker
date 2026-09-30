@@ -368,7 +368,7 @@ function projectMenu(category, trigger) {
             ],
         },
         { separator: true },
-        { icon: 'chat', label: 'Comments', onSelect: () => showComments(category) },
+        { icon: 'chat', label: 'Comments', count: category.comment_count, onSelect: () => showComments(category) },
         { icon: 'clock', label: 'View activity', onSelect: () => showActivity(category) },
         { separator: true },
         { icon: 'archive-box', label: 'Archive', onSelect: () => setArchived(category, true) },
@@ -376,7 +376,11 @@ function projectMenu(category, trigger) {
     ]);
 }
 
-function categoryRow(category) {
+/**
+ * A favourite is drawn twice, in Favorites and again in the tree. The scope is what lets focus
+ * return to the row it actually left, rather than to whichever copy comes first in the document.
+ */
+function categoryRow(category, scope) {
     const row = createElement('div', 'flex items-center gap-1');
 
     // Same sidebar utilities the Blade menu buttons use, so both stay in step.
@@ -401,6 +405,7 @@ function categoryRow(category) {
     const more = createElement('button', 'sidebar-collapsible sidebar-menu-action');
     more.type = 'button';
     more.dataset.categoryId = String(category.id);
+    more.dataset.categoryScope = scope;
     more.dataset.menuLabel = `Actions for ${category.name}`;
     more.setAttribute('aria-haspopup', 'menu');
     more.setAttribute('aria-expanded', 'false');
@@ -433,7 +438,7 @@ function buildTree(categories) {
 function renderTree(nodes, depth = 0) {
     return nodes.map((node) => {
         const item = createElement('li');
-        item.append(categoryRow(node));
+        item.append(categoryRow(node, 'tree'));
 
         if (node.children.length > 0) {
             // A rule down the left edge, so a child reads as belonging to the row above it.
@@ -453,7 +458,7 @@ function renderFavorites(categories) {
     elements.favoriteList.replaceChildren(
         ...favorites.map((category) => {
             const item = createElement('li');
-            item.append(categoryRow(category));
+            item.append(categoryRow(category, 'favorites'));
 
             return item;
         }),
@@ -503,7 +508,8 @@ function renderCategories(categories, archived) {
     state.archivedCategories = archived;
 
     // Rebuilding the list throws away the node that had focus, so remember which row it was on.
-    const focused = document.activeElement?.closest?.('[data-category-id]')?.dataset.categoryId;
+    const previous = document.activeElement?.closest?.('[data-category-id]')?.dataset;
+    const focused = previous ? { id: previous.categoryId, scope: previous.categoryScope } : null;
 
     renderFavorites(categories);
     elements.categoryList.replaceChildren(...renderTree(buildTree(categories)));
@@ -527,9 +533,10 @@ function renderCategories(categories, archived) {
     );
     elements.categorySelect.value = selected;
 
-    // A favourite appears twice, so the first match is the one focus goes back to.
     if (focused) {
-        document.querySelector(`[data-category-id="${focused}"]`)?.focus();
+        document
+            .querySelector(`[data-category-scope="${focused.scope}"][data-category-id="${focused.id}"]`)
+            ?.focus();
     }
 }
 

@@ -20,6 +20,11 @@ class CategoryController extends Controller
      */
     private const ACTIVITY_LIMIT = 50;
 
+    /**
+     * Matches the column and the max:40 rule the form requests use.
+     */
+    private const NAME_LIMIT = 40;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
@@ -153,18 +158,22 @@ class CategoryController extends Controller
 
     /**
      * "Work" becomes "Work (copy)", then "Work (copy 2)". The name is unique in the database,
-     * so the copy has to find one rather than collide.
+     * so the copy has to find a free one rather than collide.
+     *
+     * The base is trimmed to fit whatever suffix it ends up with, not to a fixed width: the
+     * suffix grows with the count, and "(copy 100)" on a 30-character base would overflow the
+     * column and fail as a database error rather than a validation one.
      */
     private function copyName(string $name): string
     {
-        $base = mb_substr($name, 0, 30);
-        $candidate = "{$base} (copy)";
+        for ($suffix = 1;; $suffix++) {
+            $tail = $suffix === 1 ? ' (copy)' : " (copy {$suffix})";
+            $candidate = mb_substr($name, 0, self::NAME_LIMIT - mb_strlen($tail)).$tail;
 
-        for ($suffix = 2; Category::where('name', $candidate)->exists(); $suffix++) {
-            $candidate = "{$base} (copy {$suffix})";
+            if (! Category::where('name', $candidate)->exists()) {
+                return $candidate;
+            }
         }
-
-        return $candidate;
     }
 
     private function withCounts(Category $category): Category

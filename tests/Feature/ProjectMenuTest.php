@@ -168,6 +168,21 @@ class ProjectMenuTest extends TestCase
             ->assertJsonPath('data.name', 'Work (copy 2)');
     }
 
+    public function test_a_copy_of_a_long_name_still_fits_the_column(): void
+    {
+        // The suffix grows with the count, so the base has to be trimmed to fit whatever suffix
+        // it ends up with. Otherwise the copy overflows and fails as a database error.
+        $category = Category::factory()->create(['name' => str_repeat('a', 40)]);
+
+        for ($made = 0; $made < 12; $made++) {
+            $name = $this->postJson("/api/categories/{$category->id}/duplicate")
+                ->assertCreated()
+                ->json('data.name');
+
+            $this->assertLessThanOrEqual(40, mb_strlen($name), "\"{$name}\" is longer than the column");
+        }
+    }
+
     public function test_a_copy_is_top_level_and_not_a_favourite(): void
     {
         $parent = Category::factory()->create(['name' => 'Work']);

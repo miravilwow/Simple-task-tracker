@@ -98,12 +98,18 @@ function buildPanel(entries, depth, label) {
             createElement('span', 'flex-1 text-left', entry.label),
         );
 
+        // A zero renders as nothing rather than "0", the same as the sidebar's own badges.
+        if (entry.count) {
+            item.append(createElement('span', 'shrink-0 text-xs text-gray-400', String(entry.count)));
+        }
+
         if (entry.submenu) {
             item.setAttribute('aria-haspopup', 'menu');
             item.setAttribute('aria-expanded', 'false');
             item.append(createIcon('chevron-right', 'size-4 shrink-0 text-gray-400'));
-            item.addEventListener('click', () => openSubmenu(item, entry, depth));
-            // Hovering is how a pointer reads a submenu; the click above is the touch path.
+            item.addEventListener('click', () => openSubmenu(item, entry, depth, { focus: true }));
+            // Hovering opens it for a pointer, but must not move focus: a mouse crossing the
+            // menu would otherwise yank the keyboard user out of the list they are in.
             item.addEventListener('pointerenter', () => openSubmenu(item, entry, depth));
         } else {
             item.addEventListener('click', () => {
@@ -148,7 +154,7 @@ function onPanelKey(event, items, depth) {
     }
 }
 
-function openSubmenu(item, entry, depth) {
+function openSubmenu(item, entry, depth, { focus = false } = {}) {
     // Already open beside this item, so hovering back onto it should not rebuild it.
     if (session.openers[depth] === item && session.panels.length > depth + 1) {
         return;
@@ -161,7 +167,10 @@ function openSubmenu(item, entry, depth) {
     session.panels.push(panel);
     position(panel, item.getBoundingClientRect(), { sideways: true });
     item.setAttribute('aria-expanded', 'true');
-    items[0].focus();
+
+    if (focus) {
+        items[0].focus();
+    }
 }
 
 /**
