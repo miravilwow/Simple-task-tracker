@@ -1,23 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Simple Task Tracker</title>
+<x-layout title="Your tasks · Simple Task Tracker">
+    @push('scripts')
+        @vite('resources/js/app.js')
+    @endpush
 
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet">
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased">
     <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <header>
-            <h1 class="text-2xl font-semibold">Simple Task Tracker</h1>
+        <div>
+            <h1 class="text-2xl font-semibold">Your tasks</h1>
             <p class="mt-1 text-sm text-gray-500">Create tasks, set priorities, and track what's done.</p>
-        </header>
+        </div>
 
-        <main class="mt-6 space-y-6">
+        <div class="mt-6 space-y-6">
             <section aria-labelledby="stats-heading">
                 <h2 id="stats-heading" class="sr-only">Task statistics</h2>
                 <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -111,10 +103,9 @@
                     <ul id="task-list" class="divide-y divide-gray-200"></ul>
                 </section>
             </div>
-        </main>
+        </div>
     </div>
 
     <div id="toast-region" aria-live="polite"
         class="pointer-events-none fixed inset-x-0 bottom-4 flex flex-col items-center gap-2 px-4"></div>
-</body>
-</html>
+</x-layout>

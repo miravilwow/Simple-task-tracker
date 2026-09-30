@@ -100,7 +100,8 @@ Start every response that changes code with one line naming the active role(s), 
 **Stack:** Blade + vanilla JS (`fetch`) + Tailwind CSS v4 through Vite, which is already configured. No extra framework unless the user asks for one.
 
 **Standards**
-- One page (`resources/views/tasks/index.blade.php`) loaded by a web route. All data flows through the JSON API.
+- Two pages share the `<x-layout>` component (`resources/views/components/layout.blade.php`): the landing page `/` (`home.blade.php`) and the tracker `/tasks` (`tasks/index.blade.php`). All task data flows through the JSON API.
+- Page-specific JS is added with `@push('scripts')` only on the page that needs it, so the landing page loads no tracker JS.
 - JS lives in `resources/js/`, not inline `<script>` blocks.
 - Never use `innerHTML` with task data. Build nodes with `textContent` / `createElement` to prevent XSS from task titles.
 - Send `Accept: application/json` on every request, and `Content-Type: application/json` when there is a body. No CSRF token is needed, because `/api/*` routes are stateless and have no CSRF middleware.

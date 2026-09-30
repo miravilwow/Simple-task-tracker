@@ -2,12 +2,28 @@
 
 Every screen, component, and interaction in Simple Task Tracker must follow these rules. The checklist at the bottom is the gate before any UI work is considered done.
 
-## 1. Layout
+## 0. Pages and shared layout
 
-A single-page dashboard in a centered container: `max-w-6xl mx-auto`, with gutters `px-4 sm:px-6 lg:px-8`.
+| Route | View | Purpose |
+|---|---|---|
+| `/` | `home.blade.php` | Public landing page that explains the app and links to it |
+| `/tasks` | `tasks/index.blade.php` | The task tracker dashboard |
+
+- Both pages use the `<x-layout>` component, which provides the shared structure:
+  - a "Skip to content" link
+  - the top navbar (logo and app name on the left, one action on the right)
+  - the `<main>`
+  - the footer
+- The navbar action depends on the page. On the landing page it is an **Open app** primary button. On the tracker it is a **Home** text link.
+- Content inside the navbar, footer, and page sections uses the same container: `max-w-6xl mx-auto px-4 sm:px-6 lg:px-8`.
+- The tracker's JavaScript loads only on `/tasks`. The landing page loads CSS only.
+
+## 1. Layout (tracker dashboard)
+
+A dashboard in the shared container.
 
 - **Order, top to bottom:**
-  1. Header: app name and a one-line description.
+  1. Page heading "Your tasks" and a one-line description.
   2. Stat cards.
   3. Main area.
 - **Stat cards:** four cards, shown 2 per row on mobile and 4 per row from `lg`:
@@ -24,6 +40,24 @@ A single-page dashboard in a centered container: `max-w-6xl mx-auto`, with gutte
   - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
 - **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
 - **No horizontal scroll** at any width. Long titles wrap (`break-words`) and never overflow.
+
+## 1b. Landing page
+
+Sections, top to bottom:
+
+1. **Hero**
+   - Headline and one supporting sentence.
+   - A primary CTA **Open task tracker** (`/tasks`) and a secondary CTA **See how it works** (scrolls to that section).
+   - From `lg` up, the hero is two columns, with a static, decorative preview of the dashboard on the right (`aria-hidden="true"`). Below `lg`, the preview sits under the text.
+2. **Features:** four cards (prioritize, complete, filter, stats), shown 1 per row on mobile, 2 per row from `sm`, and 4 per row from `lg`. Each card has an icon, a title, and one sentence.
+3. **How it works:** three numbered steps in an `<ol>`.
+4. **Closing CTA:** an indigo band with one sentence and an **Open task tracker** button.
+
+Additional rules:
+
+- The hero headline uses `text-4xl sm:text-5xl font-semibold tracking-tight`. It is the only heading larger than `text-3xl` in the app.
+- Anchor scrolling uses `motion-safe:scroll-smooth`, so it respects reduced-motion settings.
+- **Honest copy only.** No invented testimonials, user counts, ratings, or pricing. Describe only features the app actually has.
 
 ## 2. Visual design
 
@@ -53,7 +87,7 @@ A single-page dashboard in a centered container: `max-w-6xl mx-auto`, with gutte
 
 | Type | Use | Style |
 |---|---|---|
-| Primary | Add Task | Solid indigo, white text |
+| Primary | Add task, Open app, Open task tracker | Solid indigo, white text |
 | Secondary | Complete | Outlined or light green |
 | Destructive | Delete | Red text or outline, never the most prominent button on the card |
 
@@ -114,13 +148,15 @@ Every data view needs all four states:
 
 ## 10. Scope guard
 
-Build only what the exam asks for. No dark mode, drag-and-drop, edit-task, auth, or animations beyond simple transitions, unless the user asks for them.
+Build only what the exam asks for, plus the landing page the user requested. No dark mode, drag-and-drop, edit-task, auth, or animations beyond simple transitions, unless the user asks for them.
 
 ---
 
 ## UI/UX checklist (run before marking any UI task done)
 
 - [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
+- [ ] Landing page: both CTAs work, "See how it works" scrolls to the section, and the navbar action matches the page
+- [ ] "Skip to content" appears on the first Tab press
 - [ ] Stat cards update after every add, complete, and delete
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
