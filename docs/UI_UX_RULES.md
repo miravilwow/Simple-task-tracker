@@ -44,6 +44,32 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 - The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
 - Rows built by JavaScript use the same `sidebar-menu-button` / `sidebar-menu-action` / `sidebar-menu-badge` utilities as the Blade ones, so the two can never drift apart.
+
+#### A project's actions
+
+Every action a project offers sits behind one **"…"** at the end of its row, so the row carries a single action however many it has. Delete is inside it too: throwing work away is not a button to be brushed past on the way to selecting a project.
+
+| Item | What it does |
+|---|---|
+| Edit project | Swaps the row for the project form, in place |
+| New task | Opens the New task dialog with that project already chosen |
+| Activity | Opens the project's recent history |
+| Delete project | The usual confirm dialog, styled destructive |
+
+- The menu is appended to `<body>` and positioned `fixed`. The sidebar scrolls on its own, so a panel placed inside it would be clipped by that overflow; the cost is that the panel does not follow the page, so any scroll closes it.
+- It is a real `role="menu"`: arrows move between items and wrap, Home and End reach the ends, Escape closes it and hands focus back to the "…", and clicking or tabbing away dismisses it without stealing focus.
+- **Editing reuses the create form rather than adding a second one**, moving that same node into the row. There is one 224-option icon grid in the page, not one per project. Rebuilding the list puts the form back first, or the row it was living in would take it out of the DOM.
+- **The icon a project already has stays on offer however its name is retyped.** The picker normally hides anything the name stops matching, which on a rename would quietly swap someone's chosen icon for Folder.
+- **New task from a project still shows that project in the select**, rather than deciding it behind the scenes, so it can be seen and changed.
+- Focus follows the row through a re-render: the list is rebuilt after every action, and the "…" that had focus is found again by its project id.
+
+#### Activity
+
+- One dialog, read-only: it is opened, read and dismissed, so it answers with nothing. It shows the 50 most recent entries for that project, newest first.
+- Each entry is a verb and the task's title, with a human-readable timestamp. The verb comes from `AppnumsActivityAction`, so the feed can never word an action differently from the rest of the app.
+- **The title is a snapshot taken when the action happened**, which is what lets "Deleted Cancel the trial" still read correctly after the task is gone.
+- All four states: "Loading…" while the request is out, the entries, "Nothing has happened in this project yet." when empty, and the server's message on failure.
+- A task with no project records nothing, because there is no menu it could be read from.
 - **Layout switch** toggles between List and Calendar. Only one is in the DOM flow at a time.
 - Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0". **A count must be built from the same condition as the view it labels**, or the badge reads one number while the rows below it say another.
 - Today, Upcoming and Overdue are what is **still to do**: completing a task removes it from them there and then, and the count drops with it. The task is not lost, it moves to Completed, and the Undo on its toast brings it straight back. The Completed view and All tasks are where finished work lives.
@@ -281,6 +307,11 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
 - [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
 - [ ] Sidebar views and categories filter the list, and the title names the current one
+- [ ] A project's "…" opens with the four actions, arrows and Escape work, and focus returns to it
+- [ ] Edit project renames and re-icons in place, Cancel leaves it untouched, and a duplicate name shows the error under the field
+- [ ] Editing a project and retyping its name keeps the icon it already had
+- [ ] New task from a project opens the dialog with that project chosen
+- [ ] Activity lists what happened to that project, and reads correctly for a task that was deleted
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses

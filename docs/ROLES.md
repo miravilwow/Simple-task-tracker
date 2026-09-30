@@ -68,6 +68,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\CategoryIcon`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
 - `categories.icon` is closed by `App\Enums\CategoryIcon`, never free text: its value goes straight into a CSS class name. The column itself is a `varchar`, because a 224-value database enum would be unreadable, so the application is what enforces the set.
 - Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. Every one of them is validated by `StoreTaskRequest`. `status` is deliberately absent, because it changes only through the complete and reopen endpoints.
+- Activity entries live in `activities`: `category_id`, a snapshotted `task_title`, the `action`, and `created_at` alone, because an entry is a fact about a moment and is never edited. The index is `(category_id, created_at)`, which is exactly how the feed reads. The foreign key is `cascadeOnDelete`, not `nullOnDelete` as `tasks.category_id` is: the log is only ever reached through its project, so an orphaned entry could never be read again. The project's tasks still survive.
 - `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.
 
@@ -93,10 +94,15 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/tasks/{id}/restore` | 200 + restored task | 404 not found |
   | GET | `/api/categories` | 200 + task counts | none |
   | POST | `/api/categories` | 201 + created category | 400 validation failure |
+  | PATCH | `/api/categories/{id}` | 200 + updated category | 400 validation failure, 404 not found |
+  | GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), and a `from`/`to` date window for the calendar. Every one of them is used by the UI; do not add a filter nothing calls.
 - `overdue`, `today` and `upcoming` are **work queues**: each one adds `status = pending`, so completing a task drops it out of the view. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
+- `PATCH /api/categories/{id}` renames a project and changes its icon. Its unique rule ignores the row being edited, or changing only the icon would be a 400 against the project's own name.
+- Activity is written from the task endpoints, not from model events, so seeding does not fill the log. A task with no project records nothing: the feed is only reachable from a project's menu, so the entry could never be read. The task's title is snapshotted onto the entry, because "Deleted X" has to still read correctly once the task is gone.
+
 - `schedule` takes `due_date` as `present|nullable`, so sending `null` is how the UI clears a date, while omitting the key is a 400 rather than a silent no-op.
 
 - Validation errors return **400** because the exam rubric lists 400. Laravel's default is 422, so override it in one place (a Form Request `failedValidation`, or the exception handler) and document the choice in the README.
@@ -134,6 +140,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `shell.js` | keeps `--header-height` matched to the navbar's real height |
   | `datepicker.js` | the month grid over each `<input type="date">` |
   | `sidebar.js` | drawer, icon rail, Ctrl/Cmd+B, cookie persistence |
+  | `menu.js` | the overflow menu behind a sidebar row's "…" |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
   | `app.js` | state, data loading, list rendering, wiring |
 
