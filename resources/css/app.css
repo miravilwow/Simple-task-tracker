@@ -1,9 +1,17 @@
 @import 'tailwindcss';
+@plugin '@iconify/tailwind4';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+
+/*
+ * Category icons are chosen by the user and their classes are built at runtime, so Tailwind
+ * never sees them in a source file. This list is the safelist, and it has to stay in step
+ * with App\Enums\CategoryIcon.
+ */
+@source inline("icon-[fluent--{folder,briefcase,person,hat-graduation,book,home,cart,heart,dumbbell,money,airplane,food,games,people,lightbulb,calendar,code,paint-brush,vehicle-car,animal-paw-print,music-note-2,pill,gift,leaf}-24-regular]");
 
 /* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task row. */
 @utility task-columns {

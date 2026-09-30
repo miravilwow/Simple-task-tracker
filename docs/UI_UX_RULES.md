@@ -64,7 +64,7 @@ Everything reusable lives in `resources/views/components/`. Add to these rather 
 | Component | Purpose |
 |---|---|
 | `<x-layout>` | Page shell: skip link, navbar, `<main>`, footer |
-| `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG. The only icon source; never paste raw `<path>` data into a page |
+| `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG, for the app's own chrome. Never paste raw `<path>` data into a page |
 | `<x-stat-card>` | One KPI tile: icon, label, value |
 | `<x-date-field>` | A date input with our own month grid, as a popover or `:inline` |
 | `<x-sidebar>` | Sidebar shell, with `header` and `footer` slots |
@@ -74,6 +74,14 @@ Everything reusable lives in `resources/views/components/`. Add to these rather 
 | `<x-sidebar.rail>` | Collapses and expands the sidebar from `lg` |
 
 Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app.js`, which mirrors the Blade component. Keep the two in sync.
+
+#### Category icons
+
+The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
+
+- The choices are fixed in `App\Enums\CategoryIcon`, not free text, so the class name can never come from user input.
+- The class is `icon-[fluent--{value}-24-regular]` and it is built at runtime, which **Tailwind cannot see**. Every value is therefore repeated in `@source inline(...)` in `resources/css/app.css`. A case added to the enum without that line renders as an empty box, and a test fails if the two drift apart.
+- The icon is tinted with the category's colour and is always `aria-hidden`, because the category's name is already beside it.
 
 - Both pages use the `<x-layout>` component, which provides the shared structure:
   - a "Skip to content" link

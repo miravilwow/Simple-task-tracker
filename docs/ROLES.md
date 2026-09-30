@@ -65,7 +65,8 @@ Start every response that changes code with one line naming the active role(s), 
 - `tasks.category_id` uses `nullOnDelete`: deleting a category must never delete someone's tasks, it only leaves them uncategorised.
 - Never edit a migration that has already run. Schema changes land as a new migration, which is why the category and due-date columns arrive in `add_category_and_due_date_to_tasks_table` rather than in the original `create_tasks_table`.
 - Two migrations generated in the same second sort by filename, so a table can end up referenced before it exists. Rename the file rather than rely on luck.
-- Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
+- Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\CategoryColor`, `App\Enums\CategoryIcon`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
+- `categories.icon` is an enum, never free text: its value goes straight into a CSS class name, so the set of allowed values has to be closed.
 - Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. Every one of them is validated by `StoreTaskRequest`. `status` is deliberately absent, because it changes only through the complete and reopen endpoints.
 - `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.

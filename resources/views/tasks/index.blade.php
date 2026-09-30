@@ -66,6 +66,22 @@
                         <p id="category-color-error" class="mt-1 hidden text-sm text-red-600"></p>
                     </fieldset>
 
+                    <fieldset>
+                        <legend class="sr-only">Icon</legend>
+                        <div class="flex flex-wrap gap-1">
+                            @foreach (\App\Enums\CategoryIcon::cases() as $icon)
+                                <label
+                                    class="flex size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
+                                    <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
+                                        @checked($icon === \App\Enums\CategoryIcon::Folder)>
+                                    <span class="{{ $icon->cssClass() }} size-4" aria-hidden="true"></span>
+                                    <span class="sr-only">{{ $icon->label() }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <p id="category-icon-error" class="mt-1 hidden text-sm text-red-600"></p>
+                    </fieldset>
+
                     <button type="submit" id="category-submit"
                         class="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
                         <span data-label>Add category</span>

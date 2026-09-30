@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CategoryColor;
+use App\Enums\CategoryIcon;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,10 +17,12 @@ class Category extends Model
     protected $fillable = [
         'name',
         'color',
+        'icon',
     ];
 
     protected $attributes = [
         'color' => CategoryColor::Slate->value,
+        'icon' => CategoryIcon::Folder->value,
     ];
 
     /**
@@ -34,6 +37,7 @@ class Category extends Model
     {
         return [
             'color' => CategoryColor::class,
+            'icon' => CategoryIcon::class,
         ];
     }
 }

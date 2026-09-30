@@ -28,15 +28,30 @@ const STATUS_BADGES = {
     completed: { label: 'Completed', classes: 'bg-green-100 text-green-700' },
 };
 
-const CATEGORY_DOTS = {
-    slate: 'bg-slate-400',
-    red: 'bg-red-400',
-    amber: 'bg-amber-400',
-    green: 'bg-green-400',
-    blue: 'bg-blue-400',
-    violet: 'bg-violet-400',
-    pink: 'bg-pink-400',
+const CATEGORY_TINTS = {
+    slate: 'text-slate-500',
+    red: 'text-red-500',
+    amber: 'text-amber-500',
+    green: 'text-green-500',
+    blue: 'text-blue-500',
+    violet: 'text-violet-500',
+    pink: 'text-pink-500',
 };
+
+/**
+ * One category icon, tinted with its colour. The Iconify class is built from the name the API
+ * sent, which Tailwind cannot see, so every one of them is safelisted in app.css through
+ * `@source inline(...)`. Keep that list and App\Enums\CategoryIcon in step.
+ */
+function categoryIcon(category, size) {
+    const icon = createElement(
+        'span',
+        `icon-[fluent--${category.icon}-24-regular] ${size} shrink-0 ${CATEGORY_TINTS[category.color]}`,
+    );
+    icon.setAttribute('aria-hidden', 'true');
+
+    return icon;
+}
 
 const VIEWS = {
     all: { title: 'All tasks', subtitle: "Create tasks, set priorities, and track what's done.", params: {} },
@@ -200,7 +215,7 @@ function renderTask(task) {
     if (task.category) {
         const chip = createElement('span', 'inline-flex items-center gap-1.5 text-xs text-gray-600');
         chip.append(
-            createElement('span', `size-2 rounded-full ${CATEGORY_DOTS[task.category.color]}`),
+            categoryIcon(task.category, 'size-3.5'),
             createElement('span', '', task.category.name),
         );
         meta.append(chip);
@@ -308,7 +323,7 @@ function renderCategories(categories) {
             select.title = category.name;
             select.setAttribute('aria-pressed', String(state.categoryId === category.id));
             select.append(
-                createElement('span', `size-2.5 shrink-0 rounded-full ${CATEGORY_DOTS[category.color]}`),
+                categoryIcon(category, 'size-5'),
                 createElement('span', 'sidebar-collapsible flex-1 truncate text-left', category.name),
                 createElement('span', 'sidebar-collapsible sidebar-menu-badge', String(category.task_count)),
             );
@@ -614,7 +629,7 @@ async function createCategory(event) {
         return;
     }
 
-    clearFieldErrors(['category-name', 'category-color']);
+    clearFieldErrors(['category-name', 'category-color', 'category-icon']);
     setBusy(elements.categorySubmit, 'Adding…');
 
     try {
@@ -623,6 +638,7 @@ async function createCategory(event) {
             body: {
                 name: elements.categoryName.value.trim(),
                 color: elements.categoryForm.querySelector('input[name="color"]:checked')?.value,
+                icon: elements.categoryForm.querySelector('input[name="icon"]:checked')?.value,
             },
         });
         elements.categoryForm.reset();

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CategoryIcon;
 use App\Models\Category;
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +27,7 @@ class CategoryApiTest extends TestCase
 
     public function test_creates_a_category(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'green'])
+        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'green', 'icon' => 'folder'])
             ->assertCreated()
             ->assertJsonPath('data.name', 'Errands')
             ->assertJsonPath('data.color', 'green')
@@ -39,16 +40,48 @@ class CategoryApiTest extends TestCase
     {
         Category::factory()->create(['name' => 'Work']);
 
-        $this->postJson('/api/categories', ['name' => 'Work', 'color' => 'blue'])
+        $this->postJson('/api/categories', ['name' => 'Work', 'color' => 'blue', 'icon' => 'briefcase'])
             ->assertStatus(400)
             ->assertJsonValidationErrors('name');
 
         $this->assertDatabaseCount('categories', 1);
     }
 
+    public function test_creates_a_category_with_an_icon(): void
+    {
+        $this->postJson('/api/categories', ['name' => 'Fitness', 'color' => 'green', 'icon' => 'dumbbell'])
+            ->assertCreated()
+            ->assertJsonPath('data.icon', 'dumbbell')
+            ->assertJsonPath('data.color', 'green');
+
+        $this->assertDatabaseHas('categories', ['name' => 'Fitness', 'icon' => 'dumbbell']);
+    }
+
+    public function test_rejects_an_unknown_icon(): void
+    {
+        $this->postJson('/api/categories', ['name' => 'Nope', 'color' => 'red', 'icon' => 'rocket-ship'])
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('icon');
+    }
+
+    public function test_every_icon_the_enum_offers_is_safelisted_in_the_stylesheet(): void
+    {
+        // The class is built at runtime, so Tailwind only emits it because app.css lists it.
+        // A case added to the enum without the safelist renders as an empty box in the sidebar.
+        $css = file_get_contents(base_path('resources/css/app.css'));
+
+        foreach (CategoryIcon::cases() as $icon) {
+            $this->assertStringContainsString(
+                $icon->value.',',
+                str_replace('}', ',', $css),
+                "CategoryIcon::{$icon->name} is missing from the @source inline list in app.css"
+            );
+        }
+    }
+
     public function test_rejects_an_invalid_colour(): void
     {
-        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'turquoise'])
+        $this->postJson('/api/categories', ['name' => 'Errands', 'color' => 'turquoise', 'icon' => 'folder'])
             ->assertStatus(400)
             ->assertJsonValidationErrors('color');
     }

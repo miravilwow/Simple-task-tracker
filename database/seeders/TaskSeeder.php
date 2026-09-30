@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\CategoryColor;
+use App\Enums\CategoryIcon;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Category;
@@ -14,10 +15,10 @@ class TaskSeeder extends Seeder
     public function run(): void
     {
         $categories = collect([
-            ['name' => 'Work', 'color' => CategoryColor::Blue],
-            ['name' => 'Personal', 'color' => CategoryColor::Green],
-            ['name' => 'School', 'color' => CategoryColor::Violet],
-            ['name' => 'Gaming', 'color' => CategoryColor::Pink],
+            ['name' => 'Work', 'color' => CategoryColor::Blue, 'icon' => CategoryIcon::Briefcase],
+            ['name' => 'Personal', 'color' => CategoryColor::Green, 'icon' => CategoryIcon::Person],
+            ['name' => 'School', 'color' => CategoryColor::Violet, 'icon' => CategoryIcon::Graduation],
+            ['name' => 'Gaming', 'color' => CategoryColor::Pink, 'icon' => CategoryIcon::Games],
         ])->mapWithKeys(fn (array $attributes) => [
             $attributes['name'] => Category::create($attributes),
         ]);
