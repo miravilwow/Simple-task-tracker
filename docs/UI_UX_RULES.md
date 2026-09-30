@@ -104,7 +104,7 @@ Every data view needs all four states:
 - Sentence case everywhere: "Add task", not "ADD TASK" or "Add Task".
 - Buttons say what they do: "Add task", "Complete", "Delete".
 - Dates are human-readable (e.g. "Sep 30, 2026, 10:15 AM"), never raw ISO strings.
-- The stat cards show live counts. They are recalculated from the full task list after every action, whichever filter is active, and show "–" until the first load finishes.
+- The stat cards show live counts from `GET /api/tasks/stats`. They are refreshed after every action, whichever filter is active, and show "–" until the first load finishes.
 
 ## 9. Security and performance
 

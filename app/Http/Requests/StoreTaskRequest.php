@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Task;
+use App\Enums\TaskPriority;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,7 +22,7 @@ class StoreTaskRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'priority' => ['required', Rule::in(Task::PRIORITIES)],
+            'priority' => ['required', Rule::enum(TaskPriority::class)],
         ];
     }
 }

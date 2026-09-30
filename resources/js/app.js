@@ -170,13 +170,11 @@ function renderTask(task) {
     return item;
 }
 
-function renderStats(tasks) {
-    const pending = tasks.filter((task) => task.status === 'pending');
-
-    statElements.total.textContent = tasks.length;
-    statElements.pending.textContent = pending.length;
-    statElements.completed.textContent = tasks.length - pending.length;
-    statElements.high.textContent = pending.filter((task) => task.priority === 'high').length;
+function renderStats(stats) {
+    statElements.total.textContent = stats.total;
+    statElements.pending.textContent = stats.pending;
+    statElements.completed.textContent = stats.completed;
+    statElements.high.textContent = stats.high_priority_pending;
 }
 
 function renderList(tasks) {
@@ -191,9 +189,9 @@ async function loadTasks() {
     const requestId = ++latestRequestId;
 
     try {
-        const [allTasks, filteredTasks] = await Promise.all([
-            api('/tasks'),
-            currentFilter ? api(`/tasks?status=${currentFilter}`) : null,
+        const [tasks, stats] = await Promise.all([
+            api(currentFilter ? `/tasks?status=${currentFilter}` : '/tasks'),
+            api('/tasks/stats'),
         ]);
 
         if (requestId !== latestRequestId) {
@@ -201,8 +199,8 @@ async function loadTasks() {
         }
 
         loadError.classList.add('hidden');
-        renderStats(allTasks.data);
-        renderList((filteredTasks ?? allTasks).data);
+        renderStats(stats.data);
+        renderList(tasks.data);
     } catch {
         if (requestId !== latestRequestId) {
             return;

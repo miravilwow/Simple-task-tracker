@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
 use App\Models\Task;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -88,7 +91,7 @@ class TaskApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'completed');
 
-        $this->assertSame('completed', $task->fresh()->status);
+        $this->assertSame(TaskStatus::Completed, $task->fresh()->status);
     }
 
     public function test_complete_returns_404_for_missing_task(): void
@@ -114,5 +117,50 @@ class TaskApiTest extends TestCase
         $this->deleteJson('/api/tasks/999')
             ->assertNotFound()
             ->assertExactJson(['message' => 'Task not found.']);
+    }
+
+    public function test_returns_task_statistics(): void
+    {
+        Task::factory()->count(2)->create(['priority' => TaskPriority::High]);
+        Task::factory()->create(['priority' => TaskPriority::Low]);
+        Task::factory()->completed()->create(['priority' => TaskPriority::High]);
+
+        $this->getJson('/api/tasks/stats')
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                'total' => 4,
+                'pending' => 3,
+                'completed' => 1,
+                'high_priority_pending' => 2,
+            ]]);
+    }
+
+    public function test_statistics_are_zero_when_there_are_no_tasks(): void
+    {
+        $this->getJson('/api/tasks/stats')
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                'total' => 0,
+                'pending' => 0,
+                'completed' => 0,
+                'high_priority_pending' => 0,
+            ]]);
+    }
+
+    public function test_api_is_rate_limited_to_60_requests_per_minute(): void
+    {
+        for ($i = 0; $i < 60; $i++) {
+            $this->getJson('/api/tasks/stats')->assertOk();
+        }
+
+        $this->getJson('/api/tasks/stats')->assertTooManyRequests();
+    }
+
+    public function test_seeder_creates_demo_tasks(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseCount('tasks', 8);
+        $this->assertDatabaseHas('tasks', ['status' => TaskStatus::Completed->value]);
     }
 }
