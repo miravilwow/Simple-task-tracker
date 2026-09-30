@@ -89,6 +89,9 @@ A dashboard in the `app-container`, beside the fixed sidebar.
 Everything on the tracker resolves to **one gutter and one column grid**. Nothing is aligned by eye.
 
 - **The gutter is 1.5rem from `sm`.** The `app-container`'s `sm:px-6` and the sidebar's `p-3` panel plus each row's own `px-3` both land on it, so the navbar's logo, the sidebar's icons, the page heading and the footer text all start on the same vertical line.
+- **An interactive box may bleed into the gutter; its text may not.** A row's padding is cancelled with an equal negative margin, exactly as the sidebar's `p-3` panel and `px-3` rows do it. The hover and focus surface then has room to breathe while the words stay on the line — the navbar's brand link and its action are built this way.
+- **The navbar is read as the top of the sidebar's column**, so its two levels line up with the sidebar's: a 24px mark plus an 8px gap reaches the same 32px as the sidebar's 20px icon plus its 12px gap, which puts the wordmark exactly where the sidebar's labels start. Changing one size means changing the other.
+- **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
 - **The column grid is 4 columns with `gap-6` from `xl`.** The stat row, the list layout and the calendar layout all use it, so a tile's edge is also a panel's edge.
 - **The two layouts occupy the same columns.** Column 1 holds the New task form in List and the "No due date" tray in Calendar; columns 2–4 hold the task panel and the month grid. Switching layouts must not move anything sideways.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
@@ -244,7 +247,8 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
 - [ ] Scrolling up and down, including up past the very top, leaves nothing showing above or through the navbar, and the sidebar's top edge meets it with no seam
-- [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge
+- [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge, and the wordmark starts where the sidebar labels do
+- [ ] The navbar row is vertically centred in the bar, and its action is a 40px target ending on the right gutter
 - [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] Month grid from md, agenda below it, with matching hint text

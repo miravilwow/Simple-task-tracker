@@ -40,18 +40,24 @@
         inside --header-height. Anything positioned against that variable then meets the header
         exactly instead of landing a pixel short of it.
     --}}
+    {{-- The header is the flex row, so its `min-height` is what centres the nav. `h-full` on the
+         nav would resolve against a height the header does not have, and silently do nothing. --}}
     <header @if ($fluid) data-app-header @endif @class([
         'border-b border-gray-200 bg-white',
-        'app-header fixed inset-x-0 top-0 z-30 shadow-sm' => $fluid,
+        'app-header flex items-center fixed inset-x-0 top-0 z-30 shadow-sm' => $fluid,
     ])>
         <nav aria-label="Main" @class([
             'flex items-center justify-between gap-4',
-            'h-full app-container' => $fluid,
+            'app-container' => $fluid,
             'mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8' => ! $fluid,
         ])>
+            {{-- The negative margin cancels the padding, so the focus ring has room to breathe
+                 without moving the logo off the gutter the sidebar's icons sit on. --}}
             <a href="{{ route('home') }}"
-                class="flex items-center gap-2 rounded-md font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
-                <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
+                class="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                {{-- 24px mark plus an 8px gap is the 32px the sidebar's 20px icon and 12px gap
+                     reach, so the wordmark starts exactly where the sidebar's labels do. --}}
+                <svg class="size-6 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
                     <rect width="32" height="32" rx="8" class="fill-indigo-600" />
                     <path d="M10 16.5l4 4 8-9" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
@@ -59,8 +65,10 @@
             </a>
 
             @if (request()->routeIs('tasks.index'))
+                {{-- min-h-10 and -mr-3, so it matches the landing page's action and still ends on
+                     the container's right edge rather than its own padding. --}}
                 <a href="{{ route('home') }}"
-                    class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="-mr-3 inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
                     Home
                 </a>
             @else
