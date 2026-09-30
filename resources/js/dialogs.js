@@ -1,3 +1,5 @@
+import { createElement, createIcon } from './dom.js';
+
 const confirmDialog = document.getElementById('confirm-dialog');
 const confirmTitle = document.getElementById('confirm-title');
 const confirmMessage = document.getElementById('confirm-message');
@@ -62,5 +64,72 @@ export function openScheduleDialog(task) {
         on(scheduleSave, 'click', () => finish({ date: scheduleDate.value || null }));
         on(scheduleClear, 'click', () => finish({ date: null }));
         on(scheduleCancel, 'click', () => finish(null));
+    });
+}
+
+const activityDialog = document.getElementById('activity-dialog');
+const activityProject = document.getElementById('activity-project');
+const activityList = document.getElementById('activity-list');
+const activityMessage = document.getElementById('activity-message');
+const activityClose = document.getElementById('activity-close');
+
+// A full timestamp carries its own offset, so Date parses it in local time. The parseDate rule
+// is about date-only strings, which do not.
+const activityFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+function activityEntry(entry) {
+    const item = createElement('li', 'flex gap-3 border-b border-gray-100 py-3 last:border-0');
+    const body = createElement('div', 'min-w-0 flex-1');
+
+    const line = createElement('p', 'text-sm wrap-break-word text-gray-700');
+    line.append(
+        createElement('span', 'font-medium text-gray-900', entry.label),
+        // Task text is user input, so it only ever arrives through textContent.
+        document.createTextNode(' '),
+        createElement('span', '', entry.task_title),
+    );
+
+    body.append(line, createElement('p', 'mt-0.5 text-xs text-gray-500', activityFormatter.format(new Date(entry.created_at))));
+    item.append(createIcon('clock', 'mt-0.5 size-4 shrink-0 text-gray-400'), body);
+
+    return item;
+}
+
+function setActivityMessage(text) {
+    activityMessage.textContent = text ?? '';
+    activityMessage.classList.toggle('hidden', !text);
+}
+
+/**
+ * A read-only panel rather than a question, so it resolves to nothing: it is opened, read and
+ * dismissed. The entries are fetched by the caller, which is where the API wrapper lives.
+ *
+ * @param {string} projectName
+ * @param {() => Promise<Array<object>>} loadEntries
+ */
+export function openActivityDialog(projectName, loadEntries) {
+    activityProject.textContent = projectName;
+    activityList.replaceChildren();
+    activityList.setAttribute('aria-busy', 'true');
+    setActivityMessage('Loading…');
+
+    return openDialog(activityDialog, async ({ on, finish }) => {
+        on(activityClose, 'click', () => finish(null));
+
+        try {
+            const entries = await loadEntries();
+
+            // The dialog may have been dismissed while the request was still out.
+            if (!activityDialog.open) {
+                return;
+            }
+
+            activityList.replaceChildren(...entries.map(activityEntry));
+            setActivityMessage(entries.length === 0 ? 'Nothing has happened in this project yet.' : null);
+        } catch (error) {
+            setActivityMessage(error.message || 'Activity could not be loaded.');
+        } finally {
+            activityList.setAttribute('aria-busy', 'false');
+        }
     });
 }

@@ -68,10 +68,17 @@
                         <p id="category-icon-error" class="mt-1 hidden text-sm text-red-600"></p>
                     </fieldset>
 
-                    <button type="submit" id="category-submit"
-                        class="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
-                        <span data-label>Add project</span>
-                    </button>
+                    <div class="flex flex-col gap-2">
+                        <button type="submit" id="category-submit"
+                            class="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
+                            <span data-label>Add project</span>
+                        </button>
+                        {{-- Shown only while editing: creating is dismissed with the + toggle instead. --}}
+                        <button type="button" id="category-cancel"
+                            class="hidden min-h-10 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            Cancel
+                        </button>
+                    </div>
                 </form>
 
                 <ul id="category-list" class="flex flex-col gap-1"></ul>
@@ -407,6 +414,26 @@
                 </button>
             </div>
         </form>
+    </dialog>
+
+    <dialog id="activity-dialog"
+        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <div class="flex max-h-[calc(100dvh-2rem)] flex-col">
+            <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
+                <div class="min-w-0">
+                    <h2 class="font-medium">Activity</h2>
+                    <p id="activity-project" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
+                </div>
+                <button type="button" id="activity-close" aria-label="Close activity"
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    <x-icon name="close" />
+                </button>
+            </div>
+
+            {{-- aria-busy rather than a spinner: the list keeps its place and screen readers are told. --}}
+            <ul id="activity-list" class="flex-1 overflow-y-auto overscroll-contain p-6 pt-4"></ul>
+            <p id="activity-message" class="hidden px-6 pb-6 text-sm text-gray-500"></p>
+        </div>
     </dialog>
 
     <div id="toast-region" aria-live="polite"
