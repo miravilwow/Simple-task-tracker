@@ -98,7 +98,7 @@ Start every response that changes code with one line naming the active role(s), 
 - One page (`resources/views/tasks/index.blade.php`) loaded by a web route. All data flows through the JSON API.
 - JS lives in `resources/js/`, not inline `<script>` blocks.
 - Never use `innerHTML` with task data. Build nodes with `textContent` / `createElement` to prevent XSS from task titles.
-- Send `Accept: application/json` and `Content-Type: application/json` on every request, plus the CSRF token from `<meta name="csrf-token">`.
+- Send `Accept: application/json` on every request, and `Content-Type: application/json` when there is a body. No CSRF token is needed, because `/api/*` routes are stateless and have no CSRF middleware.
 - Complete, delete, create, and filter all update the DOM without a full page reload.
 - Update the UI only after the API confirms success (no optimistic updates), and show the server's error message on failure.
 - Tailwind v4 is configured in CSS (`resources/css/app.css`). There is no `tailwind.config.js`, so don't create one.
