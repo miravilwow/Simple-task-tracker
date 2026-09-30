@@ -55,6 +55,8 @@ export function confirmAction({ title, message, confirmLabel = 'Delete' }) {
 export function openScheduleDialog(task) {
     scheduleTitle.textContent = task.title;
     scheduleDate.value = task.due_date ?? '';
+    // Setting .value fires nothing, and the inline month grid follows the field's change event.
+    scheduleDate.dispatchEvent(new Event('change', { bubbles: true }));
 
     return openDialog(scheduleDialog, ({ on, finish }) => {
         on(scheduleSave, 'click', () => finish({ date: scheduleDate.value || null }));

@@ -209,14 +209,10 @@
                             <p id="category_id-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                         </div>
 
-                        <div>
-                            <label for="due_date" class="block text-sm font-medium text-gray-700">
-                                Due date <span class="font-normal text-gray-500">(optional)</span>
-                            </label>
-                            <input id="due_date" name="due_date" type="date" aria-describedby="due_date-error"
-                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
+                        <x-date-field id="due_date" name="due_date" label="Due date" :optional="true"
+                            describedby="due_date-error">
                             <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                        </div>
+                        </x-date-field>
                     </div>
 
                     <button type="submit" id="submit-button"
@@ -372,9 +368,9 @@
             <h2 class="font-medium">Reschedule task</h2>
             <p id="schedule-task-title" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
 
-            <label for="schedule-date" class="mt-4 block text-sm font-medium text-gray-700">Due date</label>
-            <input id="schedule-date" type="date"
-                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+            <div class="mt-4">
+                <x-date-field id="schedule-date" label="Due date" :inline="true" />
+            </div>
 
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" id="schedule-clear"

@@ -12,14 +12,14 @@ const agendaFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', mon
 const DROP_ACTIVE = ['bg-indigo-50', 'ring-2', 'ring-indigo-400', 'ring-inset'];
 
 /** The grid always starts on a Monday, so it usually reaches into the neighbouring months. */
-function gridStart(month) {
+export function gridStart(month) {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
     const daysSinceMonday = (first.getDay() + 6) % 7;
 
     return new Date(first.getFullYear(), first.getMonth(), 1 - daysSinceMonday);
 }
 
-function cellCount(month) {
+export function cellCount(month) {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
     const daysSinceMonday = (first.getDay() + 6) % 7;
     const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();

@@ -63,6 +63,7 @@ Everything reusable lives in `resources/views/components/`. Add to these rather 
 | `<x-layout>` | Page shell: skip link, navbar, `<main>`, footer |
 | `<x-icon name="…">` | Inline Heroicons v2 (MIT) outline SVG. The only icon source; never paste raw `<path>` data into a page |
 | `<x-stat-card>` | One KPI tile: icon, label, value |
+| `<x-date-field>` | A date input with our own month grid, as a popover or `:inline` |
 | `<x-sidebar>` | Sidebar shell, with `header` and `footer` slots |
 | `<x-sidebar.group>` | A labelled section, with an optional `action` slot |
 | `<x-sidebar.menu-button>` | One sidebar row: icon, label, optional count |
@@ -175,6 +176,17 @@ Additional rules:
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
 - Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority.
 - Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
+
+### Date fields
+
+Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Chrome, Firefox and Safari each draw a different native control and it would be the one field on the form that does not look like the app.
+
+- **The native input stays underneath and stays the source of truth.** It holds the ISO value, it validates, and without JavaScript it is still a working date control. `datepicker.js` only hides the browser's indicator and reveals our button — the swap is all-or-nothing, so there are never two pickers on one field and never zero.
+- **The grid is the calendar layout's grid.** `gridStart` and `cellCount` are imported from `calendar.js` rather than rewritten, so "the week starts on Monday" is defined once.
+- **Never build the value with `new Date(iso)`.** Use `parseDate` / `toIsoDate`, or "Today" lands on yesterday west of Greenwich.
+- **Keyboard:** arrows by day, PageUp/PageDown by month clamped to that month's length, Home/End to the ends of the week, Enter to choose, Escape to dismiss and hand focus back to the button.
+- **`:inline` where picking the date is the whole point**, and always inside a `<dialog>`: a `<dialog>` is `overflow: auto` in the UA stylesheet, so a floating panel inside one is clipped rather than layered over it. An inline grid also drops any control the surrounding dialog already offers, so "Clear" never appears twice.
+- **The popover hangs off the field's left edge** and flips only to stay inside the viewport. The field can sit in a column narrower than the panel, and growing rightwards keeps it on the page's gutter.
 - Placeholders show an example; they never replace a label.
 - Validate `title` client-side (not empty after trimming), and still rely on the server's 400 response as the source of truth.
 - Show field errors directly under the field in `text-sm text-red-600`, and link them with `aria-describedby`.
@@ -240,6 +252,7 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
+- [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
 - [ ] Buttons disable while loading; Delete asks for confirmation
 - [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
 - [ ] Sidebar views and categories filter the list, and the title names the current one
