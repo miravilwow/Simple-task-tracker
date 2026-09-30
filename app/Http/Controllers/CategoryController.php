@@ -28,17 +28,15 @@ class CategoryController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
-            'archived' => ['nullable', 'boolean'],
+            'deleted' => ['nullable', 'boolean'],
         ]);
 
         $categories = Category::query()
             ->withCount(['tasks', 'comments'])
-            // Archived projects are out of the way, not gone: the sidebar asks for them by name.
-            ->when(
-                $filters['archived'] ?? false,
-                fn ($query) => $query->whereNotNull('archived_at'),
-                fn ($query) => $query->active(),
-            )
+            // A deleted project is recoverable, so the sidebar shows it in its own section and
+            // asks for it by name. Without this the row would be unreachable once the undo
+            // toast had gone, which is the whole reason a soft delete is worth having.
+            ->when($filters['deleted'] ?? false, fn ($query) => $query->onlyTrashed())
             ->orderBy('name')
             ->get();
 
@@ -80,22 +78,6 @@ class CategoryController extends Controller
         $category->is_favorite = $request->validate([
             'is_favorite' => ['required', 'boolean'],
         ])['is_favorite'];
-        $category->save();
-
-        return CategoryResource::make($this->withCounts($category));
-    }
-
-    public function archive(Category $category): CategoryResource
-    {
-        $category->archived_at = now();
-        $category->save();
-
-        return CategoryResource::make($this->withCounts($category));
-    }
-
-    public function unarchive(Category $category): CategoryResource
-    {
-        $category->archived_at = null;
         $category->save();
 
         return CategoryResource::make($this->withCounts($category));
@@ -171,6 +153,20 @@ class CategoryController extends Controller
         $category->restore();
 
         return CategoryResource::make($this->withCounts($category));
+    }
+
+    /**
+     * The one action in the app that cannot be undone, which is why it is reached only from the
+     * Deleted section and behind its own confirmation.
+     *
+     * This is where the foreign keys finally fire: the project's tasks lose their category_id,
+     * its children are promoted to the top level, and its comments and activity cascade away.
+     */
+    public function forceDestroy(Category $category): JsonResponse
+    {
+        $category->forceDelete();
+
+        return response()->json(['message' => 'Category deleted permanently.']);
     }
 
     /**

@@ -50,14 +50,15 @@
                     No projects yet.
                 </p>
 
-                {{-- Archived projects are out of the way, not gone, so the way back is always here. --}}
-                <button type="button" id="archived-toggle" aria-expanded="false" aria-controls="archived-list"
+                {{-- A deleted project is recoverable, and the undo toast lasts seconds. This is
+                     where it stays reachable afterwards, so nothing is ever quietly stranded. --}}
+                <button type="button" id="deleted-toggle" aria-expanded="false" aria-controls="deleted-list"
                     class="sidebar-collapsible mt-1 hidden sidebar-menu-button text-gray-500">
-                    <x-icon name="archive-box" class="size-5 shrink-0" />
-                    <span class="sidebar-collapsible flex-1 truncate text-left">Archived</span>
-                    <span id="archived-count" class="sidebar-collapsible sidebar-menu-badge"></span>
+                    <x-icon name="trash" class="size-5 shrink-0" />
+                    <span class="sidebar-collapsible flex-1 truncate text-left">Deleted</span>
+                    <span id="deleted-count" class="sidebar-collapsible sidebar-menu-badge"></span>
                 </button>
-                <ul id="archived-list" class="mt-1 hidden flex-col gap-1"></ul>
+                <ul id="deleted-list" class="mt-1 hidden flex-col gap-1"></ul>
             </x-sidebar.group>
 
             <x-slot:footer>

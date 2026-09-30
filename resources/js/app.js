@@ -88,9 +88,9 @@ const elements = {
     categoryEmpty: $('category-empty'),
     favoritesGroup: $('favorites-group'),
     favoriteList: $('favorite-list'),
-    archivedToggle: $('archived-toggle'),
-    archivedList: $('archived-list'),
-    archivedCount: $('archived-count'),
+    deletedToggle: $('deleted-toggle'),
+    deletedList: $('deleted-list'),
+    deletedCount: $('deleted-count'),
     projectNew: $('project-new'),
     projectDialog: $('project-dialog'),
     projectDialogTitle: $('project-dialog-title'),
@@ -155,8 +155,8 @@ const state = {
     categories: [],
     // The project whose row has been swapped for the edit form, and the icon it had when the
     // edit began, which the picker keeps offering however the name is retyped.
-    archivedCategories: [],
-    archivedOpen: false,
+    deletedCategories: [],
+    deletedOpen: false,
     editing: null,
     editingIcon: null,
     projectDialogOpener: null,
@@ -376,7 +376,6 @@ function projectMenu(category, trigger) {
         },
         { icon: 'clock', label: 'View activity', onSelect: () => showProjectPanel(category, 'activity') },
         { separator: true },
-        { icon: 'archive-box', label: 'Archive', onSelect: () => setArchived(category, true) },
         { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteCategory(category) },
     ]);
 }
@@ -425,7 +424,7 @@ function categoryRow(category, scope) {
 /**
  * The flat list the API returns, nested by parent_id.
  *
- * A project whose parent is missing from the list — archived, say — is treated as a root, so a
+ * A project whose parent is missing from the list — deleted, say — is treated as a root, so a
  * branch can never disappear from the sidebar because of where its parent happens to be.
  */
 function buildTree(categories) {
@@ -472,20 +471,26 @@ function renderFavorites(categories) {
     elements.favoritesGroup.classList.toggle('hidden', favorites.length === 0);
 }
 
-function renderArchived(categories) {
-    elements.archivedCount.textContent = categories.length > 0 ? String(categories.length) : '';
-    elements.archivedToggle.classList.toggle('hidden', categories.length === 0);
+/**
+ * The undo toast lasts seconds; this is where a deleted project stays reachable afterwards.
+ * Without it a soft-deleted row would sit in the database with no way back to it, which would
+ * make the soft delete pointless.
+ */
+function renderDeleted(categories) {
+    elements.deletedCount.textContent = categories.length > 0 ? String(categories.length) : '';
+    elements.deletedToggle.classList.toggle('hidden', categories.length === 0);
 
     if (categories.length === 0) {
-        setArchivedOpen(false);
+        setDeletedOpen(false);
     }
 
-    elements.archivedList.replaceChildren(
+    elements.deletedList.replaceChildren(
         ...categories.map((category) => {
             const item = createElement('li');
             const row = createElement('div', 'flex items-center gap-1');
 
-            const label = createElement('div', 'sidebar-menu-button flex-1 text-gray-500');
+            // Not a button: a deleted project cannot be selected, only put back or finished off.
+            const label = createElement('div', 'sidebar-menu-button flex-1 text-gray-400 line-through');
             label.append(
                 categoryIcon(category, 'size-5'),
                 createElement('span', 'sidebar-collapsible flex-1 truncate text-left', category.name),
@@ -493,14 +498,25 @@ function renderArchived(categories) {
 
             const restore = createElement('button', 'sidebar-collapsible sidebar-menu-action');
             restore.type = 'button';
-            restore.append(
-                createIcon('undo', 'size-4'),
-                createElement('span', 'sr-only', `Unarchive ${category.name}`),
+            restore.title = `Restore ${category.name}`;
+            restore.append(createIcon('undo', 'size-4'), createElement('span', 'sr-only', `Restore ${category.name}`));
+            restore.addEventListener('click', () =>
+                runUndo(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
             );
-            restore.title = `Unarchive ${category.name}`;
-            restore.addEventListener('click', () => setArchived(category, false));
 
-            row.append(label, restore);
+            const purge = createElement(
+                'button',
+                'sidebar-collapsible sidebar-menu-action hover:bg-red-50 hover:text-red-600 focus-visible:ring-red-500',
+            );
+            purge.type = 'button';
+            purge.title = `Delete ${category.name} permanently`;
+            purge.append(
+                createIcon('trash', 'size-4'),
+                createElement('span', 'sr-only', `Delete ${category.name} permanently`),
+            );
+            purge.addEventListener('click', () => purgeCategory(category));
+
+            row.append(label, restore, purge);
             item.append(row);
 
             return item;
@@ -508,9 +524,9 @@ function renderArchived(categories) {
     );
 }
 
-function renderCategories(categories, archived) {
+function renderCategories(categories, deleted) {
     state.categories = categories;
-    state.archivedCategories = archived;
+    state.deletedCategories = deleted;
 
     // Rebuilding the list throws away the node that had focus, so remember which row it was on.
     const previous = document.activeElement?.closest?.('[data-category-id]')?.dataset;
@@ -519,7 +535,7 @@ function renderCategories(categories, archived) {
     renderFavorites(categories);
     elements.categoryList.replaceChildren(...renderTree(buildTree(categories)));
     elements.categoryEmpty.classList.toggle('hidden', categories.length > 0);
-    renderArchived(archived);
+    renderDeleted(deleted);
 
     // Keep the task form's picker in step with the sidebar, preserving any choice already made.
     const selected = elements.categorySelect.value;
@@ -579,12 +595,12 @@ async function load() {
     const range = monthRange(state.month);
 
     try {
-        // The archived list is its own request: the sidebar shows both, and asking for them
+        // The deleted list is its own request: the sidebar shows both, and asking for them
         // together would mean the tree could not tell one from the other.
         const requests = [
             api('/tasks/stats'),
             api('/categories'),
-            api('/categories', { params: { archived: 1 } }),
+            api('/categories', { params: { deleted: 1 } }),
         ];
 
         requests.push(
@@ -597,7 +613,7 @@ async function load() {
             requests.push(api('/tasks', { params: { ...currentParams(), due: 'none' } }));
         }
 
-        const [statsResponse, categoriesResponse, archivedResponse, tasksResponse, unscheduledResponse] =
+        const [statsResponse, categoriesResponse, deletedResponse, tasksResponse, unscheduledResponse] =
             await Promise.all(requests);
 
         if (requestId !== latestRequestId) {
@@ -607,7 +623,7 @@ async function load() {
         elements.skeleton.classList.add('hidden');
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
-        renderCategories(categoriesResponse.data, archivedResponse.data);
+        renderCategories(categoriesResponse.data, deletedResponse.data);
 
         if (state.mode === 'calendar') {
             elements.calendarMonth.textContent = monthLabel(state.month);
@@ -1102,13 +1118,6 @@ function setFavorite(category, isFavorite) {
     );
 }
 
-function setArchived(category, archived) {
-    return projectAction(
-        () => api(`/categories/${category.id}/${archived ? 'archive' : 'unarchive'}`, { method: 'PATCH' }),
-        archived ? 'Project archived' : 'Project unarchived',
-    );
-}
-
 function duplicateProject(category) {
     return projectAction(
         () => api(`/categories/${category.id}/duplicate`, { method: 'POST' }),
@@ -1218,11 +1227,31 @@ async function deleteCategory(category) {
     }
 }
 
-function setArchivedOpen(open) {
-    state.archivedOpen = open;
-    elements.archivedToggle.setAttribute('aria-expanded', String(open));
-    elements.archivedList.classList.toggle('hidden', !open);
-    elements.archivedList.classList.toggle('flex', open);
+function setDeletedOpen(open) {
+    state.deletedOpen = open;
+    elements.deletedToggle.setAttribute('aria-expanded', String(open));
+    elements.deletedList.classList.toggle('hidden', !open);
+    elements.deletedList.classList.toggle('flex', open);
+}
+
+/**
+ * The one action in the app that cannot be undone, so it asks first and says so plainly.
+ */
+async function purgeCategory(category) {
+    const confirmed = await confirmAction({
+        title: 'Delete permanently',
+        message: `Delete "${category.name}" for good? This cannot be undone, and its comments and activity go with it.`,
+        confirmLabel: 'Delete permanently',
+    });
+
+    if (!confirmed) {
+        return;
+    }
+
+    return projectAction(
+        () => api(`/categories/${category.id}/force`, { method: 'DELETE' }),
+        'Project deleted permanently',
+    );
 }
 
 // ---------------------------------------------------------------- navigation
@@ -1303,7 +1332,7 @@ elements.projectDialog.addEventListener('click', (event) => {
         closeProjectDialog();
     }
 });
-elements.archivedToggle.addEventListener('click', () => setArchivedOpen(!state.archivedOpen));
+elements.deletedToggle.addEventListener('click', () => setDeletedOpen(!state.deletedOpen));
 elements.newTaskTrigger.addEventListener('click', () => openTaskDialog());
 elements.taskCancel.addEventListener('click', closeTaskDialog);
 // Escape and the backdrop close the dialog without going through the Cancel button, so the

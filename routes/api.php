@@ -20,13 +20,12 @@ Route::post('/categories', [CategoryController::class, 'store']);
 Route::patch('/categories/{category}', [CategoryController::class, 'update']);
 Route::patch('/categories/{category}/move', [CategoryController::class, 'move']);
 Route::patch('/categories/{category}/favorite', [CategoryController::class, 'favorite']);
-Route::patch('/categories/{category}/archive', [CategoryController::class, 'archive']);
-Route::patch('/categories/{category}/unarchive', [CategoryController::class, 'unarchive']);
 Route::post('/categories/{category}/duplicate', [CategoryController::class, 'duplicate']);
 Route::get('/categories/{category}/activity', [CategoryController::class, 'activity']);
 Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
-// withTrashed, because the whole point of restore is to reach a project the default binding hides.
+// withTrashed on both, because they exist to reach a project the default binding hides.
 Route::patch('/categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed();
+Route::delete('/categories/{category}/force', [CategoryController::class, 'forceDestroy'])->withTrashed();
 
 Route::get('/categories/{category}/comments', [CategoryCommentController::class, 'index']);
 Route::post('/categories/{category}/comments', [CategoryCommentController::class, 'store']);

@@ -23,7 +23,6 @@ class CategoryResource extends JsonResource
             'color' => $this->color->value,
             'icon' => $this->icon->value,
             'is_favorite' => $this->is_favorite,
-            'is_archived' => $this->isArchived(),
             'parent_id' => $this->parent_id,
             'task_count' => $this->whenCounted('tasks'),
             'comment_count' => $this->whenCounted('comments'),

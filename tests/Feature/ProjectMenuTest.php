@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The actions behind a project's overflow menu: favourite, archive, move, duplicate.
+ * The actions behind a project's overflow menu: favourite, move, duplicate, delete and restore.
  */
 class ProjectMenuTest extends TestCase
 {
@@ -39,42 +39,56 @@ class ProjectMenuTest extends TestCase
             ->assertJsonValidationErrors('is_favorite');
     }
 
-    // ------------------------------------------------------------ archiving
+    // ------------------------------------------------------------ the deleted list
 
-    public function test_archiving_hides_a_project_from_the_list_without_touching_its_tasks(): void
+    public function test_deleted_projects_are_listed_when_asked_for(): void
     {
-        $category = Category::factory()->create();
-        $task = Task::factory()->create(['category_id' => $category->id]);
-
-        $this->patchJson("/api/categories/{$category->id}/archive")
-            ->assertOk()
-            ->assertJsonPath('data.is_archived', true);
-
-        $this->assertSame([], $this->getJson('/api/categories')->json('data'));
-        $this->assertSame($category->id, $task->fresh()->category_id);
-    }
-
-    public function test_archived_projects_are_listed_when_asked_for(): void
-    {
-        $archived = Category::factory()->create(['name' => 'Old work']);
+        // The undo toast lasts seconds; the Deleted section is how a project stays reachable
+        // afterwards. Without it a soft-deleted row would be stranded in the database.
+        $deleted = Category::factory()->create(['name' => 'Old work']);
         Category::factory()->create(['name' => 'Current']);
-        $this->patchJson("/api/categories/{$archived->id}/archive")->assertOk();
+        $this->deleteJson("/api/categories/{$deleted->id}")->assertOk();
 
-        $names = array_column($this->getJson('/api/categories?archived=1')->json('data'), 'name');
-
-        $this->assertSame(['Old work'], $names);
+        $this->assertSame(['Current'], array_column($this->getJson('/api/categories')->json('data'), 'name'));
+        $this->assertSame(['Old work'], array_column($this->getJson('/api/categories?deleted=1')->json('data'), 'name'));
     }
 
-    public function test_unarchiving_brings_a_project_back(): void
+    public function test_deleting_permanently_is_final_and_releases_the_name(): void
     {
-        $category = Category::factory()->create();
-        $this->patchJson("/api/categories/{$category->id}/archive")->assertOk();
+        $category = Category::factory()->create(['name' => 'Work']);
+        $task = Task::factory()->create(['category_id' => $category->id]);
+        $child = Category::factory()->create(['name' => 'Reports', 'parent_id' => $category->id]);
+        $category->comments()->create(['body' => 'Goes too']);
 
-        $this->patchJson("/api/categories/{$category->id}/unarchive")
+        $this->deleteJson("/api/categories/{$category->id}")->assertOk();
+        $this->deleteJson("/api/categories/{$category->id}/force")
             ->assertOk()
-            ->assertJsonPath('data.is_archived', false);
+            ->assertJsonPath('message', 'Category deleted permanently.');
 
-        $this->assertCount(1, $this->getJson('/api/categories')->json('data'));
+        // This is where the foreign keys finally fire.
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+        $this->assertNull($task->fresh()->category_id);
+        $this->assertNull($child->fresh()->parent_id);
+        $this->assertDatabaseCount('category_comments', 0);
+
+        // And the name is free again, because nothing is holding it any more.
+        $this->postJson('/api/categories', ['name' => 'Work', 'icon' => 'folder'])->assertCreated();
+    }
+
+    public function test_deleting_permanently_needs_the_project_to_be_deleted_first(): void
+    {
+        // The route is bound withTrashed, so it reaches a stamped row; a project that was never
+        // deleted is still found, and forcing it is the same single, deliberate step.
+        $category = Category::factory()->create();
+
+        $this->deleteJson("/api/categories/{$category->id}/force")->assertOk();
+
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+    }
+
+    public function test_force_delete_returns_404_for_a_missing_project(): void
+    {
+        $this->deleteJson('/api/categories/999/force')->assertNotFound();
     }
 
     // ------------------------------------------------------------ the tree
@@ -242,8 +256,6 @@ class ProjectMenuTest extends TestCase
     public function test_every_project_action_is_404_for_a_missing_project(): void
     {
         $this->patchJson('/api/categories/999/favorite', ['is_favorite' => true])->assertNotFound();
-        $this->patchJson('/api/categories/999/archive')->assertNotFound();
-        $this->patchJson('/api/categories/999/unarchive')->assertNotFound();
         $this->patchJson('/api/categories/999/move', ['parent_id' => null])->assertNotFound();
         $this->postJson('/api/categories/999/duplicate')->assertNotFound();
     }

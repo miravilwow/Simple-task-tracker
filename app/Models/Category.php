@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\CategoryColor;
 use App\Enums\CategoryIcon;
 use Database\Factories\CategoryFactory;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -78,11 +77,6 @@ class Category extends Model
         return $this->hasMany(Category::class, 'parent_id');
     }
 
-    public function isArchived(): bool
-    {
-        return $this->archived_at !== null;
-    }
-
     /**
      * Every project at or below this one, itself included.
      *
@@ -102,21 +96,12 @@ class Category extends Model
         return $ids;
     }
 
-    /**
-     * @param  Builder<Category>  $query
-     */
-    public function scopeActive(Builder $query): void
-    {
-        $query->whereNull('archived_at');
-    }
-
     protected function casts(): array
     {
         return [
             'icon' => CategoryIcon::class,
             'color' => CategoryColor::class,
             'is_favorite' => 'boolean',
-            'archived_at' => 'datetime',
         ];
     }
 }
