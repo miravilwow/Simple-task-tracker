@@ -1,4 +1,14 @@
-@props(['title' => 'Simple Task Tracker'])
+{{--
+    `fluid` switches the page from the boxed marketing shell to the full-bleed app shell: the
+    navbar sticks, the `aside` slot holds a fixed sidebar, and the content and footer are pushed
+    clear of it. `aside` renders outside `<main>` because a sidebar is navigation, not content.
+--}}
+@props(['title' => 'Simple Task Tracker', 'fluid' => false, 'aside' => null])
+
+@php
+    // Mirrors the sidebar's own cookie read, so the content offset is already right on first paint.
+    $sidebarState = request()->cookie('sidebar_state') === 'collapsed' ? 'collapsed' : 'expanded';
+@endphp
 
 <!DOCTYPE html>
 <html lang="en" class="motion-safe:scroll-smooth">
@@ -13,14 +23,23 @@
     @vite('resources/css/app.css')
     @stack('scripts')
 </head>
-<body class="flex min-h-screen flex-col bg-gray-50 font-sans text-gray-900 antialiased">
+<body class="flex min-h-screen flex-col bg-gray-50 font-sans text-gray-900 antialiased"
+    @if ($fluid) data-app-shell data-sidebar-state="{{ $sidebarState }}" @endif>
     <a href="#main"
         class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-sm">
         Skip to content
     </a>
 
-    <header class="border-b border-gray-200 bg-white">
-        <nav aria-label="Main" class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <header @class([
+        'border-b border-gray-200 bg-white',
+        // The sidebar is fixed below the navbar, so the navbar has to stay put too.
+        'sticky top-0 z-30' => $fluid,
+    ])>
+        <nav aria-label="Main" @class([
+            'flex items-center justify-between gap-4',
+            'app-header app-container' => $fluid,
+            'mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8' => ! $fluid,
+        ])>
             <a href="{{ route('home') }}"
                 class="flex items-center gap-2 rounded-md font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
                 <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
@@ -44,12 +63,18 @@
         </nav>
     </header>
 
+    {{ $aside }}
+
     <main id="main" class="flex-1">
         {{ $slot }}
     </main>
 
     <footer class="border-t border-gray-200 bg-white">
-        <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500 sm:px-6 lg:px-8">
+        <div @class([
+            'py-6 text-sm text-gray-500',
+            'app-container' => $fluid,
+            'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8' => ! $fluid,
+        ])>
             &copy; {{ date('Y') }} Simple Task Tracker &middot; Built with Laravel, Tailwind CSS, and vanilla JavaScript.
         </div>
     </footer>

@@ -42,13 +42,68 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* The cap on the full-bleed shell, so the tracker stops stretching on an ultrawide display. */
+    --container-app: 112rem;
 }
 
 /*
- * Sidebar. The structure and behaviour follow shadcn/ui's Sidebar (MIT) — a fixed drawer on
- * small screens, a sticky column that collapses to an icon rail on large ones — rebuilt here
- * for Blade and vanilla JS. Its mechanics live in CSS rather than utility classes because they
- * key off `data-state` on the root and are shared with rows that JavaScript builds.
+ * App shell. The tracker is full-bleed: the navbar spans the viewport, the sidebar is pinned to
+ * the left edge, and the content fills whatever is left. Only one measurement is shared — the
+ * gutter below — so the navbar's brand, the sidebar's labels, the page content and the footer all
+ * start on the same vertical line.
+ */
+:root {
+    --header-height: 4rem;
+}
+
+@utility app-header {
+    height: var(--header-height);
+}
+
+/* px-4/px-6 here is the same 1.5rem the sidebar reaches with its p-3 panel plus px-3 rows. */
+@utility app-container {
+    @apply mx-auto w-full max-w-app px-4 sm:px-6;
+}
+
+/* A card that stays put while the page scrolls has to clear the sticky navbar first. */
+@utility app-sticky-top {
+    top: calc(var(--header-height) + var(--spacing) * 6);
+}
+
+/* Below lg the sidebar overlays the page, so nothing is pushed aside. */
+[data-app-shell] {
+    --app-shell-offset: 0px;
+}
+
+@media (min-width: 64rem) {
+    [data-app-shell] {
+        --app-shell-offset: var(--sidebar-width);
+    }
+
+    [data-app-shell][data-sidebar-state='collapsed'] {
+        --app-shell-offset: var(--sidebar-width-icon);
+    }
+
+    [data-app-shell] > main,
+    [data-app-shell] > footer {
+        padding-left: var(--app-shell-offset);
+        transition: padding-left 200ms ease;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-app-shell] > main,
+    [data-app-shell] > footer {
+        transition: none;
+    }
+}
+
+/*
+ * Sidebar. The structure and behaviour follow shadcn/ui's Sidebar (MIT) — a drawer on small
+ * screens, a fixed full-height column that collapses to an icon rail on large ones — rebuilt
+ * here for Blade and vanilla JS. Its mechanics live in CSS rather than utility classes because
+ * they key off `data-state` on the root and are shared with rows that JavaScript builds.
  */
 :root {
     --sidebar-width: 16rem;
@@ -60,7 +115,8 @@
     position: fixed;
     inset-block: 0;
     left: 0;
-    z-index: 40;
+    /* Above the sticky navbar, because the drawer covers the whole screen while it is open. */
+    z-index: 50;
     width: var(--sidebar-width-mobile);
     overflow-y: auto;
     /* Off-screen alone would leave the drawer in the tab order. */
@@ -78,14 +134,11 @@
 
 @media (min-width: 64rem) {
     .sidebar {
-        position: sticky;
-        top: calc(var(--spacing) * 6);
-        inset-block: auto;
-        z-index: auto;
+        /* Fixed, not sticky: the column fills the viewport below the navbar and scrolls on its own. */
+        top: var(--header-height);
+        bottom: 0;
+        z-index: 20;
         width: var(--sidebar-width);
-        flex-shrink: 0;
-        align-self: flex-start;
-        overflow-y: visible;
         visibility: visible;
         transform: none;
     }
@@ -102,6 +155,11 @@
     .sidebar[data-state='collapsed'] .sidebar-menu-button {
         justify-content: center;
         padding-inline: 0;
+    }
+
+    /* With its heading hidden, the rail button is the only thing left in the header row. */
+    .sidebar[data-state='collapsed'] .sidebar-header {
+        justify-content: center;
     }
 }
 

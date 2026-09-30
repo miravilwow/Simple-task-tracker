@@ -24,6 +24,8 @@ function syncRail() {
 
 function setCollapsed(collapsed) {
     sidebar.dataset.state = collapsed ? 'collapsed' : 'expanded';
+    // The shell reads this to size the gap it leaves for the fixed sidebar.
+    document.body.dataset.sidebarState = sidebar.dataset.state;
     document.cookie = `sidebar_state=${sidebar.dataset.state}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`;
     syncRail();
 }

@@ -11,7 +11,16 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 
 ### Tracker shell
 
-The tracker is a three-part shell: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
+The tracker runs the **full-bleed app shell**; the landing page keeps the boxed marketing shell. `<x-layout :fluid="true">` is what switches between them, and it also opens the `aside` slot that holds the sidebar outside `<main>`, because a sidebar is navigation and not page content.
+
+| | Landing (`/`) | Tracker (`/tasks`) |
+|---|---|---|
+| Navbar | static, boxed at `max-w-6xl` | `sticky top-0`, spans the viewport |
+| Container | `max-w-6xl` | `app-container`: full width, capped at `--container-app` (112rem) so an ultrawide display does not stretch a task row across a metre of glass |
+| Sidebar | none | fixed, full height |
+| Gutter | `px-4 sm:px-6 lg:px-8` | `px-4 sm:px-6` |
+
+The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
 - **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed) and the category list. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
 
@@ -25,7 +34,8 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 | `--sidebar-width-icon` | 3.5rem | collapsed to the rail, from `lg` |
 | `--sidebar-width-mobile` | 18rem | the drawer, below `lg` |
 
-- From `lg` it is a sticky column that **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form) and centres the icons, which keep a `title` so each button is still identifiable.
+- From `lg` it is **fixed, not sticky**: it runs from the bottom of the sticky navbar (`--header-height`) to the bottom of the viewport, flush against the left edge, and scrolls on its own rather than with the page. `<main>` and the footer are pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
+- It **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form), centres the icons and the rail button, and the content reclaims the space in the same 200ms. The icons keep a `title` so each button is still identifiable.
 - The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
 - Rows built by JavaScript use the same `sidebar-menu-button` / `sidebar-menu-action` / `sidebar-menu-badge` utilities as the Blade ones, so the two can never drift apart.
@@ -64,12 +74,21 @@ Icons in JavaScript-rendered rows come from the `ICONS` map in `resources/js/app
   - the `<main>`
   - the footer
 - The navbar action depends on the page. On the landing page it is an **Open app** primary button. On the tracker it is a **Home** text link.
-- Content inside the navbar, footer, and page sections uses the same container: `max-w-6xl mx-auto px-4 sm:px-6 lg:px-8`.
+- Within a page, the navbar, the content and the footer all use that page's one container, so their left and right edges line up down the whole screen.
 - The tracker's JavaScript loads only on `/tasks`. The landing page loads CSS only.
 
 ## 1. Layout (tracker dashboard)
 
-A dashboard in the shared container.
+A dashboard in the `app-container`, beside the fixed sidebar.
+
+### Grid alignment
+
+Everything on the tracker resolves to **one gutter and one column grid**. Nothing is aligned by eye.
+
+- **The gutter is 1.5rem from `sm`.** The `app-container`'s `sm:px-6` and the sidebar's `p-3` panel plus each row's own `px-3` both land on it, so the navbar's logo, the sidebar's icons, the page heading and the footer text all start on the same vertical line.
+- **The column grid is 4 columns with `gap-6` from `xl`.** The stat row, the list layout and the calendar layout all use it, so a tile's edge is also a panel's edge.
+- **The two layouts occupy the same columns.** Column 1 holds the New task form in List and the "No due date" tray in Calendar; columns 2–4 hold the task panel and the month grid. Switching layouts must not move anything sideways.
+- A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
 - **Order, top to bottom:**
   1. Page heading "Your tasks" and a one-line description.
@@ -77,10 +96,10 @@ A dashboard in the shared container.
   3. Main area.
 - **Stat cards:** four `<x-stat-card>` tiles, 2 per row on mobile and 4 per row from `lg`. Each pairs a tinted icon with its number: Total tasks, Pending, Completed, High priority pending. Below `sm` the icon stacks above the label so the text never gets squeezed.
 - **Progress meter:** a ratio against a total belongs in a meter, not a fifth number. One bar on a single-hue track, with the label "N of M done (P%)" always visible, so the value never depends on the bar's colour alone. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
-- **Main area from `lg` (1024px):** two columns.
-  - Left third: the New task form, `sticky` so it stays in view while scrolling.
-  - Right two-thirds: the task panel.
-- **Main area below `lg`:** stacked, with the form first.
+- **Main area from `xl` (1280px):** four columns.
+  - Column 1: the New task form, `sticky` so it stays in view while scrolling.
+  - Columns 2–4: the task panel, which needs the width for its four table columns.
+- **Main area below `xl`:** stacked, with the form first.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
   - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
@@ -220,6 +239,9 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Sidebar views and categories filter the list, and the title names the current one
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
+- [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
+- [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge
+- [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view
