@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CategoryColor;
 use App\Enums\CategoryIcon;
 use App\Models\Category;
 use App\Models\Task;
@@ -74,6 +75,25 @@ class CategoryApiTest extends TestCase
                 $icon->value.',',
                 str_replace('}', ',', $css),
                 "CategoryIcon::{$icon->name} is missing from the @source inline list in app.css"
+            );
+        }
+    }
+
+    public function test_every_colour_the_enum_offers_has_a_class_in_the_picker(): void
+    {
+        // The class is a literal string in the map rather than built from the colour name, the
+        // same way PRIORITY_BADGES works, because Tailwind cannot see a class built at runtime.
+        // A case added to the enum without a line here renders an uncoloured icon.
+        $js = file_get_contents(base_path('resources/js/app.js'));
+
+        preg_match('/const PROJECT_COLORS = \{(.*?)\n\};/s', $js, $block);
+        $this->assertNotEmpty($block, 'PROJECT_COLORS was not found in app.js');
+
+        foreach (CategoryColor::cases() as $color) {
+            $this->assertStringContainsString(
+                "{$color->value}: 'text-{$color->value}-500'",
+                $block[1],
+                "CategoryColor::{$color->name} is missing from PROJECT_COLORS in app.js"
             );
         }
     }

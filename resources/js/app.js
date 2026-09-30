@@ -1,7 +1,13 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { enhanceDateFields } from './datepicker.js';
-import { confirmAction, openActivityDialog, openScheduleDialog } from './dialogs.js';
+import {
+    confirmAction,
+    openActivityDialog,
+    openCommentsDialog,
+    openMoveDialog,
+    openScheduleDialog,
+} from './dialogs.js';
 import { openMenu } from './menu.js';
 import './shell.js';
 import { closeDrawer } from './sidebar.js';
@@ -29,6 +35,18 @@ const STATUS_BADGES = {
     completed: { label: 'Completed', classes: 'bg-green-100 text-green-700' },
 };
 
+// Full class strings, never built from the colour name, so Tailwind can find them. The set
+// mirrors App\Enums\CategoryColor, and CategoryApiTest fails if the two drift apart.
+const PROJECT_COLORS = {
+    slate: 'text-slate-500',
+    red: 'text-red-500',
+    amber: 'text-amber-500',
+    green: 'text-green-500',
+    blue: 'text-blue-500',
+    violet: 'text-violet-500',
+    pink: 'text-pink-500',
+};
+
 /**
  * One category icon, tinted with its colour. The Iconify class is built from the name the API
  * sent, which Tailwind cannot see, so every one of them is safelisted in app.css through
@@ -37,7 +55,7 @@ const STATUS_BADGES = {
 function categoryIcon(category, size) {
     const icon = createElement(
         'span',
-        `icon-[fluent--${category.icon}-24-regular] ${size} shrink-0 text-gray-500`,
+        `icon-[fluent--${category.icon}-24-regular] ${size} shrink-0 ${PROJECT_COLORS[category.color] ?? PROJECT_COLORS.slate}`,
     );
     icon.setAttribute('aria-hidden', 'true');
 
@@ -68,11 +86,23 @@ const elements = {
     newTaskTrigger: $('new-task-trigger'),
     taskCancel: $('task-cancel'),
     categoryEmpty: $('category-empty'),
-    categoryForm: $('category-form'),
-    categoryToggle: $('category-toggle'),
-    categoryName: $('category-name'),
-    categorySubmit: $('category-submit'),
-    categoryCancel: $('category-cancel'),
+    favoritesGroup: $('favorites-group'),
+    favoriteList: $('favorite-list'),
+    archivedToggle: $('archived-toggle'),
+    archivedList: $('archived-list'),
+    archivedCount: $('archived-count'),
+    projectNew: $('project-new'),
+    projectDialog: $('project-dialog'),
+    projectDialogTitle: $('project-dialog-title'),
+    projectForm: $('project-form'),
+    projectName: $('project-name'),
+    projectNameCount: $('project-name-count'),
+    projectDescription: $('project-description'),
+    projectColor: $('project-color'),
+    projectParent: $('project-parent'),
+    projectSubmit: $('project-submit'),
+    projectCancel: $('project-cancel'),
+    projectClose: $('project-close'),
     iconGrid: $('icon-grid'),
     iconEmpty: $('icon-empty'),
     categorySelect: $('category_id'),
@@ -125,8 +155,11 @@ const state = {
     categories: [],
     // The project whose row has been swapped for the edit form, and the icon it had when the
     // edit began, which the picker keeps offering however the name is retyped.
+    archivedCategories: [],
+    archivedOpen: false,
     editing: null,
     editingIcon: null,
+    projectDialogOpener: null,
     // The control the task dialog was opened from, so closing it puts focus back there.
     taskDialogOpener: null,
 };
@@ -312,12 +345,34 @@ function clearStats() {
     elements.progressLabel.textContent = 'Unavailable';
 }
 
-function categoryMenu(category, trigger) {
+/**
+ * Every action a project offers sits behind one "…", so the row carries a single control
+ * however many it has. Delete is inside it too: throwing work away is not a button to be
+ * brushed past on the way to selecting a project.
+ */
+function projectMenu(category, trigger) {
     openMenu(trigger, [
-        { icon: 'pencil', label: 'Edit project', onSelect: () => startEditingCategory(category) },
-        { icon: 'plus', label: 'New task', onSelect: () => openTaskDialog({ category, opener: trigger }) },
-        { icon: 'clock', label: 'Activity', onSelect: () => showActivity(category) },
-        { icon: 'trash', label: 'Delete project', destructive: true, onSelect: () => deleteCategory(category) },
+        { icon: 'pencil', label: 'Edit', onSelect: () => openProjectDialog({ category }) },
+        {
+            icon: 'star',
+            label: category.is_favorite ? 'Remove from favorites' : 'Add to favorites',
+            onSelect: () => setFavorite(category, !category.is_favorite),
+        },
+        { separator: true },
+        {
+            icon: 'arrow-right',
+            label: 'Project actions',
+            submenu: [
+                { icon: 'arrow-right', label: 'Move', onSelect: () => moveProject(category) },
+                { icon: 'duplicate', label: 'Duplicate', onSelect: () => duplicateProject(category) },
+            ],
+        },
+        { separator: true },
+        { icon: 'chat', label: 'Comments', onSelect: () => showComments(category) },
+        { icon: 'clock', label: 'View activity', onSelect: () => showActivity(category) },
+        { separator: true },
+        { icon: 'archive-box', label: 'Archive', onSelect: () => setArchived(category, true) },
+        { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteCategory(category) },
     ]);
 }
 
@@ -327,17 +382,22 @@ function categoryRow(category) {
     // Same sidebar utilities the Blade menu buttons use, so both stay in step.
     const select = createElement('button', 'sidebar-menu-button flex-1');
     select.type = 'button';
-    select.title = category.name;
+    select.title = category.description ? `${category.name} — ${category.description}` : category.name;
     select.setAttribute('aria-pressed', String(state.categoryId === category.id));
     select.append(
         categoryIcon(category, 'size-5'),
         createElement('span', 'sidebar-collapsible flex-1 truncate text-left', category.name),
-        createElement('span', 'sidebar-collapsible sidebar-menu-badge', String(category.task_count)),
     );
+
+    // A zero renders as nothing rather than "0".
+    if (category.task_count > 0) {
+        select.append(
+            createElement('span', 'sidebar-collapsible sidebar-menu-badge', String(category.task_count)),
+        );
+    }
+
     select.addEventListener('click', () => selectCategory(category));
 
-    // Edit, New task, Activity and Delete all live behind one "…", so a row carries a single
-    // action however many it offers. Delete is in there too: it is not a one-tap button.
     const more = createElement('button', 'sidebar-collapsible sidebar-menu-action');
     more.type = 'button';
     more.dataset.categoryId = String(category.id);
@@ -345,37 +405,112 @@ function categoryRow(category) {
     more.setAttribute('aria-haspopup', 'menu');
     more.setAttribute('aria-expanded', 'false');
     more.append(createIcon('ellipsis', 'size-4'), createElement('span', 'sr-only', `Actions for ${category.name}`));
-    more.addEventListener('click', () => categoryMenu(category, more));
+    more.addEventListener('click', () => projectMenu(category, more));
 
     row.append(select, more);
 
     return row;
 }
 
-function renderCategories(categories) {
-    state.categories = categories;
+/**
+ * The flat list the API returns, nested by parent_id.
+ *
+ * A project whose parent is missing from the list — archived, say — is treated as a root, so a
+ * branch can never disappear from the sidebar because of where its parent happens to be.
+ */
+function buildTree(categories) {
+    const byId = new Map(categories.map((category) => [category.id, { ...category, children: [] }]));
 
-    // Rebuilding the list throws away the node that had focus, so remember which row it was on.
-    const focused = document.activeElement?.closest?.('[data-category-id]')?.dataset.categoryId;
+    return [...byId.values()].filter((node) => {
+        const parent = node.parent_id === null ? null : byId.get(node.parent_id);
 
-    // The edit form is the same node as the create form, so it is put back above the list before
-    // the list is rebuilt; otherwise the row it was living in would take it out of the DOM.
-    elements.categoryList.before(elements.categoryForm);
+        parent?.children.push(node);
 
-    elements.categoryList.replaceChildren(
-        ...categories.map((category) => {
+        return !parent;
+    });
+}
+
+function renderTree(nodes, depth = 0) {
+    return nodes.map((node) => {
+        const item = createElement('li');
+        item.append(categoryRow(node));
+
+        if (node.children.length > 0) {
+            // A rule down the left edge, so a child reads as belonging to the row above it.
+            const children = createElement('ul', 'mt-1 ml-3 flex flex-col gap-1 border-l border-gray-200 pl-1');
+            children.append(...renderTree(node.children, depth + 1));
+            item.append(children);
+        }
+
+        return item;
+    });
+}
+
+function renderFavorites(categories) {
+    const favorites = categories.filter((category) => category.is_favorite);
+
+    // Favourites are flat: the point of the group is to skip the tree, not to repeat it.
+    elements.favoriteList.replaceChildren(
+        ...favorites.map((category) => {
             const item = createElement('li');
-
-            // While a project is being edited its row is the form, in place, rather than beside it.
-            item.append(state.editing?.id === category.id ? elements.categoryForm : categoryRow(category));
+            item.append(categoryRow(category));
 
             return item;
         }),
     );
 
-    elements.categoryEmpty.classList.toggle('hidden', categories.length > 0);
+    elements.favoritesGroup.classList.toggle('hidden', favorites.length === 0);
+}
 
-    // Keep the form's picker in step with the sidebar, preserving any choice already made.
+function renderArchived(categories) {
+    elements.archivedCount.textContent = categories.length > 0 ? String(categories.length) : '';
+    elements.archivedToggle.classList.toggle('hidden', categories.length === 0);
+
+    if (categories.length === 0) {
+        setArchivedOpen(false);
+    }
+
+    elements.archivedList.replaceChildren(
+        ...categories.map((category) => {
+            const item = createElement('li');
+            const row = createElement('div', 'flex items-center gap-1');
+
+            const label = createElement('div', 'sidebar-menu-button flex-1 text-gray-500');
+            label.append(
+                categoryIcon(category, 'size-5'),
+                createElement('span', 'sidebar-collapsible flex-1 truncate text-left', category.name),
+            );
+
+            const restore = createElement('button', 'sidebar-collapsible sidebar-menu-action');
+            restore.type = 'button';
+            restore.append(
+                createIcon('undo', 'size-4'),
+                createElement('span', 'sr-only', `Unarchive ${category.name}`),
+            );
+            restore.title = `Unarchive ${category.name}`;
+            restore.addEventListener('click', () => setArchived(category, false));
+
+            row.append(label, restore);
+            item.append(row);
+
+            return item;
+        }),
+    );
+}
+
+function renderCategories(categories, archived) {
+    state.categories = categories;
+    state.archivedCategories = archived;
+
+    // Rebuilding the list throws away the node that had focus, so remember which row it was on.
+    const focused = document.activeElement?.closest?.('[data-category-id]')?.dataset.categoryId;
+
+    renderFavorites(categories);
+    elements.categoryList.replaceChildren(...renderTree(buildTree(categories)));
+    elements.categoryEmpty.classList.toggle('hidden', categories.length > 0);
+    renderArchived(archived);
+
+    // Keep the task form's picker in step with the sidebar, preserving any choice already made.
     const selected = elements.categorySelect.value;
     const placeholder = createElement('option', '', 'No category');
     // An <option> with no value attribute submits its own text, which would post "No category".
@@ -392,8 +527,9 @@ function renderCategories(categories) {
     );
     elements.categorySelect.value = selected;
 
+    // A favourite appears twice, so the first match is the one focus goes back to.
     if (focused) {
-        elements.categoryList.querySelector(`[data-category-id="${focused}"]`)?.focus();
+        document.querySelector(`[data-category-id="${focused}"]`)?.focus();
     }
 }
 
@@ -431,7 +567,13 @@ async function load() {
     const range = monthRange(state.month);
 
     try {
-        const requests = [api('/tasks/stats'), api('/categories')];
+        // The archived list is its own request: the sidebar shows both, and asking for them
+        // together would mean the tree could not tell one from the other.
+        const requests = [
+            api('/tasks/stats'),
+            api('/categories'),
+            api('/categories', { params: { archived: 1 } }),
+        ];
 
         requests.push(
             state.mode === 'calendar'
@@ -443,7 +585,8 @@ async function load() {
             requests.push(api('/tasks', { params: { ...currentParams(), due: 'none' } }));
         }
 
-        const [statsResponse, categoriesResponse, tasksResponse, unscheduledResponse] = await Promise.all(requests);
+        const [statsResponse, categoriesResponse, archivedResponse, tasksResponse, unscheduledResponse] =
+            await Promise.all(requests);
 
         if (requestId !== latestRequestId) {
             return;
@@ -452,7 +595,7 @@ async function load() {
         elements.skeleton.classList.add('hidden');
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
-        renderCategories(categoriesResponse.data);
+        renderCategories(categoriesResponse.data, archivedResponse.data);
 
         if (state.mode === 'calendar') {
             elements.calendarMonth.textContent = monthLabel(state.month);
@@ -800,111 +943,197 @@ function suggestIcons(name, keep = null) {
  * One form does both jobs. Editing moves that same node into the row it belongs to, which is
  * what keeps a single 224-option icon grid in the page instead of one per project.
  */
-function startEditingCategory(category) {
+const PROJECT_FIELDS = ['project-name', 'project-description', 'project-color', 'project-parent', 'project-icon'];
+
+/**
+ * Add and Edit are the same dialog. Two would mean two copies of the 224-option icon grid in
+ * the page, and two places for the picker's behaviour to drift apart.
+ */
+function openProjectDialog({ category = null, opener = elements.projectNew } = {}) {
     state.editing = category;
-    state.editingIcon = category.icon;
+    state.editingIcon = category?.icon ?? null;
+    state.projectDialogOpener = opener;
 
-    clearFieldErrors(['category-name', 'category-icon']);
-    elements.categoryForm.classList.remove('hidden');
-    elements.categoryToggle.setAttribute('aria-expanded', 'false');
-    elements.categoryCancel.classList.replace('hidden', 'flex');
-    elements.categorySubmit.querySelector('[data-label]').textContent = 'Save project';
+    clearFieldErrors(PROJECT_FIELDS);
+    elements.projectDialogTitle.textContent = category ? 'Edit project' : 'New project';
+    elements.projectSubmit.querySelector('[data-label]').textContent = category ? 'Save' : 'Add project';
 
-    elements.categoryName.value = category.name;
+    elements.projectName.value = category?.name ?? '';
+    elements.projectDescription.value = category?.description ?? '';
+    elements.projectColor.value = category?.color ?? 'slate';
+    fillParentOptions(elements.projectParent, category);
+    elements.projectParent.value = category?.parent_id ? String(category.parent_id) : '';
+    updateNameCount();
+
     // Checked before the grid is filtered, so the pass below sees a choice already made and
     // leaves it alone rather than offering the closest name instead.
-    const current = elements.iconGrid.querySelector(`[data-icon="${category.icon}"] input`);
+    const current = elements.iconGrid.querySelector(`[data-icon="${category?.icon ?? 'folder'}"] input`);
 
     if (current) {
         current.checked = true;
     }
 
-    suggestIcons(category.name, category.icon);
-    renderCategories(state.categories);
-    elements.categoryName.focus();
-    elements.categoryName.select();
+    suggestIcons(elements.projectName.value, state.editingIcon);
+    elements.projectDialog.showModal();
+    elements.projectName.focus();
+    elements.projectName.select();
 }
 
-function stopEditingCategory({ restoreFocus = true } = {}) {
-    const edited = state.editing;
+/**
+ * A project may not become its own parent, nor the child of one of its own children: that would
+ * cut the whole branch off the tree. The server refuses it too; leaving the options out is what
+ * stops the user reaching for something that cannot work.
+ */
+function fillParentOptions(select, category) {
+    const excluded = category ? new Set(descendantIds(category.id)) : new Set();
+    const none = createElement('option', '', 'No parent');
+    none.value = '';
 
-    state.editing = null;
-    state.editingIcon = null;
+    select.replaceChildren(
+        none,
+        ...state.categories
+            .filter((one) => !excluded.has(one.id))
+            .map((one) => {
+                const option = createElement('option', '', one.name);
+                option.value = String(one.id);
 
-    elements.categoryForm.reset();
-    elements.categoryForm.classList.add('hidden');
-    elements.categoryCancel.classList.replace('flex', 'hidden');
-    elements.categorySubmit.querySelector('[data-label]').textContent = 'Add project';
-    clearFieldErrors(['category-name', 'category-icon']);
-    suggestIcons('');
-    renderCategories(state.categories);
-
-    // Focus goes back to the "…" the edit was opened from, which the re-render has just rebuilt.
-    if (restoreFocus && edited) {
-        elements.categoryList.querySelector(`[data-category-id="${edited.id}"]`)?.focus();
-    }
+                return option;
+            }),
+    );
 }
 
-function categoryPayload() {
+function descendantIds(id) {
+    const children = state.categories.filter((one) => one.parent_id === id);
+
+    return [id, ...children.flatMap((child) => descendantIds(child.id))];
+}
+
+function closeProjectDialog() {
+    // The close handler does the clearing, because Escape and the backdrop get there too.
+    elements.projectDialog.close();
+}
+
+function updateNameCount() {
+    elements.projectNameCount.textContent = `${elements.projectName.value.length}/40`;
+}
+
+function projectPayload() {
     return {
-        name: elements.categoryName.value.trim(),
+        name: elements.projectName.value.trim(),
+        description: elements.projectDescription.value.trim() || null,
+        color: elements.projectColor.value,
         // Nothing matched the name, so no icon is on offer and none is checked.
-        icon: elements.categoryForm.querySelector('input[name="icon"]:checked')?.value ?? 'folder',
+        icon: elements.projectForm.querySelector('input[name="icon"]:checked')?.value ?? 'folder',
+        parent_id: elements.projectParent.value ? Number(elements.projectParent.value) : null,
     };
 }
 
-async function submitCategoryForm(event) {
+async function submitProjectForm(event) {
     event.preventDefault();
 
     // Pressing Enter can re-submit the form even while the disabled button is mid-request.
-    if (elements.categorySubmit.disabled) {
+    if (elements.projectSubmit.disabled) {
         return;
     }
 
     const editing = state.editing;
 
-    clearFieldErrors(['category-name', 'category-icon']);
-    setBusy(elements.categorySubmit, editing ? 'Saving…' : 'Adding…');
+    clearFieldErrors(PROJECT_FIELDS);
+    setBusy(elements.projectSubmit, 'Saving…');
 
     try {
         await api(editing ? `/categories/${editing.id}` : '/categories', {
             method: editing ? 'PATCH' : 'POST',
-            body: categoryPayload(),
+            body: projectPayload(),
         });
 
-        if (editing) {
-            // Cleared before the reload, so the list comes back as rows rather than as the form.
-            stopEditingCategory({ restoreFocus: false });
-            showToast('Project updated');
-            await load();
-        } else {
-            elements.categoryForm.reset();
-            suggestIcons('');
-            showToast('Project added');
-            await load();
-            elements.categoryName.focus();
-        }
+        closeProjectDialog();
+        showToast(editing ? 'Project updated' : 'Project added');
+        await load();
     } catch (error) {
-        // The API names the fields "name" and "icon"; the inputs are prefixed to stay unique.
+        // The API names these fields "name", "icon" and so on; the inputs are prefixed to stay
+        // unique on a page that also has a task form.
         if (error instanceof ApiError && Object.keys(error.errors).length > 0) {
             const prefixed = Object.fromEntries(
-                Object.entries(error.errors).map(([field, messages]) => [`category-${field}`, messages]),
+                Object.entries(error.errors).map(([field, messages]) => [`project-${field.replace('_id', '')}`, messages]),
             );
-            showFieldErrors(prefixed, elements.categoryForm);
+            showFieldErrors(prefixed, elements.projectForm);
         } else {
             showToast(errorMessage(error), 'error');
         }
     } finally {
-        clearBusy(elements.categorySubmit);
+        clearBusy(elements.projectSubmit);
     }
 }
 
 /**
- * The project's recent history. The fetch is passed in rather than done by the dialog, because
- * the API wrapper lives here.
+ * One wrapper for the project actions that are a single request and a toast: they all report
+ * the server's message on failure and reload the sidebar on success.
  */
+async function projectAction(request, successMessage) {
+    try {
+        await request();
+        showToast(successMessage);
+        await load();
+    } catch (error) {
+        showToast(errorMessage(error), 'error');
+    }
+}
+
+function setFavorite(category, isFavorite) {
+    return projectAction(
+        () => api(`/categories/${category.id}/favorite`, {
+            method: 'PATCH',
+            body: { is_favorite: isFavorite },
+        }),
+        isFavorite ? 'Added to favorites' : 'Removed from favorites',
+    );
+}
+
+function setArchived(category, archived) {
+    return projectAction(
+        () => api(`/categories/${category.id}/${archived ? 'archive' : 'unarchive'}`, { method: 'PATCH' }),
+        archived ? 'Project archived' : 'Project unarchived',
+    );
+}
+
+function duplicateProject(category) {
+    return projectAction(
+        () => api(`/categories/${category.id}/duplicate`, { method: 'POST' }),
+        'Project duplicated',
+    );
+}
+
+/**
+ * "Move into folder" and "set parent" are the same thing here, because a folder is simply a
+ * project with children. One tree, so one operation.
+ */
+async function moveProject(category) {
+    const parentId = await openMoveDialog(category, (select) => fillParentOptions(select, category));
+
+    if (parentId === null) {
+        return;
+    }
+
+    await projectAction(
+        () => api(`/categories/${category.id}/move`, {
+            method: 'PATCH',
+            body: { parent_id: parentId.value },
+        }),
+        'Project moved',
+    );
+}
+
 function showActivity(category) {
     openActivityDialog(category.name, async () => (await api(`/categories/${category.id}/activity`)).data);
+}
+
+function showComments(category) {
+    openCommentsDialog(category.name, {
+        load: async () => (await api(`/categories/${category.id}/comments`)).data,
+        add: (body) => api(`/categories/${category.id}/comments`, { method: 'POST', body: { body } }),
+        remove: (comment) => api(`/categories/${category.id}/comments/${comment.id}`, { method: 'DELETE' }),
+    });
 }
 
 async function deleteCategory(category) {
@@ -914,6 +1143,7 @@ async function deleteCategory(category) {
             category.task_count > 0
                 ? `Delete "${category.name}"? Its ${category.task_count} task(s) will stay, without a project.`
                 : `Delete "${category.name}"?`,
+        confirmLabel: 'Delete project',
     });
 
     if (!confirmed) {
@@ -933,6 +1163,13 @@ async function deleteCategory(category) {
     } catch (error) {
         showToast(errorMessage(error), 'error');
     }
+}
+
+function setArchivedOpen(open) {
+    state.archivedOpen = open;
+    elements.archivedToggle.setAttribute('aria-expanded', String(open));
+    elements.archivedList.classList.toggle('hidden', !open);
+    elements.archivedList.classList.toggle('flex', open);
 }
 
 // ---------------------------------------------------------------- navigation
@@ -987,9 +1224,33 @@ function shiftMonth(offset) {
 // ---------------------------------------------------------------- wiring
 
 elements.form.addEventListener('submit', createTask);
-elements.categoryForm.addEventListener('submit', submitCategoryForm);
-elements.categoryName.addEventListener('input', (event) => suggestIcons(event.target.value, state.editingIcon));
-elements.categoryCancel.addEventListener('click', () => stopEditingCategory());
+elements.projectForm.addEventListener('submit', submitProjectForm);
+elements.projectName.addEventListener('input', (event) => {
+    updateNameCount();
+    suggestIcons(event.target.value, state.editingIcon);
+});
+elements.projectNew.addEventListener('click', () => openProjectDialog());
+elements.projectCancel.addEventListener('click', closeProjectDialog);
+elements.projectClose.addEventListener('click', closeProjectDialog);
+// Escape and the backdrop close the dialog without going through Cancel, so the form is reset
+// here rather than in each handler.
+elements.projectDialog.addEventListener('close', () => {
+    state.editing = null;
+    state.editingIcon = null;
+    elements.projectForm.reset();
+    clearFieldErrors(PROJECT_FIELDS);
+    suggestIcons('');
+
+    const opener = state.projectDialogOpener ?? elements.projectNew;
+    state.projectDialogOpener = null;
+    (opener.isConnected ? opener : elements.projectNew).focus();
+});
+elements.projectDialog.addEventListener('click', (event) => {
+    if (event.target === elements.projectDialog) {
+        closeProjectDialog();
+    }
+});
+elements.archivedToggle.addEventListener('click', () => setArchivedOpen(!state.archivedOpen));
 elements.newTaskTrigger.addEventListener('click', () => openTaskDialog());
 elements.taskCancel.addEventListener('click', closeTaskDialog);
 // Escape and the backdrop close the dialog without going through the Cancel button, so the
@@ -1009,20 +1270,6 @@ elements.taskDialog.addEventListener('click', (event) => {
     }
 });
 elements.retry.addEventListener('click', load);
-
-elements.categoryToggle.addEventListener('click', () => {
-    // The + and an open editor share one form, so starting a new project ends any edit first.
-    if (state.editing) {
-        stopEditingCategory({ restoreFocus: false });
-    }
-
-    const open = elements.categoryForm.classList.toggle('hidden');
-    elements.categoryToggle.setAttribute('aria-expanded', String(!open));
-
-    if (!open) {
-        elements.categoryName.focus();
-    }
-});
 
 viewButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
 modeButtons.forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode)));

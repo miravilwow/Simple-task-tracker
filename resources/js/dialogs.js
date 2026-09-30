@@ -1,4 +1,4 @@
-import { createElement, createIcon } from './dom.js';
+import { clearBusy, createElement, createIcon, setBusy } from './dom.js';
 
 const confirmDialog = document.getElementById('confirm-dialog');
 const confirmTitle = document.getElementById('confirm-title');
@@ -131,5 +131,142 @@ export function openActivityDialog(projectName, loadEntries) {
         } finally {
             activityList.setAttribute('aria-busy', 'false');
         }
+    });
+}
+
+const commentsDialog = document.getElementById('comments-dialog');
+const commentsProject = document.getElementById('comments-project');
+const commentsList = document.getElementById('comments-list');
+const commentsMessage = document.getElementById('comments-message');
+const commentsClose = document.getElementById('comments-close');
+const commentForm = document.getElementById('comment-form');
+const commentBody = document.getElementById('comment-body');
+const commentSubmit = document.getElementById('comment-submit');
+
+const moveDialog = document.getElementById('move-dialog');
+const moveProjectName = document.getElementById('move-project');
+const moveParent = document.getElementById('move-parent');
+const moveSave = document.getElementById('move-save');
+const moveCancel = document.getElementById('move-cancel');
+
+const commentFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+function setCommentsMessage(text) {
+    commentsMessage.textContent = text ?? '';
+    commentsMessage.classList.toggle('hidden', !text);
+}
+
+function commentEntry(comment, onRemove) {
+    const item = createElement('li', 'flex gap-3 border-b border-gray-100 py-3 last:border-0');
+    const body = createElement('div', 'min-w-0 flex-1');
+
+    // Comment text is user input, so it only ever arrives through textContent.
+    body.append(
+        createElement('p', 'text-sm wrap-break-word whitespace-pre-line text-gray-700', comment.body),
+        createElement('p', 'mt-0.5 text-xs text-gray-500', commentFormatter.format(new Date(comment.created_at))),
+    );
+
+    const remove = createElement(
+        'button',
+        'inline-flex size-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+    );
+    remove.type = 'button';
+    remove.append(createIcon('trash', 'size-4'), createElement('span', 'sr-only', 'Delete comment'));
+    remove.addEventListener('click', () => onRemove(comment));
+
+    item.append(body, remove);
+
+    return item;
+}
+
+/**
+ * A project's comment thread: read, add and delete, all without leaving the dialog.
+ *
+ * The three requests are passed in rather than made here, because the API wrapper lives in
+ * app.js and this file only knows about dialogs.
+ *
+ * @param {string} projectName
+ * @param {{load: () => Promise<Array<object>>, add: (body: string) => Promise<object>, remove: (comment: object) => Promise<object>}} actions
+ */
+export function openCommentsDialog(projectName, actions) {
+    commentsProject.textContent = projectName;
+    commentsList.replaceChildren();
+    commentForm.reset();
+    commentBody.removeAttribute('aria-invalid');
+    document.getElementById('comment-body-error').classList.add('hidden');
+    setCommentsMessage('Loading…');
+
+    return openDialog(commentsDialog, ({ on, finish }) => {
+        const refresh = async () => {
+            try {
+                const comments = await actions.load();
+
+                // The dialog may have been dismissed while the request was still out.
+                if (!commentsDialog.open) {
+                    return;
+                }
+
+                commentsList.replaceChildren(
+                    ...comments.map((comment) =>
+                        commentEntry(comment, async (one) => {
+                            await actions.remove(one);
+                            await refresh();
+                        }),
+                    ),
+                );
+                setCommentsMessage(comments.length === 0 ? 'No comments yet.' : null);
+            } catch (error) {
+                setCommentsMessage(error.message || 'Comments could not be loaded.');
+            }
+        };
+
+        on(commentsClose, 'click', () => finish(null));
+        on(commentForm, 'submit', async (event) => {
+            event.preventDefault();
+
+            if (commentSubmit.disabled) {
+                return;
+            }
+
+            const error = document.getElementById('comment-body-error');
+
+            error.classList.add('hidden');
+            commentBody.removeAttribute('aria-invalid');
+            setBusy(commentSubmit, 'Posting…');
+
+            try {
+                await actions.add(commentBody.value);
+                commentForm.reset();
+                await refresh();
+                commentBody.focus();
+            } catch (failure) {
+                error.textContent = failure.errors?.body?.[0] ?? failure.message ?? 'Something went wrong.';
+                error.classList.remove('hidden');
+                commentBody.setAttribute('aria-invalid', 'true');
+                commentBody.focus();
+            } finally {
+                clearBusy(commentSubmit);
+            }
+        });
+
+        refresh();
+    });
+}
+
+/**
+ * Resolves to { value: id | null } when moved, or null when dismissed. The wrapper object is
+ * what lets "move to the top level" be a real answer rather than a dismissal.
+ *
+ * @param {object} project
+ * @param {(select: HTMLSelectElement) => void} fillOptions
+ */
+export function openMoveDialog(project, fillOptions) {
+    moveProjectName.textContent = project.name;
+    fillOptions(moveParent);
+    moveParent.value = project.parent_id ? String(project.parent_id) : '';
+
+    return openDialog(moveDialog, ({ on, finish }) => {
+        on(moveSave, 'click', () => finish({ value: moveParent.value ? Number(moveParent.value) : null }));
+        on(moveCancel, 'click', () => finish(null));
     });
 }

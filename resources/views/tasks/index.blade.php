@@ -33,58 +33,31 @@
                 </nav>
             </x-sidebar.group>
 
+            <x-sidebar.group label="Favorites" id="favorites-group" class="hidden">
+                <ul id="favorite-list" class="flex flex-col gap-1"></ul>
+            </x-sidebar.group>
+
             <x-sidebar.group label="My projects">
                 <x-slot:action>
-                    <button type="button" id="category-toggle" aria-expanded="false" aria-controls="category-form"
-                        class="sidebar-menu-action">
+                    <button type="button" id="project-new" class="sidebar-menu-action">
                         <x-icon name="plus" class="size-4" />
                         <span class="sr-only">New project</span>
                     </button>
                 </x-slot:action>
 
-                <form id="category-form" class="sidebar-collapsible mb-1 hidden space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3" novalidate>
-                    <div>
-                        <label for="category-name" class="sr-only">Project name</label>
-                        <input id="category-name" name="name" type="text" maxlength="40" required placeholder="Project name"
-                            aria-describedby="category-name-error"
-                            class="block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
-                        <p id="category-name-error" class="mt-1 hidden text-sm text-red-600"></p>
-                    </div>
-
-                    <fieldset>
-                        <legend class="sr-only">Icon</legend>
-                        <div id="icon-grid" class="hidden max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain">
-                            @foreach (\App\Enums\CategoryIcon::cases() as $icon)
-                                <label data-icon="{{ $icon->value }}" title="{{ $icon->label() }}"
-                                    class="hidden size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
-                                    <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
-                                        @checked($icon === \App\Enums\CategoryIcon::Folder)>
-                                    <span class="{{ $icon->cssClass() }} size-4" aria-hidden="true"></span>
-                                    <span class="sr-only">{{ $icon->label() }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                        <p id="icon-empty" class="mt-1 hidden text-sm text-gray-500">No icon matches that name, so Folder will be used.</p>
-                        <p id="category-icon-error" class="mt-1 hidden text-sm text-red-600"></p>
-                    </fieldset>
-
-                    <div class="flex flex-col gap-2">
-                        <button type="submit" id="category-submit"
-                            class="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
-                            <span data-label>Add project</span>
-                        </button>
-                        {{-- Shown only while editing: creating is dismissed with the + toggle instead. --}}
-                        <button type="button" id="category-cancel"
-                            class="hidden min-h-10 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-
                 <ul id="category-list" class="flex flex-col gap-1"></ul>
                 <p id="category-empty" class="sidebar-collapsible hidden px-3 py-2 text-sm text-gray-500">
                     No projects yet.
                 </p>
+
+                {{-- Archived projects are out of the way, not gone, so the way back is always here. --}}
+                <button type="button" id="archived-toggle" aria-expanded="false" aria-controls="archived-list"
+                    class="sidebar-collapsible mt-1 hidden sidebar-menu-button text-gray-500">
+                    <x-icon name="archive-box" class="size-5 shrink-0" />
+                    <span class="sidebar-collapsible flex-1 truncate text-left">Archived</span>
+                    <span id="archived-count" class="sidebar-collapsible sidebar-menu-badge"></span>
+                </button>
+                <ul id="archived-list" class="mt-1 hidden flex-col gap-1"></ul>
             </x-sidebar.group>
 
             <x-slot:footer>
@@ -414,6 +387,156 @@
                 </button>
             </div>
         </form>
+    </dialog>
+
+    {{-- Add and Edit are one dialog. Two would mean two copies of the 224-option icon grid. --}}
+    <dialog id="project-dialog"
+        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <form id="project-form" class="flex max-h-[calc(100dvh-2rem)] flex-col" novalidate>
+            <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
+                <h2 id="project-dialog-title" class="font-medium">New project</h2>
+                <button type="button" id="project-close" aria-label="Close"
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    <x-icon name="close" />
+                </button>
+            </div>
+
+            <div class="flex-1 space-y-4 overflow-y-auto overscroll-contain p-6">
+                <div>
+                    <div class="flex items-baseline justify-between gap-2">
+                        <label for="project-name" class="block text-sm font-medium text-gray-700">
+                            Name <span class="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        {{-- A live count, because the server's 40-character limit is otherwise invisible. --}}
+                        <span id="project-name-count" class="text-xs text-gray-400">0/40</span>
+                    </div>
+                    <input id="project-name" name="name" type="text" maxlength="40" required
+                        aria-describedby="project-name-error"
+                        class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
+                    <p id="project-name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </div>
+
+                <div>
+                    <label for="project-description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="project-description" name="description" rows="3" maxlength="500"
+                        aria-describedby="project-description-error"
+                        class="mt-1.5 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                    <p id="project-description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="project-color" class="block text-sm font-medium text-gray-700">Color</label>
+                        <select id="project-color" name="color" aria-describedby="project-color-error"
+                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                            @foreach (\App\Enums\CategoryColor::cases() as $color)
+                                <option value="{{ $color->value }}">{{ $color->label() }}</option>
+                            @endforeach
+                        </select>
+                        <p id="project-color-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                    </div>
+
+                    <div>
+                        <label for="project-parent" class="block text-sm font-medium text-gray-700">Parent project</label>
+                        <select id="project-parent" name="parent_id" aria-describedby="project-parent-error"
+                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                            <option value="">No parent</option>
+                        </select>
+                        <p id="project-parent-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                    </div>
+                </div>
+
+                <fieldset>
+                    <legend class="block text-sm font-medium text-gray-700">Icon</legend>
+                    <div id="icon-grid"
+                        class="mt-1.5 hidden max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 p-2">
+                        @foreach (\App\Enums\CategoryIcon::cases() as $icon)
+                            <label data-icon="{{ $icon->value }}" title="{{ $icon->label() }}"
+                                class="hidden size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
+                                <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
+                                    @checked($icon === \App\Enums\CategoryIcon::Folder)>
+                                <span class="{{ $icon->cssClass() }} size-4" aria-hidden="true"></span>
+                                <span class="sr-only">{{ $icon->label() }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p id="icon-empty" class="mt-1.5 text-sm text-gray-500">
+                        Type a name above to see matching icons. Folder is used until one is picked.
+                    </p>
+                    <p id="project-icon-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </fieldset>
+            </div>
+
+            <div class="flex flex-col-reverse gap-2 border-t border-gray-200 p-6 pt-4 sm:flex-row sm:justify-end">
+                <button type="button" id="project-cancel"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    Cancel
+                </button>
+                <button type="submit" id="project-submit"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
+                    <span data-label>Add project</span>
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="move-dialog"
+        class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <div class="p-6">
+            <h2 class="font-medium">Move project</h2>
+            <p id="move-project" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
+
+            <div class="mt-4">
+                <label for="move-parent" class="block text-sm font-medium text-gray-700">Parent project</label>
+                <select id="move-parent" aria-describedby="move-error"
+                    class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                    <option value="">No parent</option>
+                </select>
+                <p id="move-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+            </div>
+
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button type="button" id="move-cancel"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    Cancel
+                </button>
+                <button type="button" id="move-save"
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                    Move
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="comments-dialog"
+        class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <div class="flex max-h-[calc(100dvh-2rem)] flex-col">
+            <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
+                <div class="min-w-0">
+                    <h2 class="font-medium">Comments</h2>
+                    <p id="comments-project" class="mt-1 text-sm wrap-break-word text-gray-600"></p>
+                </div>
+                <button type="button" id="comments-close" aria-label="Close comments"
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    <x-icon name="close" />
+                </button>
+            </div>
+
+            <ul id="comments-list" class="flex-1 overflow-y-auto overscroll-contain px-6 pt-4"></ul>
+            <p id="comments-message" class="px-6 pt-4 text-sm text-gray-500"></p>
+
+            <form id="comment-form" class="border-t border-gray-200 p-6 pt-4" novalidate>
+                <label for="comment-body" class="sr-only">Add a comment</label>
+                <textarea id="comment-body" name="body" rows="2" maxlength="1000" placeholder="Add a comment"
+                    aria-describedby="comment-body-error"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                <p id="comment-body-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                <button type="submit" id="comment-submit"
+                    class="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60 sm:w-auto">
+                    <span data-label>Comment</span>
+                </button>
+            </form>
+        </div>
     </dialog>
 
     <dialog id="activity-dialog"
