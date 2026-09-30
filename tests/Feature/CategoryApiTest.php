@@ -128,7 +128,7 @@ class CategoryApiTest extends TestCase
     {
         $category = Category::factory()->create(['name' => 'Work', 'icon' => 'folder']);
 
-        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Day job', 'icon' => 'briefcase'])
+        $this->patchJson("/api/categories/{$category->id}", $this->payload(['name' => 'Day job', 'icon' => 'briefcase']))
             ->assertOk()
             ->assertJsonPath('data.name', 'Day job')
             ->assertJsonPath('data.icon', 'briefcase')
@@ -142,7 +142,7 @@ class CategoryApiTest extends TestCase
         // The unique rule has to ignore the row being edited, or changing only the icon is a 400.
         $category = Category::factory()->create(['name' => 'Work', 'icon' => 'folder']);
 
-        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Work', 'icon' => 'briefcase'])
+        $this->patchJson("/api/categories/{$category->id}", $this->payload(['name' => 'Work', 'icon' => 'briefcase']))
             ->assertOk()
             ->assertJsonPath('data.icon', 'briefcase');
     }
@@ -152,7 +152,7 @@ class CategoryApiTest extends TestCase
         Category::factory()->create(['name' => 'Gaming']);
         $category = Category::factory()->create(['name' => 'Work']);
 
-        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Gaming', 'icon' => 'folder'])
+        $this->patchJson("/api/categories/{$category->id}", $this->payload(['name' => 'Gaming']))
             ->assertStatus(400)
             ->assertJsonValidationErrors('name');
 
@@ -163,15 +163,32 @@ class CategoryApiTest extends TestCase
     {
         $category = Category::factory()->create();
 
-        $this->patchJson("/api/categories/{$category->id}", ['name' => 'Work', 'icon' => 'rocket-ship'])
+        $this->patchJson("/api/categories/{$category->id}", $this->payload(['name' => 'Work', 'icon' => 'rocket-ship']))
             ->assertStatus(400)
             ->assertJsonValidationErrors('icon');
     }
 
     public function test_update_returns_404_for_missing_category(): void
     {
-        $this->patchJson('/api/categories/999', ['name' => 'Work', 'icon' => 'folder'])
+        $this->patchJson('/api/categories/999', $this->payload(['name' => 'Work']))
             ->assertNotFound()
             ->assertExactJson(['message' => 'Category not found.']);
+    }
+    /**
+     * PATCH replaces the whole project, so every required field is sent every time. The helper
+     * keeps that from being copied into each test.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function payload(array $overrides = []): array
+    {
+        return array_merge([
+            'name' => 'Work',
+            'description' => null,
+            'color' => 'slate',
+            'icon' => 'folder',
+            'parent_id' => null,
+        ], $overrides);
     }
 }
