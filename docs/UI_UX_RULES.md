@@ -43,7 +43,8 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
 - Rows built by JavaScript use the same `sidebar-menu-button` / `sidebar-menu-action` / `sidebar-menu-badge` utilities as the Blade ones, so the two can never drift apart.
 - **Layout switch** toggles between List and Calendar. Only one is in the DOM flow at a time.
-- Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0".
+- Counts beside a view come from `/api/tasks/stats`; a zero renders as nothing rather than "0". **A count must be built from the same condition as the view it labels**, or the badge reads one number while the rows below it say another.
+- Today, Upcoming and Overdue are what is **still to do**: completing a task removes it from them there and then, and the count drops with it. The task is not lost, it moves to Completed, and the Undo on its toast brings it straight back. The Completed view and All tasks are where finished work lives.
 
 ### Calendar
 

@@ -62,12 +62,11 @@ class TaskController extends Controller
                 'SUM(CASE WHEN status = ? AND DATE(due_date) < ? THEN 1 ELSE 0 END) AS overdue',
                 [$pending, today()->toDateString()]
             )
-            // Counts every task due today, completed included, because the Today view is a date
-            // window and not a to-do list. A pending-only count would leave the sidebar badge reading
-            // one number while the view it opens renders another.
+            // Pending only, because the Today view it labels is a work queue: finishing a task
+            // drops it out of both. The badge and the rows it opens have to agree.
             ->selectRaw(
-                'SUM(CASE WHEN DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today',
-                [today()->toDateString()]
+                'SUM(CASE WHEN status = ? AND DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today',
+                [$pending, today()->toDateString()]
             )
             ->first();
 
@@ -134,10 +133,14 @@ class TaskController extends Controller
     {
         $today = today()->toDateString();
 
+        // Overdue, Today and Upcoming are work queues: they answer "what is still left to do",
+        // so completing a task drops it out of them and the sidebar count follows. None backs the
+        // calendar's unscheduled tray, which is somewhere to park a task rather than a queue,
+        // so it keeps completed ones.
         match ($due) {
             DueFilter::Overdue => $query->whereDate('due_date', '<', $today)->where('status', TaskStatus::Pending),
-            DueFilter::Today => $query->whereDate('due_date', $today),
-            DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today),
+            DueFilter::Today => $query->whereDate('due_date', $today)->where('status', TaskStatus::Pending),
+            DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today)->where('status', TaskStatus::Pending),
             DueFilter::None => $query->whereNull('due_date'),
         };
     }

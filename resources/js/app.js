@@ -40,8 +40,8 @@ const CATEGORY_DOTS = {
 
 const VIEWS = {
     all: { title: 'All tasks', subtitle: "Create tasks, set priorities, and track what's done.", params: {} },
-    today: { title: 'Today', subtitle: 'Everything due today.', params: { due: 'today' } },
-    upcoming: { title: 'Upcoming', subtitle: 'Today and everything still ahead.', params: { due: 'upcoming' } },
+    today: { title: 'Today', subtitle: 'Still to do today.', params: { due: 'today' } },
+    upcoming: { title: 'Upcoming', subtitle: 'Still to do today and beyond.', params: { due: 'upcoming' } },
     overdue: { title: 'Overdue', subtitle: 'Past their due date and still pending.', params: { due: 'overdue' } },
     completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
 };
@@ -146,8 +146,8 @@ function emptyMessage() {
 
     return {
         all: 'No tasks yet. Use the form to add your first one.',
-        today: 'Nothing due today.',
-        upcoming: 'Nothing scheduled yet.',
+        today: 'Nothing left for today. Nice work.',
+        upcoming: 'Nothing scheduled ahead.',
         overdue: 'Nothing overdue. Nice work.',
         completed: 'No completed tasks yet.',
     }[state.view];

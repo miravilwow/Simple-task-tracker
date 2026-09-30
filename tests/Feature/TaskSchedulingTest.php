@@ -151,6 +151,37 @@ class TaskSchedulingTest extends TestCase
         $this->assertNotEmpty($titles);
     }
 
+    public function test_completing_a_task_drops_it_out_of_the_today_view(): void
+    {
+        $task = Task::factory()->dueOn('2026-09-30')->create();
+
+        $this->getJson('/api/tasks?due=today')->assertOk()->assertJsonCount(1, 'data');
+
+        $this->patchJson("/api/tasks/{$task->id}/complete")->assertOk();
+
+        $this->getJson('/api/tasks?due=today')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/tasks/stats')->assertOk()->assertJsonPath('data.due_today', 0);
+    }
+
+    public function test_upcoming_filter_ignores_completed_tasks(): void
+    {
+        Task::factory()->completed()->dueOn('2026-10-01')->create();
+
+        $this->getJson('/api/tasks?due=upcoming')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_the_unscheduled_tray_still_holds_completed_tasks(): void
+    {
+        // due=none backs the calendar tray, which is a parking spot and not a queue.
+        Task::factory()->completed()->create(['due_date' => null]);
+
+        $this->getJson('/api/tasks?due=none')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
     public function test_overdue_filter_ignores_completed_tasks(): void
     {
         Task::factory()->completed()->dueOn('2026-09-29')->create();
@@ -206,7 +237,8 @@ class TaskSchedulingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.due_today', count($rows));
 
-        $this->assertCount(2, $rows);
+        // Only the pending one: the completed task due today has left the queue.
+        $this->assertCount(1, $rows);
     }
 
     public function test_listing_tasks_runs_a_fixed_number_of_queries(): void
