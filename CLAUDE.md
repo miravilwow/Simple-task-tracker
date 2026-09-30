@@ -12,4 +12,4 @@ Apply these on every prompt:
 - `src/TaskSorter.php` is plain PHP (namespace `Src`) with no framework helpers. Its test lives at `tests/TaskSorterTest.php`.
 - API validation errors return 400, not Laravel's default 422.
 - Local DB is MySQL `task_tracker` (XAMPP). Tests use in-memory SQLite (`phpunit.xml`).
-- Run `./vendor/bin/pint` and `php artisan test` before each commit.
+- Run `./vendor/bin/pint` (PSR-12 preset) and `php artisan test` before each commit. CI runs the same checks.

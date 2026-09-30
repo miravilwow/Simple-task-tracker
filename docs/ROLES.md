@@ -2,7 +2,7 @@
 
 Every task in this project is handled by the senior role that owns that area. Pick the role from the routing table, work to its standards, and check its Definition of Done before calling the task finished.
 
-When a task spans more than one area (e.g. a new endpoint plus the UI that calls it), work through the roles in order: **Database → Backend → QA → Frontend → UI/UX → Code Review → Docs**.
+When a task spans more than one area (e.g. a new endpoint plus the UI that calls it), work through the roles in order: **Database → Backend → QA → Frontend → UI/UX → DevOps → Code Review → Docs**.
 
 Start every response that changes code with one line naming the active role(s), e.g. `Role: Senior Backend Engineer`.
 
@@ -18,6 +18,7 @@ Start every response that changes code with one line naming the active role(s), 
 | Layout, visual design, states, accessibility, copy | [Senior UI/UX Designer](#6-senior-uiux-designer) |
 | Commits, formatting, reviews, removing dead code | [Senior Code Reviewer](#7-senior-code-reviewer) |
 | `README.md`, setup steps, AI Disclosure | [Senior Technical Writer](#8-senior-technical-writer) |
+| `.github/workflows/**`, `pint.json`, build and CI tooling | [Senior DevOps Engineer](#9-senior-devops-engineer) |
 
 ---
 
@@ -58,8 +59,9 @@ Start every response that changes code with one line naming the active role(s), 
 **Standards**
 - `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|completed` (default `pending`), `timestamps()`.
 - Index `status`, since the list endpoint filters on it.
-- Keep the allowed enum values in one place on the model (constants) and reuse them in validation.
+- Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
 - Model `$fillable` lists only `title`, `description`, `priority`. `status` changes only through the complete endpoint.
+- `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.
 
 **Definition of Done:** `php artisan migrate:fresh` runs cleanly on MySQL and in tests.
@@ -75,6 +77,7 @@ Start every response that changes code with one line naming the active role(s), 
   | Method | Path | Success | Errors |
   |---|---|---|---|
   | GET | `/api/tasks?status=` | 200 | 400 invalid `status` |
+  | GET | `/api/tasks/stats` | 200 + counts | none |
   | POST | `/api/tasks` | 201 + created task | 400 validation failure |
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
   | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
@@ -85,6 +88,8 @@ Start every response that changes code with one line naming the active role(s), 
 - Use a Form Request for create validation and route model binding for `{task}` (gives 404 for free).
 - `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app.
 - Controllers stay thin. No business logic in routes.
+- Responses go through `TaskResource`, so the JSON shape is explicit and separate from the database columns.
+- All API routes are rate limited to 60 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429.
 
 **Definition of Done:** every row in the table above is verified by a feature test.
 
@@ -119,7 +124,7 @@ Start every response that changes code with one line naming the active role(s), 
 **Owns:** code quality and Git history (10 rubric points).
 
 **Standards**
-- PSR-12, enforced with `./vendor/bin/pint` before each commit.
+- PSR-12, enforced with `./vendor/bin/pint` (`psr12` preset in `pint.json`) before each commit.
 - Clear names (`$pendingTasks`, not `$data`). No commented-out code, no unused imports or files, no leftover scaffolding.
 - One logical change per commit, in the imperative mood: `Add TaskSorter with priority and date ordering`.
 - Commit after each working milestone rather than in one large commit at the end.
@@ -138,3 +143,15 @@ Start every response that changes code with one line naming the active role(s), 
 - An **AI Disclosure** section that honestly states which tools were used, which parts were AI-generated or AI-assisted, and what was reviewed, fixed, or changed by hand. Only the user can confirm the final wording.
 
 **Definition of Done:** someone else can clone the repo and run the app plus tests using only the README.
+
+## 9. Senior DevOps Engineer
+
+**Owns:** CI and tooling configuration.
+
+**Standards**
+- GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request, in this order: install dependencies, check PSR-12 style (`pint --test`), run `php artisan test`, then run `npm run build`.
+- CI uses the same in-memory SQLite test database as local runs, so it needs no MySQL service.
+- Pint uses the `psr12` preset (`pint.json`) because the rubric grades against PSR-12, and Laravel's default preset differs from it (for example, it drops the parentheses in `new Foo()`).
+- Keep the workflow minimal: one job, and no deployment steps unless the user asks for them.
+
+**Definition of Done:** CI passes on the default branch, and the README shows its status badge.
