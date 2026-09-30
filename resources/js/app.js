@@ -12,6 +12,8 @@ import {
     createIcon,
     parseDate,
     setBusy,
+    setVisible,
+    shortDate,
     showToast,
     startOfToday,
     toIsoDate,
@@ -67,7 +69,6 @@ const VIEWS = {
 const BUTTON_BASE =
     'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60';
 
-const dueFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
 // Where this browser's reaction token lives. It identifies a browser, not a person.
@@ -173,7 +174,7 @@ function dueLabel(task) {
         return 'No due date';
     }
 
-    const formatted = dueFormatter.format(parseDate(task.due_date));
+    const formatted = shortDate.format(parseDate(task.due_date));
 
     if (task.is_overdue) {
         return `Overdue · ${formatted}`;
@@ -309,8 +310,7 @@ function renderList(tasks) {
 
     elements.taskList.replaceChildren(...tasks.map(renderTask));
     elements.listMessageText.textContent = emptyMessage();
-    elements.listMessage.classList.toggle('hidden', hasTasks);
-    elements.listMessage.classList.toggle('flex', !hasTasks);
+    setVisible(elements.listMessage, !hasTasks);
     elements.columnHeaders.classList.toggle('md:grid', hasTasks);
 }
 
@@ -501,7 +501,7 @@ function renderDeleted(categories) {
             restore.title = `Restore ${category.name}`;
             restore.append(createIcon('undo', 'size-4'), createElement('span', 'sr-only', `Restore ${category.name}`));
             restore.addEventListener('click', () =>
-                runUndo(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
+                runAndReload(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
             );
 
             const purge = createElement(
@@ -663,7 +663,7 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
 
     try {
         await request();
-        showToast(successMessage, 'success', undo ? { label: 'Undo', onClick: () => runUndo(undo, undoMessage) } : null);
+        showToast(successMessage, 'success', undo ? { label: 'Undo', onClick: () => runAndReload(undo, undoMessage) } : null);
         await load();
 
         if (hadFocus) {
@@ -680,7 +680,11 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
 
 // The button that started the action is gone by the time Undo is clicked, so there is nothing
 // left to put in a busy state. The toast reports how the reversal went instead.
-async function runUndo(request, message) {
+/**
+ * Run one request, say what happened, and reload. Every action that is a single call and a
+ * toast goes through here: undoing a task, favouriting a project, moving it, restoring it.
+ */
+async function runAndReload(request, message) {
     try {
         await request();
         showToast(message);
@@ -946,8 +950,7 @@ function suggestIcons(name, keep = null) {
         const match = pinned || (terms.length > 0 && iconMatches(option.dataset.icon, terms));
         const radio = option.querySelector('input');
 
-        option.classList.toggle('hidden', !match);
-        option.classList.toggle('flex', match);
+        setVisible(option, match);
 
         if (!match) {
             radio.checked = false;
@@ -962,8 +965,7 @@ function suggestIcons(name, keep = null) {
         elements.iconGrid.querySelector('[data-icon]:not(.hidden) input').checked = true;
     }
 
-    elements.iconGrid.classList.toggle('hidden', shown === 0);
-    elements.iconGrid.classList.toggle('flex', shown > 0);
+    setVisible(elements.iconGrid, shown > 0);
     elements.iconEmpty.classList.toggle('hidden', terms.length === 0 || shown > 0);
 }
 
@@ -1094,22 +1096,8 @@ async function submitProjectForm(event) {
     }
 }
 
-/**
- * One wrapper for the project actions that are a single request and a toast: they all report
- * the server's message on failure and reload the sidebar on success.
- */
-async function projectAction(request, successMessage) {
-    try {
-        await request();
-        showToast(successMessage);
-        await load();
-    } catch (error) {
-        showToast(errorMessage(error), 'error');
-    }
-}
-
 function setFavorite(category, isFavorite) {
-    return projectAction(
+    return runAndReload(
         () => api(`/categories/${category.id}/favorite`, {
             method: 'PATCH',
             body: { is_favorite: isFavorite },
@@ -1119,7 +1107,7 @@ function setFavorite(category, isFavorite) {
 }
 
 function duplicateProject(category) {
-    return projectAction(
+    return runAndReload(
         () => api(`/categories/${category.id}/duplicate`, { method: 'POST' }),
         'Project duplicated',
     );
@@ -1136,7 +1124,7 @@ async function moveProject(category) {
         return;
     }
 
-    await projectAction(
+    await runAndReload(
         () => api(`/categories/${category.id}/move`, {
             method: 'PATCH',
             body: { parent_id: parentId.value },
@@ -1219,7 +1207,7 @@ async function deleteCategory(category) {
         showToast('Project deleted', 'success', {
             label: 'Undo',
             onClick: () =>
-                runUndo(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
+                runAndReload(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
         });
         await load();
     } catch (error) {
@@ -1230,8 +1218,7 @@ async function deleteCategory(category) {
 function setDeletedOpen(open) {
     state.deletedOpen = open;
     elements.deletedToggle.setAttribute('aria-expanded', String(open));
-    elements.deletedList.classList.toggle('hidden', !open);
-    elements.deletedList.classList.toggle('flex', open);
+    setVisible(elements.deletedList, open);
 }
 
 /**
@@ -1248,7 +1235,7 @@ async function purgeCategory(category) {
         return;
     }
 
-    return projectAction(
+    return runAndReload(
         () => api(`/categories/${category.id}/force`, { method: 'DELETE' }),
         'Project deleted permanently',
     );

@@ -218,6 +218,12 @@
     display: flex;
 }
 
+/* Cancel, Clear date, and every other quiet button beside a primary one. It was the same class
+   string copied into six dialogs, which is exactly what an @utility is for. */
+@utility btn-secondary {
+    @apply inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none;
+}
+
 /* The Comments / Activity switch. Both Blade and the reaction rows need these strings, so they
    live here once rather than being copied into each. */
 @utility panel-tab {

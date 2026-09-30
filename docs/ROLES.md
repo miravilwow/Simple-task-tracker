@@ -159,7 +159,7 @@ Start every response that changes code with one line naming the active role(s), 
   | File | Responsibility |
   |---|---|
   | `api.js` | `fetch` wrapper, `ApiError`, query-string building |
-  | `dom.js` | element/icon/badge builders, toasts, busy states, local-time date helpers |
+  | `dom.js` | element/icon/badge builders, toasts, busy states, visibility, shared date helpers |
   | `dialogs.js` | the confirm and reschedule modals |
   | `shell.js` | keeps `--header-height` matched to the navbar's real height |
   | `datepicker.js` | the month grid over each `<input type="date">` |
@@ -174,7 +174,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Complete, delete, create, and filter all update the DOM without a full page reload.
 - Update the UI only after the API confirms success (no optimistic updates), and show the server's error message on failure.
 - Tailwind v4 is configured in CSS (`resources/css/app.css`). There is no `tailwind.config.js`, so don't create one.
-- Repeated class strings that both Blade and JavaScript need become an `@utility` in `app.css` rather than being copied into each. The sidebar's utilities work this way.
+- Repeated class strings that both Blade and JavaScript need become an `@utility` in `app.css` rather than being copied into each. The sidebar's utilities work this way, and so do `btn-secondary`, `panel-tab` and `reaction-chip`. A string copied into six dialogs is how the copies quietly drift apart: one of the six had picked up a stray focus ring nobody had asked for.
 - Third-party designs that get ported (currently shadcn/ui's Sidebar, MIT) are credited in the code comment where they land and in the README.
 - Follow every rule in [UI_UX_RULES.md](UI_UX_RULES.md).
 

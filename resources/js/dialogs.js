@@ -1,4 +1,4 @@
-import { clearBusy, createElement, createIcon, setBusy } from './dom.js';
+import { clearBusy, createElement, createIcon, setBusy, setVisible, shortDate } from './dom.js';
 import { openMenu } from './menu.js';
 
 const confirmDialog = document.getElementById('confirm-dialog');
@@ -103,7 +103,6 @@ const REACTIONS = [...commentEmojiRow.querySelectorAll('[data-insert-emoji]')].m
     label: button.querySelector('.sr-only').textContent,
 }));
 
-const dayFormatter = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short' });
 const weekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
 const relativeFormatter = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
 
@@ -123,7 +122,7 @@ function relativeTime(date) {
     const elapsed = date.getTime() - Date.now();
 
     if (Math.abs(elapsed) > 7 * 24 * 60 * MINUTE) {
-        return dayFormatter.format(date);
+        return shortDate.format(date);
     }
 
     for (const [unit, size] of RELATIVE_STEPS) {
@@ -141,7 +140,7 @@ function relativeTime(date) {
 function dayHeading(date) {
     const today = new Date();
     const sameDay = date.toDateString() === today.toDateString();
-    const parts = [dayFormatter.format(date)];
+    const parts = [shortDate.format(date)];
 
     if (sameDay) {
         parts.push('Today');
@@ -297,8 +296,12 @@ function showTab(name) {
     }
 
     for (const [key, element] of Object.entries(panels)) {
-        element.classList.toggle('hidden', key !== name);
-        element.classList.toggle('flex', key === name && key === 'comments');
+        // Only the comments panel lays itself out with flex; the activity panel scrolls.
+        if (key === 'comments') {
+            setVisible(element, key === name);
+        } else {
+            element.classList.toggle('hidden', key !== name);
+        }
     }
 }
 
@@ -355,8 +358,7 @@ export function openProjectPanel(project, tab, actions) {
                     ),
                 );
                 setMessage(commentsMessage, null);
-                commentsEmpty.classList.toggle('hidden', comments.length > 0);
-                commentsEmpty.classList.toggle('flex', comments.length === 0);
+                setVisible(commentsEmpty, comments.length === 0);
             } catch (error) {
                 commentsEmpty.classList.add('hidden');
                 setMessage(commentsMessage, error.message || 'Comments could not be loaded.');
@@ -382,9 +384,10 @@ export function openProjectPanel(project, tab, actions) {
         panelTabs.forEach((button) => on(button, 'click', () => showTab(button.dataset.panelTab)));
 
         on(commentEmoji, 'click', () => {
-            const open = commentEmojiRow.classList.toggle('hidden');
-            commentEmojiRow.classList.toggle('flex', !open);
-            commentEmoji.setAttribute('aria-expanded', String(!open));
+            const showing = commentEmojiRow.classList.contains('hidden');
+
+            setVisible(commentEmojiRow, showing);
+            commentEmoji.setAttribute('aria-expanded', String(showing));
         });
 
         for (const button of commentEmojiRow.querySelectorAll('[data-insert-emoji]')) {

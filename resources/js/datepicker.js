@@ -11,11 +11,10 @@
  * this script never runs. Enhancement only hides the browser's indicator and adds the popover,
  * so typing a date into the field keeps working exactly as before.
  */
-import { cellCount, gridStart } from './calendar.js';
+import { cellCount, gridStart, monthLabel } from './calendar.js';
 import { createElement, createIcon, parseDate, startOfToday, toIsoDate } from './dom.js';
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const dayFormatter = new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     month: 'long',
@@ -106,7 +105,7 @@ function enhance(field) {
     const selected = () => (input.value ? parseDate(input.value) : null);
 
     function render() {
-        heading.textContent = monthFormatter.format(visibleMonth);
+        heading.textContent = monthLabel(visibleMonth);
         grid.replaceChildren();
 
         const start = gridStart(visibleMonth);

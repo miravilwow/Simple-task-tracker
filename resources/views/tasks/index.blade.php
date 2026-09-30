@@ -266,8 +266,7 @@
             </div>
         </div>
         <div class="flex flex-col-reverse gap-2 border-t border-gray-200 bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
-            <button type="button" id="confirm-cancel"
-                class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+            <button type="button" id="confirm-cancel" class="btn-secondary">
                 Cancel
             </button>
             <button type="button" id="confirm-accept"
@@ -349,8 +348,10 @@
                     </div>
 
                     <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        {{-- Not btn-secondary: this dialog's buttons are 44px to match its Save,
+                             where every other dialog uses 40px. --}}
                         <button type="button" id="task-cancel"
-                            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            class="btn-secondary min-h-11">
                             Cancel
                         </button>
                         <button type="submit" id="submit-button"
@@ -375,11 +376,11 @@
 
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" id="schedule-clear"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="btn-secondary">
                     Clear date
                 </button>
                 <button type="button" id="schedule-cancel"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="btn-secondary">
                     Cancel
                 </button>
                 <button type="button" id="schedule-save"
@@ -470,7 +471,7 @@
 
             <div class="flex flex-col-reverse gap-2 border-t border-gray-200 p-6 pt-4 sm:flex-row sm:justify-end">
                 <button type="button" id="project-cancel"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="btn-secondary">
                     Cancel
                 </button>
                 <button type="submit" id="project-submit"
@@ -498,7 +499,7 @@
 
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" id="move-cancel"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="btn-secondary">
                     Cancel
                 </button>
                 <button type="button" id="move-save"
