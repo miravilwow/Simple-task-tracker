@@ -15,7 +15,7 @@ The tracker runs the **full-bleed app shell**; the landing page keeps the boxed 
 
 | | Landing (`/`) | Tracker (`/tasks`) |
 |---|---|---|
-| Navbar | static, boxed at `max-w-6xl` | `sticky top-0`, spans the viewport |
+| Navbar | static, boxed at `max-w-6xl` | `sticky top-0 shadow-sm`, spans the viewport |
 | Container | `max-w-6xl` | `app-container`: full width, capped at `--container-app` (112rem) so an ultrawide display does not stretch a task row across a metre of glass |
 | Sidebar | none | fixed, full height |
 | Gutter | `px-4 sm:px-6 lg:px-8` | `px-4 sm:px-6` |
@@ -34,7 +34,8 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 | `--sidebar-width-icon` | 3.5rem | collapsed to the rail, from `lg` |
 | `--sidebar-width-mobile` | 18rem | the drawer, below `lg` |
 
-- From `lg` it is **fixed, not sticky**: it runs from the bottom of the sticky navbar (`--header-height`) to the bottom of the viewport, flush against the left edge, and scrolls on its own rather than with the page. `<main>` and the footer are pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
+- From `lg` it is **fixed, not sticky**: it runs from the bottom of the sticky navbar (`--header-height`) to the bottom of the viewport, flush against the left edge, and scrolls on its own rather than with the page.
+- **`--header-height` is measured, never assumed.** `--header-min-height` (4rem) is the floor the navbar is laid out against, and `shell.js` writes the bar's real height back into `--header-height` through a `ResizeObserver`. A constant would be wrong the moment the bar grows — under a text-only zoom, a larger default font, or a longer brand name — and the sidebar would then start behind it. The navbar's height also has to include its bottom border, so `app-header` sits on the `<header>` and not on the `<nav>` inside it; a pixel short leaves a hairline of content showing through. `<main>` and the footer are pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
 - It **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form), centres the icons and the rail button, and the content reclaims the space in the same 200ms. The icons keep a `title` so each button is still identifiable.
 - The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
@@ -240,6 +241,7 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
+- [ ] Scrolling up and down leaves nothing showing above or through the sticky navbar, and the sidebar's top edge meets it with no seam
 - [ ] Navbar logo, sidebar icons, page heading and footer text all start on the same left edge
 - [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog

@@ -1,6 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { confirmAction, openScheduleDialog } from './dialogs.js';
+import './shell.js';
 import { closeDrawer } from './sidebar.js';
 import {
     clearBusy,

@@ -30,14 +30,19 @@
         Skip to content
     </a>
 
-    <header @class([
+    {{--
+        `app-header` sets the height on the <header>, not the <nav>, so the bottom border counts
+        inside --header-height. Anything positioned against that variable then meets the header
+        exactly instead of landing a pixel short of it.
+        The shadow separates the bar from whatever scrolls beneath it.
+    --}}
+    <header @if ($fluid) data-app-header @endif @class([
         'border-b border-gray-200 bg-white',
-        // The sidebar is fixed below the navbar, so the navbar has to stay put too.
-        'sticky top-0 z-30' => $fluid,
+        'app-header sticky top-0 z-30 shadow-sm' => $fluid,
     ])>
         <nav aria-label="Main" @class([
             'flex items-center justify-between gap-4',
-            'app-header app-container' => $fluid,
+            'h-full app-container' => $fluid,
             'mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8' => ! $fluid,
         ])>
             <a href="{{ route('home') }}"

@@ -125,6 +125,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `api.js` | `fetch` wrapper, `ApiError`, query-string building |
   | `dom.js` | element/icon/badge builders, toasts, busy states, local-time date helpers |
   | `dialogs.js` | the confirm and reschedule modals |
+  | `shell.js` | keeps `--header-height` matched to the navbar's real height |
   | `sidebar.js` | drawer, icon rail, Ctrl/Cmd+B, cookie persistence |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
   | `app.js` | state, data loading, list rendering, wiring |

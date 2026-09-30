@@ -53,12 +53,18 @@
  * gutter below — so the navbar's brand, the sidebar's labels, the page content and the footer all
  * start on the same vertical line.
  */
+/*
+ * Two variables, because the floor and the measurement are different things. The floor is in rem
+ * so it grows with a text-only zoom; the measurement is what shell.js writes back once it knows
+ * the bar's real height, and everything positioned against the navbar reads that.
+ */
 :root {
-    --header-height: 4rem;
+    --header-min-height: 4rem;
+    --header-height: var(--header-min-height);
 }
 
 @utility app-header {
-    height: var(--header-height);
+    min-height: var(--header-min-height);
 }
 
 /* px-4/px-6 here is the same 1.5rem the sidebar reaches with its p-3 panel plus px-3 rows. */
