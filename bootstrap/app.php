@@ -34,10 +34,15 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Hide the internal model class name that Laravel puts in the default 404 message.
+        // Laravel's default 404 message leaks the fully qualified model class; name the record instead.
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-            if ($request->is('api/*') && $e->getPrevious() instanceof ModelNotFoundException) {
-                return response()->json(['message' => 'Task not found.'], 404);
+            $missing = $e->getPrevious();
+
+            if ($request->is('api/*') && $missing instanceof ModelNotFoundException) {
+                return response()->json(
+                    ['message' => class_basename($missing->getModel()).' not found.'],
+                    404
+                );
             }
         });
     })->create();

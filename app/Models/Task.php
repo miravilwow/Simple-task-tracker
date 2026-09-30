@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
@@ -17,6 +18,8 @@ class Task extends Model
         'title',
         'description',
         'priority',
+        'category_id',
+        'due_date',
     ];
 
     // Mirrors the DB defaults so a freshly created model includes them in its JSON.
@@ -25,11 +28,27 @@ class Task extends Model
         'status' => TaskStatus::Pending->value,
     ];
 
+    /**
+     * @return BelongsTo<Category, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->status === TaskStatus::Pending
+            && $this->due_date !== null
+            && $this->due_date->isBefore(today());
+    }
+
     protected function casts(): array
     {
         return [
             'priority' => TaskPriority::class,
             'status' => TaskStatus::class,
+            'due_date' => 'date',
         ];
     }
 }

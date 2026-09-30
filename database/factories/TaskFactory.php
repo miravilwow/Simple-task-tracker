@@ -29,4 +29,9 @@ class TaskFactory extends Factory
     {
         return $this->state(['status' => TaskStatus::Completed]);
     }
+
+    public function dueOn(string $date): static
+    {
+        return $this->state(['due_date' => $date]);
+    }
 }

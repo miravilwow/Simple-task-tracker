@@ -174,6 +174,8 @@ class TaskApiTest extends TestCase
                 'pending' => 3,
                 'completed' => 1,
                 'high_priority_pending' => 2,
+                'overdue' => 0,
+                'due_today' => 0,
             ]]);
     }
 
@@ -186,6 +188,8 @@ class TaskApiTest extends TestCase
                 'pending' => 0,
                 'completed' => 0,
                 'high_priority_pending' => 0,
+                'overdue' => 0,
+                'due_today' => 0,
             ]]);
     }
 
@@ -200,11 +204,14 @@ class TaskApiTest extends TestCase
         $this->getJson('/api/tasks/stats')->assertTooManyRequests();
     }
 
-    public function test_seeder_creates_demo_tasks(): void
+    public function test_seeder_creates_demo_categories_and_tasks(): void
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseCount('tasks', 8);
+        $this->assertDatabaseCount('categories', 4);
+        $this->assertDatabaseCount('tasks', 12);
         $this->assertDatabaseHas('tasks', ['status' => TaskStatus::Completed->value]);
+        $this->assertSame(0, Task::whereNull('category_id')->count());
+        $this->assertGreaterThan(0, Task::whereNotNull('due_date')->count());
     }
 }
