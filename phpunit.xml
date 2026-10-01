@@ -24,6 +24,9 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- The request counter stays in memory here. A file would carry a count from one run
+             of the suite into the next and eventually answer 429 for no visible reason. -->
+        <env name="CACHE_LIMITER" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>

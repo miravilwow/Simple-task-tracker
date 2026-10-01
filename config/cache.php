@@ -19,6 +19,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiter Store
+    |--------------------------------------------------------------------------
+    |
+    | Where the request counter lives. Laravel gives the rate limiter the default
+    | store when this is not set, which put the counter in the database: one call
+    | to the task list measured twelve database trips, nine of them the counter
+    | rather than the data. One click in the app is four or five calls, so an
+    | ordinary click paid for over forty visits that only ever counted.
+    |
+    | A file is the right home for it. The count has to outlive the request, so
+    | "array" would hold nothing and the limit would never limit anything, and it
+    | is worth nothing if lost, so it has no business in the database beside the
+    | tasks. The tests set this to "array" on purpose: a file would carry a count
+    | from one run of the suite into the next.
+    |
+    */
+
+    'limiter' => env('CACHE_LIMITER', 'file'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |
