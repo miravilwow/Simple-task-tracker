@@ -223,6 +223,7 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 - **Keyboard:** arrows by day, PageUp/PageDown by month clamped to that month's length, Home/End to the ends of the week, Enter to choose, Escape to dismiss and hand focus back to the button.
 - **`:inline` where picking the date is the whole point**, and always inside a `<dialog>`: a `<dialog>` is `overflow: auto` in the UA stylesheet, so a floating panel inside one is clipped rather than layered over it. An inline grid also drops any control the surrounding dialog already offers, so "Clear" never appears twice.
 - **The popover hangs off the field's left edge** and flips only to stay inside the viewport. The field can sit in a column narrower than the panel, and growing rightwards keeps it on the page's gutter.
+- **A past day is never offered.** The grid draws it grey and disabled, and the native input carries `min` set to today, which matches the server's `after_or_equal:today`. The days are shown rather than hidden: a month with holes in it is harder to read than a month with grey in it.
 - Placeholders show an example; they never replace a label.
 - Validate `title` client-side (not empty after trimming), and still rely on the server's 400 response as the source of truth.
 - Show field errors directly under the field in `text-sm text-red-600`, and link them with `aria-describedby`.
@@ -355,6 +356,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] The navbar row is vertically centred in the bar, and its action is a 40px target ending on the right gutter
 - [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
+- [ ] A past day takes no chip and offers no button, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button

@@ -138,6 +138,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Activity is written from the task endpoints, not from model events, so seeding does not fill the log. A task with no project records nothing: the feed is only reachable from a project's menu, so the entry could never be read. The task's title is snapshotted onto the entry, because "Deleted X" has to still read correctly once the task is gone.
 
 - `schedule` takes `due_date` as `present|nullable`, so sending `null` is how the UI clears a date, while omitting the key is a 400 rather than a silent no-op.
+- **A due date cannot be set in the past.** Both `store` and `schedule` carry `after_or_equal:today`, because a due date is a promise about work still ahead. `schedule` needs it as much as `store` does: without it, creating a task with no date and dragging it onto a past day would be the way around the rule. A task still becomes overdue the ordinary way, by the day arriving and passing, and a row that is already overdue can still be moved forward. Factories and the seeder write the model directly, so they can still place a task in the past for the Overdue view to have something to show.
 
 - Validation errors return **400** because the exam rubric lists 400. Laravel's default is 422, so override it in one place (a Form Request `failedValidation`, or the exception handler) and document the choice in the README.
 - Every error is JSON: `{ "message": "...", "errors": { ... } }`. No HTML error pages from `/api/*`.

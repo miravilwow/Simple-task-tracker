@@ -127,11 +127,14 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
         const iso = toIsoDate(date);
         const inMonth = date.getMonth() === month.getMonth();
         const isToday = iso === today;
+        // The server refuses a past due date, so a past day must not look like somewhere a chip
+        // can land. The day still shows whatever is already on it.
+        const isPast = iso < today;
 
         const cell = createElement(
             'div',
             `min-h-28 space-y-1 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
-                inMonth ? '' : 'bg-gray-50'
+                inMonth && !isPast ? '' : 'bg-gray-50'
             }`,
         );
 
@@ -156,7 +159,9 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
             cell.append(createChip(task, { onOpen, draggable: true }));
         }
 
-        makeDropTarget(cell, iso, onReschedule);
+        if (!isPast) {
+            makeDropTarget(cell, iso, onReschedule);
+        }
         cells.push(cell);
     }
 

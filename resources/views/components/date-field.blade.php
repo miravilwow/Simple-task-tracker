@@ -18,7 +18,9 @@
     </label>
 
     <div class="relative mt-1.5">
-        <input id="{{ $id }}" type="date" @if ($name) name="{{ $name }}" @endif
+        {{-- `min` is what a browser enforces on its own control, and it matches the server's
+             after_or_equal:today, so the field cannot offer what the API would refuse. --}}
+        <input id="{{ $id }}" type="date" min="{{ now()->toDateString() }}" @if ($name) name="{{ $name }}" @endif
             @if ($describedby) aria-describedby="{{ $describedby }}" @endif
             @class([
                 'date-input block min-h-11 w-full rounded-lg border border-gray-300 bg-white py-2 pl-3 text-sm transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500',

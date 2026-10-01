@@ -117,11 +117,19 @@ function enhance(field) {
             const outside = date.getMonth() !== visibleMonth.getMonth();
             const isChosen = chosen !== null && sameDay(date, chosen);
             const isToday = sameDay(date, now);
+            // A due date is a promise about work ahead, so the server refuses a past one. The grid
+            // shows those days rather than hiding them, because a month with holes is harder to
+            // read than a month with grey in it.
+            const isPast = date < now;
 
             let tone = 'text-gray-700 hover:bg-gray-100';
 
             if (outside) {
                 tone = 'text-gray-300 hover:bg-gray-50';
+            }
+
+            if (isPast) {
+                tone = 'text-gray-300';
             }
 
             if (isToday && !isChosen) {
@@ -137,6 +145,7 @@ function enhance(field) {
             day.dataset.date = toIsoDate(date);
             day.setAttribute('aria-label', dayFormatter.format(date));
             day.tabIndex = sameDay(date, cursor) ? 0 : -1;
+            day.disabled = isPast;
 
             if (isChosen) {
                 day.setAttribute('aria-pressed', 'true');
