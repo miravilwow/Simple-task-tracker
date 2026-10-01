@@ -65,9 +65,10 @@ class ProjectMenuTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Category deleted permanently.');
 
-        // This is where the foreign keys finally fire.
+        // The tasks went with the project when it was deleted, so this is where they go for
+        // good: leaving them would leave rows no screen in the app can reach again.
         $this->assertDatabaseMissing('categories', ['id' => $category->id]);
-        $this->assertNull($task->fresh()->category_id);
+        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
         $this->assertNull($child->fresh()->parent_id);
         $this->assertDatabaseCount('category_comments', 0);
 

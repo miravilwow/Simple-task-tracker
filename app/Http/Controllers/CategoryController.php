@@ -131,11 +131,13 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): JsonResponse
     {
-        // Soft delete: the row is stamped, not removed, so restore() can bring it back. Because
-        // nothing is removed, the foreign keys never fire either: the project's tasks keep their
-        // category_id and its children keep their parent_id while the row is hidden, which is
-        // what lets a restore put everything back exactly where it was.
-        $category->delete();
+        // The tasks go with the project. Soft deleting only the project left them in every list
+        // with nothing to reach them from: a duplicated project's copies, already completed,
+        // piling into All tasks as rows nobody had created.
+        DB::transaction(function () use ($category) {
+            $category->delete();
+            $category->tasks()->delete();
+        });
 
         return response()->json(['message' => 'Category deleted.']);
     }
@@ -150,7 +152,14 @@ class CategoryController extends Controller
      */
     public function restore(Category $category): CategoryResource
     {
-        $category->restore();
+        // Every task in the project comes back, including one deleted by hand just before the
+        // project was. Telling the two apart needs a column remembering which delete took which
+        // row, and Undo is an eight-second offer to say "I did not mean that": restoring one row
+        // too many is the kinder way to be wrong than leaving work destroyed.
+        DB::transaction(function () use ($category) {
+            $category->restore();
+            $category->tasks()->onlyTrashed()->restore();
+        });
 
         return CategoryResource::make($this->withCounts($category));
     }
@@ -159,12 +168,16 @@ class CategoryController extends Controller
      * The one action in the app that cannot be undone, which is why it is reached only from the
      * Deleted section and behind its own confirmation.
      *
-     * This is where the foreign keys finally fire: the project's tasks lose their category_id,
-     * its children are promoted to the top level, and its comments and activity cascade away.
+     * Its children are promoted to the top level and its comments and activity cascade away. The
+     * tasks go for good with it: they were stamped when the project was, so leaving them would
+     * leave rows no screen in the app can ever reach again.
      */
     public function forceDestroy(Category $category): JsonResponse
     {
-        $category->forceDelete();
+        DB::transaction(function () use ($category) {
+            $category->tasks()->withTrashed()->forceDelete();
+            $category->forceDelete();
+        });
 
         return response()->json(['message' => 'Category deleted permanently.']);
     }

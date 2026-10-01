@@ -70,6 +70,7 @@ The items are grouped by what they are for, with a rule between the groups:
 - **Move and "move into folder" are the same operation.** A folder here is simply a project with children, so there is one tree and not two. The reference app keeps folders and parent projects apart; building both would be two ways to say the same thing.
 - **Favourite is set, not toggled.** The menu already knows which of the two labels it is showing, and two clicks racing each other would otherwise undo one another.
 - **Archive is not delete.** An archived project keeps its tasks and is only out of the way, so the sidebar always shows the way back to it.
+- **Deleting a project takes its tasks with it**, and Undo brings both back. A task is only ever reached through a list the project feeds, so leaving the tasks behind put rows in All tasks that nobody had created and nothing could explain.
 - **Delete is recoverable, and the toast says so.** Deleting a project soft deletes it and the toast carries **Undo**, exactly as deleting a task does. A project holds more than a task does, so it cannot be the one thing in the app that is thrown away for good. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
 - A deleted project's name stays reserved while it can still be restored, so creating another project with that name is a 400 until the old one is gone for good.
 
@@ -340,6 +341,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] The parent select never offers the project itself or one of its children
 - [ ] Favorites group appears only when something is in it, and a favourite still shows in the tree
 - [ ] Archive removes the project from the tree, the Archived section shows it, and Unarchive brings it back
+- [ ] Deleting a project removes its tasks from every list and from the sidebar counts
 - [ ] Undo on the delete toast brings a project back with its tasks, comments, activity and children intact
 - [ ] Duplicate copies the tasks and lands as "<name> (copy)"
 - [ ] Comments add, list oldest first, delete, and refuse an empty comment
