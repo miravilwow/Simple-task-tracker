@@ -29,7 +29,9 @@ const elements = {
 
 let task = null;
 let opener = null;
-let order = [];
+// Read fresh on every use, never snapshotted: finishing a task from a work queue drops it out
+// of the list behind the dialog, and the arrows have to step through what is on the page now.
+const order = () => handlers.order();
 let handlers = {};
 
 const errorMessage = (error) => error?.message ?? 'Something went wrong.';
@@ -48,10 +50,14 @@ function tickButton(checked, label) {
 
 /**
  * Saving one field answers with the whole task, which would otherwise overwrite whatever is being
- * typed in another field. The field the cursor is in keeps what the user put there.
+ * typed in another field. Only a field being typed into is protected: a select has no half-typed
+ * state, and changing one leaves the focus on it, so skipping it meant the choice stayed on screen
+ * even when the request behind it failed — a Status reading Done over a task still to do.
  */
 function setValue(field, value) {
-    if (field !== document.activeElement) {
+    const typing = field === document.activeElement && (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA');
+
+    if (! typing) {
         field.value = value;
     }
 }
@@ -118,9 +124,10 @@ function fill() {
     elements.tick.setAttribute('aria-checked', String(isDone));
     elements.tick.setAttribute('aria-label', isDone ? 'Mark as not done' : 'Mark as done');
 
-    const index = order.indexOf(task.id);
+    const ids = order();
+    const index = ids.indexOf(task.id);
     elements.prev.disabled = index <= 0;
-    elements.next.disabled = index === -1 || index === order.length - 1;
+    elements.next.disabled = index === -1 || index === ids.length - 1;
 
     renderSubtasks();
 }
@@ -160,7 +167,8 @@ function removeSubtask(subtask) {
 }
 
 async function step(offset) {
-    const next = order[order.indexOf(task.id) + offset];
+    const ids = order();
+    const next = ids[ids.indexOf(task.id) + offset];
 
     if (next) {
         await load(next);
@@ -175,11 +183,10 @@ async function load(id) {
 }
 
 /**
- * @param {{categories: array, order: number[], onChange: Function, onDelete: Function}} context
+ * @param {{categories: array, order: Function, onChange: Function, onDelete: Function}} context
  */
 export async function openTaskDetail(id, trigger, context) {
     handlers = context;
-    order = context.order;
     opener = trigger ?? null;
 
     elements.project.replaceChildren(

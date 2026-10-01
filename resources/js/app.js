@@ -1450,7 +1450,7 @@ function showTaskDetail(id, trigger) {
     openTaskDetail(id, trigger, {
         onStage: moveTask,
         categories: state.categories,
-        order: latestTasks.map((task) => task.id),
+        order: () => latestTasks.map((task) => task.id),
         onChange: load,
         onDelete: (task) => deleteTask(task, null),
     });
