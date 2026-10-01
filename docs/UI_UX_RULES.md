@@ -142,10 +142,10 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 
 - **Order, top to bottom:**
   1. Page heading and a one-line description, with the layout switch and the **New task** button on the right.
-  2. Stat cards.
+  2. The progress meter.
   3. Main area.
-- **Stat cards:** four `<x-stat-card>` tiles, 2 per row on mobile and 4 per row from `lg`. Each pairs a tinted icon with its number: Total tasks, Pending, Completed, High priority pending. Below `sm` the icon stacks above the label so the text never gets squeezed.
-- **Progress meter:** a ratio against a total belongs in a meter, not a fifth number. One bar on a single-hue track, with the label "N of M done (P%)" always visible, so the value never depends on the bar's colour alone. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
+- **There are no stat tiles.** There were four, and three of them printed the same number as a sidebar badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue". A dashboard that says the same figure twice on one screen is not twice as informative.
+- **Progress meter:** this is what the tiles did not say — a ratio rather than a count. One bar on a single-hue track, with the label "N left · M of T done (P%)" always visible, so the value never depends on the bar's colour alone. It carries "N left" because that is the one figure the sidebar has no view for. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
 - **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
@@ -194,8 +194,7 @@ Additional rules:
 | In progress | In progress | `bg-amber-100 text-amber-800` badge |
 | Completed | Done | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
 
-- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today, Upcoming and Overdue, and the "Not done" tile keeps counting it.
-- The tile is called **Not done**, not "Pending", because it adds To do and In progress together and a count must not name one of the two things it is adding up.
+- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today, Upcoming and Overdue, and the meter keeps counting it as left.
 
 - Badges always include the text label. Never rely on color alone.
 
@@ -212,7 +211,7 @@ Additional rules:
 - Buttons that carry a row's main actions, and every control in a form, are at least 40px tall (`min-h-10`).
 - Inline controls sitting inside a line of metadata, such as the due-date button on a task row, are at least 32px (`min-h-8`). That stays clear of the 24px WCAG 2.2 AA minimum without making a metadata line as tall as a button bar. Nothing smaller than 32px is ever tappable.
 - A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
-- A task that has not been picked up also shows **Start**, in amber, before Complete. It is only on that row: a task already in progress or already done has nothing to start, and a disabled button on those rows would say less than no button at all. Undo on its toast is `reopen`, so starting something by mistake costs one click, the same as finishing it by mistake.
+- **No row or card carries a Start button.** A task reaches In progress by being dragged into that column on the board, and through the **Status** field in the task dialog everywhere else. Two controls were one too many once the board could do it by dragging; the dialog is what keeps the stage reachable from the list, the calendar and the keyboard.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it throws work away. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - Delete is recoverable, so the dialog must not claim otherwise. `DELETE` soft-deletes and the toast that follows offers **Undo**, which calls `PATCH /api/tasks/{id}/restore`. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
@@ -268,7 +267,7 @@ One button in the page header carries **everything that answers "what am I looki
 The board's columns **are the grouping**: by status it is To do / In progress / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
-- **Grouped by status, dragging is the move**: a card has no Start, Complete or Reopen, because the drag does that work and two ways to do one thing is how they drift apart. Delete stays, since no column means "gone".
+- **Grouped by status, dragging is the move**: a card has no Complete or Reopen, because the drag does that work and two ways to do one thing is how they drift apart. Delete stays, since no column means "gone".
 - **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
 - **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the arrows move it between columns, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
 - A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
@@ -281,6 +280,7 @@ Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the nam
 - **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
 - **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
 - The up and down arrows step through **the list the user is looking at**, so what they walk matches what is on the page behind the dialog.
+- **Status is a field here, not a button on the row.** It runs `start`, `complete` and `reopen`, the same three endpoints the board's drag runs, so a stage change always reaches the activity log however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
 - **A sub-task is a checklist item, not a task.** It never appears in the list, the board or the calendar, and no stat tile counts it. That is what keeps `TaskSorter` and every graded figure exactly as the exam specifies.
 - **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. This is the same rule that kept Access out of the project dialog and the paperclip out of the comment box.
 
@@ -292,7 +292,7 @@ Every data view needs all four states:
 |---|---|
 | Loading | Skeleton rows on first load, so the panel keeps its height instead of collapsing. Never a blank area. |
 | Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
-| Error | A red inline banner with a retry button. The stat cards reset to "–" so stale counts never sit beside an error. |
+| Error | A red inline banner with a retry button. The sidebar counts and the meter clear, so stale numbers never sit beside an error. |
 | Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". |
 | Undo | A toast carrying an action button lasts 8s, not 3s, because the user has to notice it and then reach it. Complete and Delete both offer **Undo**; it reverses through the API (`reopen`, `restore`) and reports the result in a toast of its own. The button is a real 32px target, so it is tappable and keyboard-reachable. **`#toast-region` is `pointer-events-none`**, so a toast never swallows a click meant for the page behind it; a toast that has something to press must take its own clicks back with `pointer-events-auto`, or the button looks alive and does nothing under the mouse while still working from the keyboard. |
 
@@ -314,7 +314,7 @@ Every data view needs all four states:
 - Sentence case everywhere: "Add task", not "ADD TASK" or "Add Task".
 - Buttons say what they do: "Add task", "Complete", "Delete".
 - Dates are human-readable (e.g. "Sep 30, 2026, 10:15 AM"), never raw ISO strings.
-- The stat cards show live counts from `GET /api/tasks/stats`. They are refreshed after every action, whichever filter is active, and show "–" until the first load finishes.
+- The sidebar badges and the meter show live counts from `GET /api/tasks/stats`. They are refreshed after every action, and they count every task rather than the filtered list: a badge that moved with the Display panel could not be used to decide what to display.
 
 ## 9. Security and performance
 
@@ -334,7 +334,7 @@ Build only what the exam asks for, plus what the user has since asked for: the l
 - [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
 - [ ] Landing page: both CTAs work, "See how it works" scrolls to the section, and the navbar action matches the page
 - [ ] "Skip to content" appears on the first Tab press
-- [ ] Stat cards and the progress meter update after every add, complete, reopen, and delete
+- [ ] The sidebar counts and the progress meter update after every add, complete, reopen, and delete
 - [ ] Skeleton rows show on first load and are gone afterwards
 - [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
@@ -381,7 +381,8 @@ Build only what the exam asks for, plus what the user has since asked for: the l
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
-- [ ] Grouped by priority or project, the cards carry Start and Complete again and are not draggable
+- [ ] Grouped by priority or project, the cards carry Complete again and are not draggable
+- [ ] The dialog's Status field moves a task through all three stages, and the activity log records each one
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows
 - [ ] The dialog's up and down arrows step through the list that is on the page

@@ -745,6 +745,17 @@
                         <x-date-field id="detail-date" label="Date" :inline="true" />
                     </div>
 
+                    <div class="py-3">
+                        {{-- The board's drag only exists on the board. This is how a task reaches
+                             In progress from the list, the calendar, or a keyboard. --}}
+                        <label for="detail-status" class="detail-label">Status</label>
+                        <select id="detail-status" class="detail-field">
+                            @foreach (['pending' => 'To do', 'in_progress' => 'In progress', 'completed' => 'Done'] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="pt-3">
                         <label for="detail-priority" class="detail-label">Priority</label>
                         <select id="detail-priority" class="detail-field">

@@ -51,8 +51,19 @@ class TrackerPageTest extends TestCase
             'id="subtask-form"',
             'id="detail-project"',
             'id="detail-date"',
+            'id="detail-status"',
             'id="detail-priority"',
         ], false);
+    }
+
+    public function test_the_dialog_is_the_way_to_a_stage_outside_the_board(): void
+    {
+        // The Start button is gone from the rows: the board's drag moves a task into In progress,
+        // and this field does it everywhere else.
+        $html = $this->get('/tasks')->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="detail-status"', $html);
+        $this->assertStringContainsString('<option value="in_progress">In progress</option>', $html);
     }
 
     public function test_the_old_status_filter_is_gone(): void

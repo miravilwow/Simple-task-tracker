@@ -18,6 +18,7 @@ const elements = {
     project: $('detail-project'),
     date: $('detail-date'),
     priority: $('detail-priority'),
+    status: $('detail-status'),
     prev: $('detail-prev'),
     next: $('detail-next'),
     subtaskList: $('subtask-list'),
@@ -113,6 +114,7 @@ function fill() {
     setValue(elements.project, task.category ? String(task.category.id) : '');
     setDate(task.due_date ?? '');
     setValue(elements.priority, task.priority);
+    setValue(elements.status, task.status);
     elements.tick.setAttribute('aria-checked', String(isDone));
     elements.tick.setAttribute('aria-label', isDone ? 'Mark as not done' : 'Mark as done');
 
@@ -223,6 +225,13 @@ export function wireTaskDetail() {
     elements.title.addEventListener('change', () => patchTask({ title: elements.title.value.trim() }));
     elements.description.addEventListener('change', () => patchTask({ description: elements.description.value.trim() || null }));
     elements.priority.addEventListener('change', () => patchTask({ priority: elements.priority.value }));
+
+    // Status is not part of the update endpoint: it moves through start, complete and reopen, the
+    // same three the board's drag runs, so every stage change still reaches the activity log.
+    elements.status.addEventListener('change', async () => {
+        await handlers.onStage(task.id, elements.status.value, task.status);
+        await load(task.id);
+    });
     elements.project.addEventListener('change', () =>
         patchTask({ category_id: elements.project.value ? Number(elements.project.value) : null }),
     );

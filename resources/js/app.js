@@ -245,20 +245,10 @@ function taskActions(task, { compact = false, stageButtons = true } = {}) {
         return [deleteButton(task, compact)];
     }
 
+    // There is no Start here. Moving a task into In progress is the board's drag, and the
+    // Status field in the task dialog for every other layout; a third way would be one more
+    // place for the three to drift apart.
     const buttons = [];
-
-    // Only a task that has not been picked up yet can be started, so the button is on that row
-    // alone rather than shown disabled on the other two.
-    if (task.status === 'pending') {
-        const startButton = createElement(
-            'button',
-            `${BUTTON_BASE} border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-500`,
-        );
-        startButton.type = 'button';
-        startButton.append(createIcon('play'), actionLabel('Start'));
-        startButton.addEventListener('click', () => startTask(task, startButton));
-        buttons.push(startButton);
-    }
 
     const primary =
         task.status === 'completed'
@@ -817,17 +807,6 @@ async function runAndReload(request, message, undo) {
         showToast(errorMessage(error), 'error');
     }
 }
-
-// Undo is reopen, which puts a task back at the start. Starting something by mistake is meant
-// to cost one click to undo, the same as finishing it by mistake.
-const startTask = (task, button) =>
-    runAction(button, {
-        busyLabel: 'Starting…',
-        request: () => api(`/tasks/${task.id}/start`, { method: 'PATCH' }),
-        successMessage: 'Task started',
-        undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
-        undoMessage: 'Moved back to To do',
-    });
 
 const completeTask = (task, button) =>
     runAction(button, {
@@ -1434,14 +1413,16 @@ function shiftMonth(offset) {
 const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', completed: 'complete' };
 
 /** A drop on the board, and the keyboard move that does the same thing. */
-function moveTask(id, status) {
-    const task = latestTasks.find((item) => item.id === id);
+function moveTask(id, status, from) {
+    // The dialog knows the task's stage first-hand. The board reads it from the list, which is
+    // the only place a dropped card can have come from.
+    const current = from ?? latestTasks.find((item) => item.id === id)?.status;
 
-    if (!task || task.status === status || !STAGE_ENDPOINTS[status]) {
+    if (!current || current === status || !STAGE_ENDPOINTS[status]) {
         return;
     }
 
-    const undo = STAGE_ENDPOINTS[task.status];
+    const undo = STAGE_ENDPOINTS[current];
 
     return runAndReload(
         () => api(`/tasks/${id}/${STAGE_ENDPOINTS[status]}`, { method: 'PATCH' }),
@@ -1452,6 +1433,7 @@ function moveTask(id, status) {
 
 function showTaskDetail(id, trigger) {
     openTaskDetail(id, trigger, {
+        onStage: moveTask,
         categories: state.categories,
         order: latestTasks.map((task) => task.id),
         onChange: load,
