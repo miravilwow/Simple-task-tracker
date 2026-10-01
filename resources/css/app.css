@@ -296,7 +296,9 @@
 }
 
 @utility board-column {
-    @apply rounded-xl border border-gray-200 bg-gray-50 transition-colors;
+    /* flex-col so the list inside can grow: the drop target is the whole column, not the strip
+       its cards happen to cover. min-h so an empty column is still something you can aim at. */
+    @apply flex min-h-32 flex-col rounded-xl border border-gray-200 bg-gray-50 transition-colors;
 }
 
 @utility board-card {

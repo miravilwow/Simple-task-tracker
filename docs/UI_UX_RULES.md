@@ -258,6 +258,7 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 - **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
 - **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the arrows move it between columns, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
 - A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
+- **A drop is accepted anywhere in a column**, not only on the strip its cards happen to cover. The columns stretch to one height and the list inside fills its column, so letting a card go in the empty space under the last one still moves it. Sizing each column to its own cards left that space outside the column, where a drop was refused with nothing on screen to explain why.
 - Below `md` the columns stack into one running list rather than scrolling sideways.
 
 ## 5c. The task dialog
@@ -371,6 +372,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
+- [ ] A card dropped in the empty space below a column's last card still moves there
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
 - [ ] Grouped by priority or project, the cards carry Complete again and are not draggable
 - [ ] The dialog's Status field moves a task through all three stages, and the activity log records each one

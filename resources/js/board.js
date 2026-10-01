@@ -19,15 +19,18 @@ function column(group, renderCard, draggable) {
     section.dataset.group = group.key;
     head.append(heading, createElement('span', 'text-xs font-medium text-gray-500 tabular-nums', String(group.tasks.length)));
 
-    const list = createElement('ul', 'flex flex-col gap-3 px-3 pb-3');
+    // flex-1 so the list reaches the bottom of the column. A drop is accepted anywhere in the
+    // column, not only where the cards sit, so a card let go under the last one still lands.
+    const list = createElement('ul', 'flex flex-1 flex-col gap-3 px-3 pb-3');
+
     list.append(...group.tasks.map(renderCard));
     section.append(head, list);
 
     if (group.tasks.length === 0) {
-        section.append(
+        list.append(
             draggable
-                ? createElement('p', 'mx-3 mb-3 rounded-lg border border-dashed border-gray-300 px-3 py-5 text-center text-sm text-gray-400', 'Drop a task here')
-                : createElement('p', 'px-4 pb-4 text-sm text-gray-400', 'Nothing here yet.'),
+                ? createElement('li', 'flex flex-1 items-center justify-center rounded-lg border border-dashed border-gray-300 px-3 py-5 text-center text-sm text-gray-400', 'Drop a task here')
+                : createElement('li', 'px-1 text-sm text-gray-400', 'Nothing here yet.'),
         );
     }
 

@@ -32,6 +32,14 @@ class TrackerPageTest extends TestCase
         ], false);
     }
 
+    public function test_the_board_columns_stretch_so_a_drop_lands_anywhere_in_a_column(): void
+    {
+        // items-start sizes each column to its own cards, which leaves the space under the last
+        // card outside the column and silently refuses a drop there.
+        $this->get('/tasks')
+            ->assertOk()
+            ->assertDontSee('md:items-start', false);
+    }
     public function test_the_tracker_renders_the_three_layout_containers(): void
     {
         $this->get('/tasks')->assertOk()->assertSeeInOrder([

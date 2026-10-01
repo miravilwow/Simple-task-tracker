@@ -229,7 +229,7 @@
         {{-- The columns are whatever the Display panel groups by, so they are built in JS rather
              than fixed here. `md:grid` sits in a media query and would win over `hidden`, so the
              grid classes are added when the view opens, exactly as the calendar's are. --}}
-        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] md:items-start xl:gap-6"></div>
+        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] xl:gap-6"></div>
         <p id="board-help" class="sr-only">
             Press Enter to open a task. Press Space to pick it up, the left and right arrows to move
             it between columns, Space again to drop it, or Escape to cancel.
