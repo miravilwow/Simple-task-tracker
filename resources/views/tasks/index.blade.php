@@ -165,18 +165,11 @@
         <section aria-labelledby="stats-heading" class="mt-6">
             <h2 id="stats-heading" class="sr-only">Task statistics</h2>
 
-            {{-- Four columns on the same gap as the layout below, so the tiles sit on its column edges. --}}
-            <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:gap-6">
-                <x-stat-card id="stat-total" label="Total tasks" icon="list" tone="slate" />
-                {{-- "Not done" rather than "Pending": it counts To do and In progress together, and a
-                     tile must not name one of the two things it is adding up. --}}
-                <x-stat-card id="stat-pending" label="Not done" icon="clock" tone="blue" />
-                <x-stat-card id="stat-completed" label="Done" icon="check-circle" tone="green" />
-                <x-stat-card id="stat-overdue" label="Overdue" icon="warning" tone="red" />
-            </dl>
-
-            {{-- A single ratio against a total reads better as a meter than as another number. --}}
-            <div class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            {{-- There were four tiles here. Three of them printed the same number as a sidebar
+                 badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue".
+                 The meter is what they did not say — a ratio rather than a count — and it carries
+                 the one figure the sidebar has no view for, how many are left. --}}
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div class="flex items-baseline justify-between gap-4">
                     <p class="text-sm font-medium text-gray-700">Progress</p>
                     <p id="progress-label" class="text-sm text-gray-500 tabular-nums">No tasks yet</p>
@@ -187,6 +180,10 @@
                 </div>
             </div>
         </section>
+
+        {{-- The chips name every active Display setting. They sit above all three layouts, not
+             inside the list panel: the board is where nothing else says what is filtered. --}}
+        <div id="display-summary" class="mt-4 flex flex-wrap items-center gap-1.5"></div>
 
         <div id="load-error" class="mt-6 hidden" role="alert">
             <div class="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
@@ -210,7 +207,6 @@
                     {{-- tabindex allows focus to return here after a task row is removed. --}}
                     <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>
 
-                    <div id="display-summary" class="flex flex-wrap items-center gap-1.5"></div>
                 </div>
 
                 <div id="column-headers" aria-hidden="true"
@@ -694,7 +690,7 @@
             </div>
         </div>
 
-        <div class="grid max-h-[calc(100dvh-6rem)] overflow-auto lg:grid-cols-[minmax(0,1fr)_17rem]">
+        <div class="grid max-h-[calc(100dvh-6rem)] overflow-auto lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div class="p-5 sm:p-6">
                 <div class="flex items-start gap-3">
                     <button type="button" id="detail-tick" role="checkbox" aria-checked="false"
@@ -745,8 +741,8 @@
                     </div>
 
                     <div class="py-3">
-                        <label for="detail-date" class="detail-label">Date</label>
-                        <input type="date" id="detail-date" class="detail-field" />
+                        {{-- Inline, because a <dialog> clips a floating panel. --}}
+                        <x-date-field id="detail-date" label="Date" :inline="true" />
                     </div>
 
                     <div class="pt-3">

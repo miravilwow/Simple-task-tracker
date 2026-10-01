@@ -81,6 +81,13 @@ class TaskSortingTest extends TestCase
         $this->assertCount(3, $this->titles('?completed=1'));
     }
 
+    public function test_rejects_a_status_and_a_completed_toggle_together(): void
+    {
+        $this->getJson('/api/tasks?status=completed&completed=0')
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('completed');
+    }
+
     public function test_rejects_an_unknown_priority(): void
     {
         $this->getJson('/api/tasks?priority=urgent')

@@ -45,6 +45,33 @@ function tickButton(checked, label) {
     return button;
 }
 
+/**
+ * Saving one field answers with the whole task, which would otherwise overwrite whatever is being
+ * typed in another field. The field the cursor is in keeps what the user put there.
+ */
+function setValue(field, value) {
+    if (field !== document.activeElement) {
+        field.value = value;
+    }
+}
+
+/**
+ * The month grid redraws from the input's `change` event, which setting `.value` in script does
+ * not fire. The flag stops that synthetic event being read back as an edit and saved again.
+ */
+let syncing = false;
+
+function setDate(value) {
+    if (elements.date.value === value) {
+        return;
+    }
+
+    syncing = true;
+    elements.date.value = value;
+    elements.date.dispatchEvent(new Event('change'));
+    syncing = false;
+}
+
 function renderSubtasks() {
     const subtasks = task.subtasks ?? [];
     const done = subtasks.filter((item) => item.is_done).length;
@@ -81,11 +108,11 @@ function fill() {
         createIcon('inbox', 'size-4'),
         createElement('span', '', task.category?.name ?? 'No project'),
     );
-    elements.title.value = task.title;
-    elements.description.value = task.description ?? '';
-    elements.project.value = task.category ? String(task.category.id) : '';
-    elements.date.value = task.due_date ?? '';
-    elements.priority.value = task.priority;
+    setValue(elements.title, task.title);
+    setValue(elements.description, task.description ?? '');
+    setValue(elements.project, task.category ? String(task.category.id) : '');
+    setDate(task.due_date ?? '');
+    setValue(elements.priority, task.priority);
     elements.tick.setAttribute('aria-checked', String(isDone));
     elements.tick.setAttribute('aria-label', isDone ? 'Mark as not done' : 'Mark as done');
 
@@ -199,9 +226,13 @@ export function wireTaskDetail() {
     elements.project.addEventListener('change', () =>
         patchTask({ category_id: elements.project.value ? Number(elements.project.value) : null }),
     );
-    elements.date.addEventListener('change', () =>
-        save(() => api(`/tasks/${task.id}/schedule`, { method: 'PATCH', body: { due_date: elements.date.value || null } })),
-    );
+    elements.date.addEventListener('change', () => {
+        if (syncing) {
+            return;
+        }
+
+        save(() => api(`/tasks/${task.id}/schedule`, { method: 'PATCH', body: { due_date: elements.date.value || null } }));
+    });
 
     $('subtask-add').addEventListener('click', () => {
         elements.subtaskForm.hidden = false;

@@ -139,13 +139,6 @@ const elements = {
     unscheduledCount: $('unscheduled-count'),
 };
 
-const stats = {
-    total: $('stat-total'),
-    pending: $('stat-pending'),
-    completed: $('stat-completed'),
-    overdue: $('stat-overdue'),
-};
-
 const viewButtons = document.querySelectorAll('[data-view]');
 
 const today = startOfToday();
@@ -428,11 +421,6 @@ function renderList(tasks) {
 // ---------------------------------------------------------------- stats & sidebar
 
 function renderStats(data) {
-    stats.total.textContent = data.total;
-    stats.pending.textContent = data.pending;
-    stats.completed.textContent = data.completed;
-    stats.overdue.textContent = data.overdue;
-
     for (const element of document.querySelectorAll('[data-view-count]')) {
         const value = data[element.dataset.viewCount];
         element.textContent = value > 0 ? value : '';
@@ -442,13 +430,15 @@ function renderStats(data) {
 
     elements.progressBar.style.width = `${percent}%`;
     elements.progressTrack.setAttribute('aria-valuenow', String(percent));
+    // "N left" is the one figure no sidebar badge carries, so the meter keeps it rather than
+    // leaving a tile behind just for that.
     elements.progressLabel.textContent =
-        data.total === 0 ? 'No tasks yet' : `${data.completed} of ${data.total} done (${percent}%)`;
+        data.total === 0 ? 'No tasks yet' : `${data.pending} left · ${data.completed} of ${data.total} done (${percent}%)`;
 }
 
 function clearStats() {
-    for (const element of Object.values(stats)) {
-        element.textContent = '–';
+    for (const element of document.querySelectorAll('[data-view-count]')) {
+        element.textContent = '';
     }
 
     elements.progressBar.style.width = '0%';
@@ -685,7 +675,9 @@ function currentParams() {
         params.completed = 0;
     }
 
-    if (display.state.date) {
+    // The calendar is already a date view: a `due` beside its month window would fight it and
+    // leave a grid that is empty for no visible reason.
+    if (display.state.date && display.state.mode !== 'calendar') {
         params.due = display.state.date;
     }
 
@@ -797,7 +789,9 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
         await load();
 
         if (hadFocus) {
-            elements.tasksHeading.focus();
+            // The Tasks heading lives inside the list panel, which is hidden in the other two
+            // layouts. Focusing it there would drop focus onto the body.
+            (display.state.mode === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
         }
     } catch (error) {
         showToast(errorMessage(error), 'error');
@@ -860,7 +854,8 @@ async function deleteTask(task, button) {
     });
 
     if (!confirmed) {
-        button.focus();
+        // The task dialog deletes without a button of its own, so there may be nothing to go back to.
+        button?.focus();
 
         return;
     }
@@ -1414,7 +1409,15 @@ function selectCategory(category) {
 
 // `md:grid` and `xl:grid` sit in media queries and would win over `hidden`, so each layout's
 // grid class is added only while that layout is open.
-function applyDisplay({ mode }) {
+function applyDisplay({ mode, date }) {
+    // Today, Upcoming and Overdue are date filters already. Choosing a Date in the panel takes
+    // over, the same way picking a project does, rather than leaving two filters to fight while
+    // the heading still names the view that lost.
+    if (date && VIEWS[state.view].params.due) {
+        state.view = 'all';
+        applyView();
+    }
+
     elements.listView.classList.toggle('hidden', mode !== 'list');
     elements.boardView.classList.toggle('hidden', mode !== 'board');
     elements.boardView.classList.toggle('md:grid', mode === 'board');

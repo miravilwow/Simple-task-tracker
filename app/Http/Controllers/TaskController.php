@@ -31,7 +31,9 @@ class TaskController extends Controller
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'sort' => ['nullable', Rule::enum(TaskSort::class)],
-            'completed' => ['nullable', 'boolean'],
+            // Not beside status: "give me completed tasks, but hide completed tasks" can only ever
+            // answer nothing, and an empty list is a worse reply than an error.
+            'completed' => ['nullable', 'boolean', 'prohibits:status'],
         ]);
 
         $tasks = Task::query()
