@@ -30,7 +30,7 @@ class MoveCategoryRequest extends FormRequest
                 'present',
                 'nullable',
                 'integer',
-                Rule::exists('categories', 'id'),
+                Rule::exists('categories', 'id')->whereNull('deleted_at'),
                 new NotItsOwnDescendant($category),
             ],
         ];

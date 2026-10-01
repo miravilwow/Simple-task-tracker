@@ -27,7 +27,7 @@ class TaskController extends Controller
     {
         $filters = $request->validate([
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
-            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
             'due' => ['nullable', Rule::enum(DueFilter::class)],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],

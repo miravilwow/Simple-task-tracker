@@ -26,7 +26,7 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'priority' => ['sometimes', 'required', Rule::enum(TaskPriority::class)],
-            'category_id' => ['sometimes', 'present', 'nullable', 'integer', Rule::exists('categories', 'id')],
+            'category_id' => ['sometimes', 'present', 'nullable', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
         ];
     }
 }

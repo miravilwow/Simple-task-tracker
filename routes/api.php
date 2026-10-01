@@ -37,7 +37,9 @@ Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 Route::patch('/categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed();
 Route::delete('/categories/{category}/force', [CategoryController::class, 'forceDestroy'])->withTrashed();
 
+// scopeBindings on the nested ones, the same as the sub-task routes: a comment id from another
+// project is then a 404 from the binding rather than a check written out by hand in the controller.
 Route::get('/categories/{category}/comments', [CategoryCommentController::class, 'index']);
 Route::post('/categories/{category}/comments', [CategoryCommentController::class, 'store']);
-Route::patch('/categories/{category}/comments/{comment}/reactions', [CategoryCommentController::class, 'react']);
-Route::delete('/categories/{category}/comments/{comment}', [CategoryCommentController::class, 'destroy']);
+Route::patch('/categories/{category}/comments/{comment}/reactions', [CategoryCommentController::class, 'react'])->scopeBindings();
+Route::delete('/categories/{category}/comments/{comment}', [CategoryCommentController::class, 'destroy'])->scopeBindings();

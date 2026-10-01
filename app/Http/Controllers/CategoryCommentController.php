@@ -10,6 +10,11 @@ use App\Models\CategoryComment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+/**
+ * A comment is only ever reached through its own project: the nested routes carry
+ * scopeBindings(), so an id from another project is a 404 from the binding rather than a check
+ * repeated in each method here. The sub-task routes are scoped the same way.
+ */
 class CategoryCommentController extends Controller
 {
     /**
@@ -44,8 +49,6 @@ class CategoryCommentController extends Controller
      */
     public function react(ReactToCommentRequest $request, Category $category, CategoryComment $comment): CategoryCommentResource
     {
-        $this->assertBelongsTo($comment, $category);
-
         $keys = [
             'emoji' => $request->validated('emoji'),
             'reactor' => $request->validated('reactor'),
@@ -62,18 +65,8 @@ class CategoryCommentController extends Controller
 
     public function destroy(Category $category, CategoryComment $comment): JsonResponse
     {
-        $this->assertBelongsTo($comment, $category);
-
         $comment->delete();
 
         return response()->json(['message' => 'Comment deleted.']);
-    }
-
-    /**
-     * A comment id from another project is a 404 rather than a hit on someone else's row.
-     */
-    private function assertBelongsTo(CategoryComment $comment, Category $category): void
-    {
-        abort_unless($comment->category_id === $category->id, 404);
     }
 }
