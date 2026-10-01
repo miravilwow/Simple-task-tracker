@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,6 @@ class TrackerPageTest extends TestCase
             'id="display-panel"',
             'data-mode="list"',
             'data-mode="board"',
-            'data-mode="calendar"',
             'id="show-completed"',
             'id="grouping"',
             'id="sorting"',
@@ -72,14 +72,57 @@ class TrackerPageTest extends TestCase
         $this->get('/tasks')->assertOk()->assertDontSee('data-filter=', false);
     }
 
-    public function test_the_stat_tiles_are_gone(): void
+    public function test_the_stat_tiles_and_the_progress_meter_are_gone(): void
     {
-        // Three of the four printed the same number as a sidebar badge. The meter is what they
-        // did not say, and it keeps the one figure no badge carries.
+        // Three of the four tiles printed the same number as a sidebar badge, and the meter read
+        // the whole database however the page was filtered, so it showed a ratio on a view with
+        // nothing in it. The sidebar badges carry the counts now.
         $this->get('/tasks')->assertOk()
             ->assertDontSee('id="stat-total"', false)
             ->assertDontSee('id="stat-overdue"', false)
-            ->assertSee('id="progress-label"', false);
+            ->assertDontSee('id="progress-bar"', false);
+    }
+
+    public function test_every_sidebar_count_is_a_figure_the_stats_endpoint_returns(): void
+    {
+        // The progress meter was the other reader of /api/tasks/stats. With it gone the badges
+        // are the only ones left, so a count renamed on either side has to fail here rather than
+        // quietly render blank.
+        Task::factory()->create(['due_date' => today()]);
+        Task::factory()->completed()->create();
+        Task::factory()->create(['due_date' => today()->subWeek()]);
+
+        $stats = $this->getJson('/api/tasks/stats')->assertOk()->json('data');
+
+        preg_match_all(
+            "/'count' => '([a-z_]+)'/",
+            file_get_contents(resource_path('views/tasks/index.blade.php')),
+            $matches
+        );
+
+        $this->assertNotEmpty($matches[1], 'The sidebar asks for no counts at all');
+
+        foreach ($matches[1] as $key) {
+            $this->assertArrayHasKey($key, $stats, "The sidebar shows \"{$key}\", which stats does not return");
+        }
+
+        $this->assertSame(3, $stats['total']);
+        $this->assertSame(1, $stats['completed']);
+        $this->assertSame(1, $stats['due_today']);
+        $this->assertSame(1, $stats['overdue']);
+    }
+
+    public function test_the_layout_choice_offers_no_calendar(): void
+    {
+        // Upcoming is the calendar, so there is nothing left for the panel to choose.
+        $this->get('/tasks')->assertOk()->assertDontSee('data-mode="calendar"', false);
+    }
+
+    public function test_no_row_offers_reopen(): void
+    {
+        // Reopening is the Undo on the complete toast, the dialog's Status field, or dragging a
+        // card back. The row has one stage button, and it is Complete.
+        $this->assertStringNotContainsString("actionLabel('Reopen')", file_get_contents(resource_path('js/app.js')));
     }
 
     public function test_the_display_chips_sit_outside_the_list_panel(): void

@@ -65,7 +65,9 @@ function categoryIcon(category, size) {
 const VIEWS = {
     all: { title: 'All tasks', subtitle: "Create tasks, set priorities, and track what's done.", params: {} },
     today: { title: 'Today', subtitle: 'Still to do today.', params: { due: 'today' } },
-    upcoming: { title: 'Upcoming', subtitle: 'Still to do today and beyond.', params: { due: 'upcoming' } },
+    // No `due` here: this view is the calendar, and its month window is already the date
+    // filter. Sending both would blank every day before today in the current month.
+    upcoming: { title: 'Upcoming', subtitle: 'Everything with a date. Drag a task onto a day to schedule it.', params: {} },
     overdue: { title: 'Overdue', subtitle: 'Past their due date and still pending.', params: { due: 'overdue' } },
     completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
 };
@@ -128,9 +130,6 @@ const elements = {
     loadError: $('load-error'),
     loadErrorMessage: $('load-error-message'),
     retry: $('retry-button'),
-    progressBar: $('progress-bar'),
-    progressTrack: $('progress-track'),
-    progressLabel: $('progress-label'),
     calendarGrid: $('calendar-grid'),
     calendarAgenda: $('calendar-agenda'),
     calendarMonth: $('calendar-month'),
@@ -240,42 +239,30 @@ function deleteButton(task, compact) {
  * is false on a draggable board, where the drag is the move and Start or Complete would be a
  * second way to do the one thing the columns already do.
  */
-function taskActions(task, { compact = false, stageButtons = true } = {}) {
-    if (!stageButtons) {
-        return [deleteButton(task, compact)];
-    }
-
-    // There is no Start here. Moving a task into In progress is the board's drag, and the
-    // Status field in the task dialog for every other layout; a third way would be one more
-    // place for the three to drift apart.
+function taskActions(task, { compact = false } = {}) {
     const buttons = [];
 
-    const primary =
-        task.status === 'completed'
-            ? {
-                  label: 'Reopen',
-                  icon: 'undo',
-                  classes:
-                      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 focus-visible:ring-indigo-500',
-                  run: reopenTask,
-              }
-            : {
-                  label: 'Complete',
-                  icon: 'check',
-                  classes:
-                      'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
-                  run: completeTask,
-              };
+    // Complete is the only stage button anywhere. Starting a task is the board's drag or the
+    // dialog's Status field; reopening one is the Undo on its toast, the same two, or dragging
+    // it back. A finished task has nothing left to press but Delete.
+    if (task.status !== 'completed') {
+        const completeButton = createElement(
+            'button',
+            [
+                BUTTON_BASE,
+                compact ? '' : 'flex-1 md:flex-none',
+                'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
+            ]
+                .filter(Boolean)
+                .join(' '),
+        );
+        completeButton.type = 'button';
+        completeButton.append(createIcon('check'), actionLabel('Complete'));
+        completeButton.addEventListener('click', () => completeTask(task, completeButton));
+        buttons.push(completeButton);
+    }
 
-    const primaryButton = createElement(
-        'button',
-        [BUTTON_BASE, compact ? '' : 'flex-1 md:flex-none', primary.classes].filter(Boolean).join(' '),
-    );
-    primaryButton.type = 'button';
-    primaryButton.append(createIcon(primary.icon), actionLabel(primary.label));
-    primaryButton.addEventListener('click', () => primary.run(task, primaryButton));
-
-    buttons.push(primaryButton, deleteButton(task, compact));
+    buttons.push(deleteButton(task, compact));
 
     return buttons;
 }
@@ -392,7 +379,7 @@ function renderCard(task) {
     }
 
     const actions = createElement('div', 'mt-3 flex items-center gap-2');
-    actions.append(...taskActions(task, { compact: true, stageButtons: !draggable }));
+    actions.append(...taskActions(task, { compact: true }));
     item.append(meta, actions);
 
     return item;
@@ -416,24 +403,12 @@ function renderStats(data) {
         element.textContent = value > 0 ? value : '';
     }
 
-    const percent = data.total === 0 ? 0 : Math.round((data.completed / data.total) * 100);
-
-    elements.progressBar.style.width = `${percent}%`;
-    elements.progressTrack.setAttribute('aria-valuenow', String(percent));
-    // "N left" is the one figure no sidebar badge carries, so the meter keeps it rather than
-    // leaving a tile behind just for that.
-    elements.progressLabel.textContent =
-        data.total === 0 ? 'No tasks yet' : `${data.pending} left · ${data.completed} of ${data.total} done (${percent}%)`;
 }
 
 function clearStats() {
     for (const element of document.querySelectorAll('[data-view-count]')) {
         element.textContent = '';
     }
-
-    elements.progressBar.style.width = '0%';
-    elements.progressTrack.setAttribute('aria-valuenow', '0');
-    elements.progressLabel.textContent = 'Unavailable';
 }
 
 /**
@@ -667,7 +642,7 @@ function currentParams() {
 
     // The calendar is already a date view: a `due` beside its month window would fight it and
     // leave a grid that is empty for no visible reason.
-    if (display.state.date && display.state.mode !== 'calendar') {
+    if (display.state.date && currentLayout() !== 'calendar') {
         params.due = display.state.date;
     }
 
@@ -706,12 +681,12 @@ async function load() {
         ];
 
         requests.push(
-            display.state.mode === 'calendar'
+            currentLayout() === 'calendar'
                 ? api('/tasks', { params: { ...currentParams(), ...range } })
                 : api('/tasks', { params: currentParams() }),
         );
 
-        if (display.state.mode === 'calendar') {
+        if (currentLayout() === 'calendar') {
             requests.push(api('/tasks', { params: { ...currentParams(), due: 'none' } }));
         }
 
@@ -727,7 +702,7 @@ async function load() {
         renderStats(statsResponse.data);
         renderCategories(categoriesResponse.data, deletedResponse.data);
 
-        if (display.state.mode === 'calendar') {
+        if (currentLayout() === 'calendar') {
             elements.calendarMonth.textContent = monthLabel(state.month);
             renderMonthGrid(elements.calendarGrid, {
                 tasks: tasksResponse.data,
@@ -743,7 +718,7 @@ async function load() {
             });
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
-        } else if (display.state.mode === 'board') {
+        } else if (currentLayout() === 'board') {
             renderBoard({
                 tasks: tasksResponse.data,
                 grouping: display.state.grouping,
@@ -781,7 +756,7 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
         if (hadFocus) {
             // The Tasks heading lives inside the list panel, which is hidden in the other two
             // layouts. Focusing it there would drop focus onto the body.
-            (display.state.mode === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
+            (currentLayout() === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
         }
     } catch (error) {
         showToast(errorMessage(error), 'error');
@@ -815,13 +790,6 @@ const completeTask = (task, button) =>
         successMessage: 'Task completed',
         undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
         undoMessage: 'Task reopened',
-    });
-
-const reopenTask = (task, button) =>
-    runAction(button, {
-        busyLabel: 'Reopening…',
-        request: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
-        successMessage: 'Task reopened',
     });
 
 async function deleteTask(task, button) {
@@ -1374,6 +1342,7 @@ function setView(key) {
     state.view = key;
     state.categoryId = null;
     applyView();
+    applyLayout();
     closeDrawer();
     load();
 }
@@ -1382,13 +1351,31 @@ function selectCategory(category) {
     state.categoryId = state.categoryId === category.id ? null : category.id;
     state.view = 'all';
     applyView();
+    applyLayout();
     closeDrawer();
     load();
 }
 
+/**
+ * Upcoming is the calendar: a month grid is what "what is coming up" looks like, and there is
+ * nothing there to lay out two ways. Every other view takes the Display panel's choice.
+ */
+const currentLayout = () => (state.view === 'upcoming' ? 'calendar' : display.state.mode);
+
 // `md:grid` and `xl:grid` sit in media queries and would win over `hidden`, so each layout's
 // grid class is added only while that layout is open.
-function applyDisplay({ mode, date }) {
+function applyLayout() {
+    const layout = currentLayout();
+
+    display.setLayoutLocked(layout === 'calendar');
+    elements.listView.classList.toggle('hidden', layout !== 'list');
+    elements.boardView.classList.toggle('hidden', layout !== 'board');
+    elements.boardView.classList.toggle('md:grid', layout === 'board');
+    elements.calendarView.classList.toggle('hidden', layout !== 'calendar');
+    elements.calendarView.classList.toggle('xl:grid', layout === 'calendar');
+}
+
+function applyDisplay({ date }) {
     // Today, Upcoming and Overdue are date filters already. Choosing a Date in the panel takes
     // over, the same way picking a project does, rather than leaving two filters to fight while
     // the heading still names the view that lost.
@@ -1397,11 +1384,7 @@ function applyDisplay({ mode, date }) {
         applyView();
     }
 
-    elements.listView.classList.toggle('hidden', mode !== 'list');
-    elements.boardView.classList.toggle('hidden', mode !== 'board');
-    elements.boardView.classList.toggle('md:grid', mode === 'board');
-    elements.calendarView.classList.toggle('hidden', mode !== 'calendar');
-    elements.calendarView.classList.toggle('xl:grid', mode === 'calendar');
+    applyLayout();
     load();
 }
 

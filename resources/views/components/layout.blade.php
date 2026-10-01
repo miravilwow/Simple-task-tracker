@@ -53,7 +53,7 @@
         ])>
             {{-- The negative margin cancels the padding, so the focus ring has room to breathe
                  without moving the logo off the gutter the sidebar's icons sit on. --}}
-            <a href="{{ route('home') }}"
+            <a href="{{ route('tasks.index') }}"
                 class="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
                 {{-- 24px mark plus an 8px gap is the 32px the sidebar's 20px icon and 12px gap
                      reach, so the wordmark starts exactly where the sidebar's labels do. --}}
@@ -64,19 +64,11 @@
                 Simple Task Tracker
             </a>
 
-            @if (request()->routeIs('tasks.index'))
-                {{-- min-h-10 and -mr-3, so it matches the landing page's action and still ends on
-                     the container's right edge rather than its own padding. --}}
-                <a href="{{ route('home') }}"
-                    class="-mr-3 inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
-                    Home
-                </a>
-            @else
-                <a href="{{ route('tasks.index') }}"
-                    class="inline-flex min-h-10 shrink-0 items-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
-                    Open app
-                </a>
-            @endif
+            {{-- There is no second page to link to any more, so the bar carries the date instead
+                 of an action that would only lead back here. --}}
+            <p class="-mr-3 hidden min-h-10 items-center px-3 text-sm text-gray-500 sm:inline-flex">
+                {{ now()->format('D, M j') }}
+            </p>
         </nav>
     </header>
 

@@ -95,10 +95,11 @@
                         class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-lg">
                         <div class="p-4">
                             <h2 id="layout-label" class="mb-2.5 font-medium">Layout</h2>
-                            <div role="group" aria-labelledby="layout-label" class="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
-                                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
+                            <div role="group" aria-labelledby="layout-label" class="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
+                                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board']] as [$mode, $label, $icon])
                                     <button type="button" data-mode="{{ $mode }}"
-                                        aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}" class="layout-choice">
+                                        aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}"
+                                        class="layout-choice disabled:cursor-not-allowed disabled:opacity-40">
                                         <x-icon :name="$icon" class="size-5" />
                                         {{ $label }}
                                     </button>
@@ -162,24 +163,6 @@
             </div>
         </div>
 
-        <section aria-labelledby="stats-heading" class="mt-6">
-            <h2 id="stats-heading" class="sr-only">Task statistics</h2>
-
-            {{-- There were four tiles here. Three of them printed the same number as a sidebar
-                 badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue".
-                 The meter is what they did not say — a ratio rather than a count — and it carries
-                 the one figure the sidebar has no view for, how many are left. --}}
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div class="flex items-baseline justify-between gap-4">
-                    <p class="text-sm font-medium text-gray-700">Progress</p>
-                    <p id="progress-label" class="text-sm text-gray-500 tabular-nums">No tasks yet</p>
-                </div>
-                <div id="progress-track" class="mt-2 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar"
-                    aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                    <div id="progress-bar" class="h-full w-0 rounded-full bg-indigo-600 transition-[width] duration-500 motion-reduce:transition-none"></div>
-                </div>
-            </div>
-        </section>
 
         {{-- The chips name every active Display setting. They sit above all three layouts, not
              inside the list panel: the board is where nothing else says what is filtered. --}}

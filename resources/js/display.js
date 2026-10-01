@@ -146,5 +146,17 @@ export function createDisplay(onChange) {
         apply();
     });
 
-    return { state, renderSummary, apply };
+    /**
+     * The Upcoming view is the calendar, so the layout choice has nothing to act on there. The
+     * buttons are disabled rather than hidden: a control that vanishes leaves the user guessing
+     * where it went, and the stored choice comes back on the next view.
+     */
+    function setLayoutLocked(locked) {
+        modeButtons.forEach((button) => {
+            button.disabled = locked;
+            button.title = locked ? 'Upcoming always shows the calendar' : '';
+        });
+    }
+
+    return { state, renderSummary, apply, setLayoutLocked };
 }

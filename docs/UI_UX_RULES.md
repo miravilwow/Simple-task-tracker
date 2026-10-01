@@ -6,14 +6,16 @@ Every screen, component, and interaction in Simple Task Tracker must follow thes
 
 | Route | View | Purpose |
 |---|---|---|
-| `/` | `home.blade.php` | Public landing page that explains the app and links to it |
-| `/tasks` | `tasks/index.blade.php` | The task tracker dashboard |
+| `/` | — | Redirects to `/tasks` |
+| `/tasks` | `tasks/index.blade.php` | The task tracker, and the whole site |
+
+There was a landing page at `/`. The app is a tracker, not a product with something to sell, so the marketing shell was one page of copy nobody using it would read twice. `/` redirects rather than 404s, because a saved link should still land.
 
 ### Tracker shell
 
-The tracker runs the **full-bleed app shell**; the landing page keeps the boxed marketing shell. `<x-layout :fluid="true">` is what switches between them, and it also opens the `aside` slot that holds the sidebar outside `<main>`, because a sidebar is navigation and not page content.
+The tracker runs the **full-bleed app shell**. `<x-layout :fluid="true">` is what turns it on, and it also opens the `aside` slot that holds the sidebar outside `<main>`, because a sidebar is navigation and not page content. `fluid` stays a prop rather than becoming the only behaviour: the boxed shell is still what any second page would want.
 
-| | Landing (`/`) | Tracker (`/tasks`) |
+| | Boxed shell | Tracker (`/tasks`) |
 |---|---|---|
 | Navbar | static, boxed at `max-w-6xl` | `fixed top-0 shadow-sm`, spans the viewport |
 | Container | `max-w-6xl` | `app-container`: full width, capped at `--container-app` (112rem) so an ultrawide display does not stretch a task row across a metre of glass |
@@ -26,7 +28,7 @@ The tracker runs the **full-bleed app shell**; the landing page keeps the boxed 
 
 The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
-- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed), a **Favorites** group, and the **My projects** tree. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
+- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed; Upcoming is the calendar), a **Favorites** group, and the **My projects** tree. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
   - **Favorites** appears only when something is in it, and it is flat: the point of the group is to skip the tree, not to repeat it. A favourite still appears in My projects, because removing it from there would make the tree lie about what is in it.
   - **My projects** is a tree. A child is indented under its parent with a rule down the left edge. A project whose parent is not in the list — archived, say — is drawn as a root, so a branch can never disappear from the sidebar because of where its parent happens to be.
   - **Archived** sits at the foot of My projects and appears only when something is archived. It is the way back: archiving is reversible, so the undo cannot be hidden somewhere the user has to remember.
@@ -120,9 +122,9 @@ Heroicons is kept in two maps: `<x-icon>` for markup the server renders, and the
   - a "Skip to content" link
   - the top navbar (logo and app name on the left, one action on the right)
   - the `<main>`
-- The navbar action depends on the page. On the landing page it is an **Open app** primary button. On the tracker it is a **Home** text link.
+- The navbar's right side carries today's date, not an action. There is no second page to link to, and a button that only leads back to the page you are on is furniture.
 - Within a page, the navbar and the content use that page's one container, so their left and right edges line up down the whole screen.
-- The tracker's JavaScript loads only on `/tasks`. The landing page loads CSS only.
+- The tracker's JavaScript is pushed in by `/tasks` through `('scripts')`, not by the layout, so a second page would not inherit it.
 
 ## 1. Layout (tracker dashboard)
 
@@ -145,31 +147,13 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
   2. The progress meter.
   3. Main area.
 - **There are no stat tiles.** There were four, and three of them printed the same number as a sidebar badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue". A dashboard that says the same figure twice on one screen is not twice as informative.
-- **Progress meter:** this is what the tiles did not say — a ratio rather than a count. One bar on a single-hue track, with the label "N left · M of T done (P%)" always visible, so the value never depends on the bar's colour alone. It carries "N left" because that is the one figure the sidebar has no view for. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
+- **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
 - **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
   - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
 - **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
 - **No horizontal scroll** at any width. Long titles wrap (`break-words`) and never overflow.
-
-## 1b. Landing page
-
-Sections, top to bottom:
-
-1. **Hero**
-   - Headline and one supporting sentence.
-   - A primary CTA **Open task tracker** (`/tasks`) and a secondary CTA **See how it works** (scrolls to that section).
-   - From `lg` up, the hero is two columns, with a static, decorative preview of the dashboard on the right (`aria-hidden="true"`). Below `lg`, the preview sits under the text.
-2. **Features:** four cards (prioritize, complete, filter, stats), shown 1 per row on mobile, 2 per row from `sm`, and 4 per row from `lg`. Each card has an icon, a title, and one sentence.
-3. **How it works:** three numbered steps in an `<ol>`.
-4. **Closing CTA:** an indigo band with one sentence and an **Open task tracker** button.
-
-Additional rules:
-
-- The hero headline uses `text-4xl sm:text-5xl font-semibold tracking-tight`. It is the only heading larger than `text-3xl` in the app.
-- Anchor scrolling uses `motion-safe:scroll-smooth`, so it respects reduced-motion settings.
-- **Honest copy only.** No invented testimonials, user counts, ratings, or pricing. Describe only features the app actually has.
 
 ## 2. Visual design
 
@@ -194,7 +178,7 @@ Additional rules:
 | In progress | In progress | `bg-amber-100 text-amber-800` badge |
 | Completed | Done | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
 
-- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today, Upcoming and Overdue, and the meter keeps counting it as left.
+- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today and Overdue, and the sidebar counts keep counting it.
 
 - Badges always include the text label. Never rely on color alone.
 
@@ -202,16 +186,15 @@ Additional rules:
 
 | Type | Use | Style |
 |---|---|---|
-| Primary | Add task, Open app, Open task tracker | Solid indigo, white text |
+| Primary | Add task, New task | Solid indigo, white text |
 | Secondary | Complete | Outlined light green |
-| Secondary | Reopen | Outlined neutral grey, shown in Complete's place once a task is done |
 | Destructive | Delete | Red text or outline, never the most prominent button on the row. It keeps its natural width, so it never stretches to fill the row when a task is already completed and Delete is the only action left. |
 
 - Every button has explicit `type="button"` or `type="submit"`.
 - Buttons that carry a row's main actions, and every control in a form, are at least 40px tall (`min-h-10`).
 - Inline controls sitting inside a line of metadata, such as the due-date button on a task row, are at least 32px (`min-h-8`). That stays clear of the 24px WCAG 2.2 AA minimum without making a metadata line as tall as a button bar. Nothing smaller than 32px is ever tappable.
-- A completed task shows Reopen in place of Complete, so an accidental completion is always reversible.
-- **No row or card carries a Start button.** A task reaches In progress by being dragged into that column on the board, and through the **Status** field in the task dialog everywhere else. Two controls were one too many once the board could do it by dragging; the dialog is what keeps the stage reachable from the list, the calendar and the keyboard.
+- **Complete is the only stage button, on rows and on cards alike.** Starting a task is the board's drag or the dialog's **Status** field. Reopening one is the Undo on its toast, those same two, or dragging the card back. A finished task has nothing left to press but Delete.
+- **Complete stays on a board card even though dragging also finishes a task.** Dragging a card the width of the board to say "done" is a lot of hand for the commonest action; the drag is there for the steps between.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it throws work away. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - Delete is recoverable, so the dialog must not claim otherwise. `DELETE` soft-deletes and the toast that follows offers **Undo**, which calls `PATCH /api/tasks/{id}/restore`. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
 - While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
@@ -267,7 +250,7 @@ One button in the page header carries **everything that answers "what am I looki
 The board's columns **are the grouping**: by status it is To do / In progress / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
-- **Grouped by status, dragging is the move**: a card has no Complete or Reopen, because the drag does that work and two ways to do one thing is how they drift apart. Delete stays, since no column means "gone".
+- **Grouped by status, dragging is how a task changes stage**, and the keyboard equivalent below is the other way. Complete stays on the card regardless: finishing something is the commonest action on the board, and dragging a card across its whole width to say so is a lot of hand for it.
 - **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
 - **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the arrows move it between columns, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
 - A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
@@ -325,14 +308,14 @@ Every data view needs all four states:
 
 ## 10. Scope guard
 
-Build only what the exam asks for, plus what the user has since asked for: the landing page, the project tree, the board, the task dialog and its sub-tasks, and dragging a card between the board's columns. No dark mode, auth, labels, reminders, or animations beyond simple transitions, unless the user asks for them.
+Build only what the exam asks for, plus what the user has since asked for: the project tree, the board, the task dialog and its sub-tasks, and dragging a card between the board's columns. No dark mode, auth, labels, reminders, or animations beyond simple transitions, unless the user asks for them.
 
 ---
 
 ## UI/UX checklist (run before marking any UI task done)
 
 - [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
-- [ ] Landing page: both CTAs work, "See how it works" scrolls to the section, and the navbar action matches the page
+- [ ] `/` redirects to `/tasks`
 - [ ] "Skip to content" appears on the first Tab press
 - [ ] The sidebar counts and the progress meter update after every add, complete, reopen, and delete
 - [ ] Skeleton rows show on first load and are gone afterwards
@@ -344,7 +327,8 @@ Build only what the exam asks for, plus what the user has since asked for: the l
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
 - [ ] Buttons disable while loading; Delete asks for confirmation
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
-- [ ] Add, Complete, Reopen, Delete, and Filter all work without a page reload
+- [ ] Add, Complete, Delete, and every Display setting work without a page reload
+- [ ] Upcoming opens the calendar, and the Layout buttons are disabled while it is open
 - [ ] Sidebar views and categories filter the list, and the title names the current one
 - [ ] A project's "…" opens with its four groups; arrows, Home/End and Escape work, and focus returns to it
 - [ ] Project actions opens to the side, ArrowRight/ArrowLeft walk in and out, and Escape closes one level at a time

@@ -13,13 +13,10 @@ class TaskPageTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_landing_page_links_to_the_tracker(): void
+    public function test_the_root_leads_to_the_tracker(): void
     {
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('Stay on top of what matters most.')
-            ->assertSee('href="' . route('tasks.index') . '"', false)
-            ->assertSee('Open app');
+        // The tracker is the whole site now. `/` redirects rather than 404s, so an old link lands.
+        $this->get('/')->assertRedirect(route('tasks.index'));
     }
 
     public function test_tracker_page_renders_the_task_form(): void
@@ -27,8 +24,6 @@ class TaskPageTest extends TestCase
         $this->get('/tasks')
             ->assertOk()
             ->assertSee('Your tasks')
-            ->assertSee('id="task-form"', false)
-            ->assertSee('href="' . route('home') . '"', false)
-            ->assertDontSee('Open app');
+            ->assertSee('id="task-form"', false);
     }
 }

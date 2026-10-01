@@ -166,8 +166,8 @@ Start every response that changes code with one line naming the active role(s), 
 
 **Standards**
 - The New task form is a modal (`<dialog id="task-dialog">`) opened from the page header, not a column in the page. Its date field must be the `:inline` grid, because a `<dialog>` clips a floating popover.
-- Two pages share the `<x-layout>` component (`resources/views/components/layout.blade.php`): the landing page `/` (`home.blade.php`) and the tracker `/tasks` (`tasks/index.blade.php`). All task data flows through the JSON API.
-- Page-specific JS is added with `@push('scripts')` only on the page that needs it, so the landing page loads no tracker JS.
+- One page, `/tasks` (`tasks/index.blade.php`), rendered through the `<x-layout>` component. `/` redirects to it. All task data flows through the JSON API.
+- Page-specific JS is added with `@push('scripts')` by the page itself, not by the layout, so a second page would not inherit the tracker's bundle.
 - JS lives in `resources/js/`, split by job, not in inline `<script>` blocks:
 
   | File | Responsibility |
