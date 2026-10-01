@@ -81,36 +81,36 @@ class TaskController extends Controller
 
     public function stats(): JsonResponse
     {
-        // "Pending" counts everything not finished, To do and In progress alike. Starting a task
-        // is not finishing it, so it must not move the number that says how much is left.
-        $unfinished = TaskStatus::unfinished();
-        $placeholders = implode(', ', array_fill(0, count($unfinished), '?'));
+        // "Unfinished" covers To do and In progress alike. Starting a task is not finishing it, so
+        // it must not move the number that says how much is left.
+        $open = TaskStatus::unfinished();
+        $openList = implode(', ', array_fill(0, count($open), '?'));
+        $today = today()->toDateString();
+        $tomorrow = today()->addDay()->toDateString();
 
-        // One query with conditional counts instead of six separate COUNT queries.
-        $counts = Task::query()->toBase()
-            ->selectRaw('COUNT(*) AS total')
-            ->selectRaw("SUM(CASE WHEN status IN ({$placeholders}) THEN 1 ELSE 0 END) AS pending", $unfinished)
-            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS completed', [TaskStatus::Completed->value])
-            ->selectRaw(
-                "SUM(CASE WHEN status IN ({$placeholders}) AND priority = ? THEN 1 ELSE 0 END) AS high_priority_pending",
-                [...$unfinished, TaskPriority::High->value]
-            )
-            // DATE() because SQLite stores the cast date with a 00:00:00 time that a bare
-            // comparison against 'Y-m-d' would never match.
-            ->selectRaw(
-                "SUM(CASE WHEN status IN ({$placeholders}) AND DATE(due_date) < ? THEN 1 ELSE 0 END) AS overdue",
-                [...$unfinished, today()->toDateString()]
-            )
+        // One query with conditional counts instead of six separate COUNT queries. Each line is
+        // one number on the sidebar: what makes a task count, and the values that test needs.
+        // Nothing here comes from the request, and every value is a binding rather than text in
+        // the SQL. Plain date comparisons, never DATE(), which would hide the column from its own
+        // index and read the whole table for the two busiest badges.
+        $counts = [
+            'pending' => ["status IN ({$openList})", $open],
+            'completed' => ['status = ?', [TaskStatus::Completed->value]],
+            'high_priority_pending' => ["status IN ({$openList}) AND priority = ?", [...$open, TaskPriority::High->value]],
+            'overdue' => ["status IN ({$openList}) AND due_date < ?", [...$open, $today]],
             // Unfinished only, because the Today view it labels is a work queue: finishing a task
             // drops it out of both. The badge and the rows it opens have to agree.
-            ->selectRaw(
-                "SUM(CASE WHEN status IN ({$placeholders}) AND DATE(due_date) = ? THEN 1 ELSE 0 END) AS due_today",
-                [...$unfinished, today()->toDateString()]
-            )
-            ->first();
+            'due_today' => ["status IN ({$openList}) AND due_date >= ? AND due_date < ?", [...$open, $today, $tomorrow]],
+        ];
+
+        $query = Task::query()->toBase()->selectRaw('COUNT(*) AS total');
+
+        foreach ($counts as $name => [$test, $bindings]) {
+            $query->selectRaw("SUM(CASE WHEN {$test} THEN 1 ELSE 0 END) AS {$name}", $bindings);
+        }
 
         // SUM() returns NULL on an empty table and drivers may return numeric strings, so normalise to int.
-        return response()->json(['data' => array_map('intval', (array) $counts)]);
+        return response()->json(['data' => array_map('intval', (array) $query->first())]);
     }
 
     public function store(StoreTaskRequest $request): JsonResponse
@@ -214,16 +214,24 @@ class TaskController extends Controller
     private function applyDueFilter(Builder $query, DueFilter $due): void
     {
         $today = today()->toDateString();
+        $tomorrow = today()->addDay()->toDateString();
 
         // Overdue, Today and Upcoming are work queues: they answer "what is still left to do",
         // so completing a task drops it out of them and the sidebar count follows. Starting one
         // does not: a task in progress is the one its owner is most likely looking for. None backs the
         // calendar's unscheduled tray, which is somewhere to park a task rather than a queue,
         // so it keeps completed ones.
+        //
+        // Plain comparisons, never whereDate(): wrapping the column in DATE() hides it from its
+        // own index, and MySQL then reads every row for the three busiest views in the app. "Due
+        // today" becomes the day as a range instead, which is correct on both databases — the test
+        // database stores a date with a 00:00:00 time on it, and that time falls inside the range.
         match ($due) {
-            DueFilter::Overdue => $query->whereDate('due_date', '<', $today)->whereIn('status', TaskStatus::unfinished()),
-            DueFilter::Today => $query->whereDate('due_date', $today)->whereIn('status', TaskStatus::unfinished()),
-            DueFilter::Upcoming => $query->whereDate('due_date', '>=', $today)->whereIn('status', TaskStatus::unfinished()),
+            DueFilter::Overdue => $query->where('due_date', '<', $today)->whereIn('status', TaskStatus::unfinished()),
+            DueFilter::Today => $query->where('due_date', '>=', $today)
+                ->where('due_date', '<', $tomorrow)
+                ->whereIn('status', TaskStatus::unfinished()),
+            DueFilter::Upcoming => $query->where('due_date', '>=', $today)->whereIn('status', TaskStatus::unfinished()),
             DueFilter::None => $query->whereNull('due_date'),
         };
     }
