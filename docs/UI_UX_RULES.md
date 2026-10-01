@@ -242,6 +242,8 @@ One button in the page header carries **everything that answers "what am I looki
 
 - **Sort and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
 - **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The empty message says the same thing: "Nothing matches these display settings."
+- **Grouping works in both the list and the board.** One function builds the groups, so a board column and a list group always hold the same tasks under the same heading; the list draws each heading as a row of its own, and leaves out a group with nothing in it.
+- **The stages always read To do, In progress, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
 - **Grouping has no "None" on the Board**, because a board with nothing to group by is a list. The option is disabled there rather than accepted and quietly ignored.
 - **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date and Name replace it, and all three keep unfinished work above finished work.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
@@ -361,7 +363,8 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching moves nothing sideways
-- [ ] Grouping by status, priority and project each rebuilds the board's columns, and None is disabled on the board
+- [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board
+- [ ] To do comes before In progress before Done, in the board's columns and in the list
 - [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all three
 - [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
 - [ ] Turning Completed tasks off hides finished work in both the list and the board

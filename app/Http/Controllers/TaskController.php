@@ -228,7 +228,7 @@ class TaskController extends Controller
             TaskSort::Name => $this->sortBy($rows, fn (array $task) => mb_strtolower($task['title'])),
         };
 
-        return $this->unfinishedFirst($sorted);
+        return $this->byStage($sorted);
     }
 
     /**
@@ -248,14 +248,15 @@ class TaskController extends Controller
      * above today's urgent one. Splitting the sorted list keeps each group in TaskSorter's order
      * while leaving the actionable work on top.
      *
-     * In progress comes first, then to do, then done: the task someone is in the middle of is
-     * the one they came back for. TaskSorter itself never learns any of this — the split is here,
-     * so Part 1 stays exactly as the exam specifies it.
+     * To do, then In progress, then Done: the same order the board's columns read left to right,
+     * because they are the same three stages and one of them cannot run backwards. TaskSorter
+     * itself never learns any of this — the split is here, so Part 1 stays exactly as the exam
+     * specifies it.
      *
      * @param  array<int, array{status: string}>  $tasks
      * @return array<int, array{status: string}>
      */
-    private function unfinishedFirst(array $tasks): array
+    private function byStage(array $tasks): array
     {
         $inStage = fn (TaskStatus $status) => array_filter(
             $tasks,
@@ -263,8 +264,8 @@ class TaskController extends Controller
         );
 
         return [
-            ...$inStage(TaskStatus::InProgress),
             ...$inStage(TaskStatus::Pending),
+            ...$inStage(TaskStatus::InProgress),
             ...$inStage(TaskStatus::Completed),
         ];
     }

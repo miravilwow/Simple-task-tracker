@@ -77,7 +77,7 @@ class TaskSortingTest extends TestCase
         Task::factory()->create(['title' => 'Started', 'status' => 'in_progress']);
         Task::factory()->create(['title' => 'Finished', 'status' => 'completed']);
 
-        $this->assertSame(['Started', 'Open'], $this->titles('?completed=0'));
+        $this->assertSame(['Open', 'Started'], $this->titles('?completed=0'));
         $this->assertCount(3, $this->titles('?completed=1'));
     }
 

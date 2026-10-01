@@ -13,12 +13,49 @@ const DEFAULTS = {
     priority: '',
 };
 
+// To do, then In progress, then Done. The three read left to right as the work moves: a task is
+// picked up, worked on, finished. Every layout orders them this way, so the board's columns and
+// the list's groups cannot tell different stories about the same three stages.
 export const GROUPINGS = {
-    status: { label: 'Status', keys: ['in_progress', 'pending', 'completed'] },
+    status: { label: 'Status', keys: ['pending', 'in_progress', 'completed'] },
     priority: { label: 'Priority', keys: ['high', 'medium', 'low'] },
     project: { label: 'Project', keys: null },
     none: { label: 'None', keys: null },
 };
+
+const LABELS = {
+    status: { pending: 'To do', in_progress: 'In progress', completed: 'Done' },
+    priority: { high: 'High', medium: 'Medium', low: 'Low' },
+};
+
+/**
+ * Splits a list into the groups the panel asks for. One function for both layouts, so a board
+ * column and a list group always hold the same tasks under the same heading.
+ *
+ * @param {{tasks: array, grouping: string, categories: array}} options
+ */
+export function groupTasks({ tasks, grouping, categories }) {
+    if (grouping === 'project') {
+        return [
+            ...categories.map((category) => ({
+                key: `project-${category.id}`,
+                label: category.name,
+                tasks: tasks.filter((task) => task.category?.id === category.id),
+            })),
+            { key: 'project-none', label: 'No project', tasks: tasks.filter((task) => !task.category) },
+        ];
+    }
+
+    if (grouping === 'none') {
+        return [{ key: 'all', label: 'All tasks', tasks }];
+    }
+
+    return GROUPINGS[grouping].keys.map((key) => ({
+        key,
+        label: LABELS[grouping][key],
+        tasks: tasks.filter((task) => task[grouping] === key),
+    }));
+}
 
 const SORTINGS = { default: 'Default', due: 'Due date', name: 'Name' };
 const DATES = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', none: 'No date' };

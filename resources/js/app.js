@@ -1,6 +1,6 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { clearBoard, renderBoard, wireBoardDragging } from './board.js';
-import { createDisplay } from './display.js';
+import { createDisplay, groupTasks } from './display.js';
 import { openTaskDetail, wireTaskDetail } from './taskdialog.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { enhanceDateFields } from './datepicker.js';
@@ -385,11 +385,36 @@ function renderCard(task) {
     return item;
 }
 
-function renderList(tasks) {
+/**
+ * A heading row inside the list. The list is one `<ul>` whatever the grouping, so a group is a
+ * row that happens to be a heading rather than a second structure to keep in step.
+ */
+function groupHeading(group) {
+    const row = createElement('li', 'flex items-center justify-between gap-2 bg-gray-50 px-4 py-2 sm:px-6');
 
+    row.append(
+        createElement('h3', 'text-xs font-semibold tracking-wide text-gray-600 uppercase', group.label),
+        createElement('span', 'text-xs font-medium text-gray-500 tabular-nums', String(group.tasks.length)),
+    );
+
+    return row;
+}
+
+function renderList(tasks, groups) {
     const hasTasks = tasks.length > 0;
+    const rows = [];
 
-    elements.taskList.replaceChildren(...tasks.map(renderTask));
+    // Ungrouped, the list is what it has always been. Grouped, each heading carries its own rows,
+    // and an empty group is left out rather than printed as a heading over nothing.
+    if (groups.length === 1 && groups[0].key === 'all') {
+        rows.push(...tasks.map(renderTask));
+    } else {
+        for (const group of groups.filter((item) => item.tasks.length > 0)) {
+            rows.push(groupHeading(group), ...group.tasks.map(renderTask));
+        }
+    }
+
+    elements.taskList.replaceChildren(...rows);
     elements.listMessageText.textContent = emptyMessage();
     setVisible(elements.listMessage, !hasTasks);
     elements.columnHeaders.classList.toggle('md:grid', hasTasks);
@@ -726,7 +751,14 @@ async function load() {
                 renderCard,
             });
         } else {
-            renderList(tasksResponse.data);
+            renderList(
+                tasksResponse.data,
+                groupTasks({
+                    tasks: tasksResponse.data,
+                    grouping: display.state.grouping,
+                    categories: categoriesResponse.data,
+                }),
+            );
         }
 
         display.renderSummary(tasksResponse.data.length);

@@ -6,7 +6,7 @@
  * has an endpoint for. Under any other grouping the cards carry their buttons instead, rather
  * than offering a gesture that would silently do nothing.
  */
-import { GROUPINGS } from './display.js';
+import { groupTasks } from './display.js';
 import { createElement } from './dom.js';
 
 const board = document.getElementById('board-view');
@@ -38,7 +38,7 @@ function column(group, renderCard, draggable) {
  * @param {{tasks: array, grouping: string, categories: array, renderCard: Function}} options
  */
 export function renderBoard({ tasks, grouping, categories, renderCard }) {
-    const groups = groupTasks(tasks, grouping, categories);
+    const groups = groupTasks({ tasks, grouping, categories });
     const draggable = grouping === 'status';
 
     board.replaceChildren(...groups.map((group) => column(group, renderCard, draggable)));
@@ -46,30 +46,6 @@ export function renderBoard({ tasks, grouping, categories, renderCard }) {
 
 export function clearBoard() {
     board.replaceChildren();
-}
-
-function groupTasks(tasks, grouping, categories) {
-    const labels = {
-        status: { in_progress: 'In progress', pending: 'To do', completed: 'Done' },
-        priority: { high: 'High', medium: 'Medium', low: 'Low' },
-    };
-
-    if (grouping === 'project') {
-        return [
-            ...categories.map((category) => ({
-                key: `project-${category.id}`,
-                label: category.name,
-                tasks: tasks.filter((task) => task.category?.id === category.id),
-            })),
-            { key: 'project-none', label: 'No project', tasks: tasks.filter((task) => !task.category) },
-        ];
-    }
-
-    return GROUPINGS[grouping].keys.map((key) => ({
-        key,
-        label: labels[grouping][key],
-        tasks: tasks.filter((task) => task[grouping] === key),
-    }));
 }
 
 /**

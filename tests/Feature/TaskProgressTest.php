@@ -93,9 +93,10 @@ class TaskProgressTest extends TestCase
         $this->assertCount(1, $this->getJson('/api/tasks?due=today')->json('data'));
     }
 
-    public function test_the_list_puts_work_in_progress_first_then_to_do_then_done(): void
+    public function test_the_list_reads_to_do_then_in_progress_then_done(): void
     {
-        // All the same priority and age, so only the stage decides the order.
+        // All the same priority and age, so only the stage decides the order. It is the order the
+        // board's columns read in too, because they are the same three stages.
         $made = now()->subDay();
         Task::factory()->create(['title' => 'Done', 'status' => 'completed', 'priority' => 'high', 'created_at' => $made]);
         Task::factory()->create(['title' => 'To do', 'status' => 'pending', 'priority' => 'high', 'created_at' => $made]);
@@ -103,7 +104,7 @@ class TaskProgressTest extends TestCase
 
         $titles = array_column($this->getJson('/api/tasks')->json('data'), 'title');
 
-        $this->assertSame(['Doing', 'To do', 'Done'], $titles);
+        $this->assertSame(['To do', 'Doing', 'Done'], $titles);
     }
 
     public function test_the_list_can_be_filtered_to_one_column(): void
