@@ -8,4 +8,7 @@ enum TaskSort: string
     case Default = 'default';
     case DueDate = 'due';
     case Name = 'name';
+
+    // What someone arranged by hand on the board. The one order a sort cannot work out.
+    case Manual = 'manual';
 }

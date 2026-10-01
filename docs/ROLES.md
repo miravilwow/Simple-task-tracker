@@ -60,6 +60,7 @@ Start every response that changes code with one line naming the active role(s), 
 **Standards**
 - `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|in_progress|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
 - `categories` table: `id`, `name` (unique), `icon` (varchar 40, default `folder`), `timestamps()`. The UI calls these "projects"; the schema has not been renamed.
+- `tasks.position` is where a task sits in its board column, backing `TaskSort::Manual` alone. Indexed as `(status, position)`, which is exactly how a column reads. It is not `$fillable`: a client never sets a position directly, it says which card the moved one should follow and the server renumbers the column.
 - Index `status` and `due_date`, since the list endpoint filters on both. `deleted_at` is left unindexed: it is NULL for nearly every row, so the index would not pay for itself.
 - `tasks` carries `deleted_at` (`softDeletes()`). Deleting is the one irreversible action, so the row is stamped rather than removed and `restore` can bring it back. Every read excludes stamped rows through the trait's global scope, including `stats`, whose `toBase()` applies scopes before dropping to the query builder.
 - `tasks.category_id` uses `nullOnDelete`: deleting a category must never delete someone's tasks, it only leaves them uncategorised.
@@ -98,6 +99,7 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
+| PATCH | `/api/tasks/{id}/reorder` | 200 + moved task | 400 validation failure, 404 not found |
   | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
   | PATCH | `/api/tasks/{id}/restore` | 200 + restored task | 404 not found |
   | POST | `/api/tasks/{id}/subtasks` | 201 + created sub-task | 400 validation failure, 404 not found |
@@ -120,7 +122,8 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), a `from`/`to` date window for the calendar, and the Display panel's `sort`, `priority` and `completed`. Every one of them is used by the UI; do not add a filter nothing calls.
-- `sort` is `App\Enums\TaskSort`: `default` is `Src\TaskSorter`, while `due` and `name` replace it. All three then pass through `byStage()`, so no sort can bury live work under finished work.
+- `sort` is `App\Enums\TaskSort`: `default` is `Src\TaskSorter`, while `due`, `name` and `manual` replace it. All four then pass through `byStage()`, so no sort can bury live work under finished work.
+- `manual` is `tasks.position`: the arrangement someone made by dragging cards on the board. It is the one order a sort cannot work out, which is why it is stored rather than computed. The board is the only thing that asks for it, so `GET /api/tasks` with no `sort` is still `TaskSorter` and Part 1 is still what the app runs.
 - `completed=0` is the Display panel's toggle in its off position, and asks for `TaskStatus::unfinished()`. Only the off position narrows anything, so `completed=1` is the same list as omitting the key.
 - `PATCH /api/tasks/{id}` is the task dialog: name, description, priority and project, each field optional because the dialog saves one at a time. **It cannot change `status`**, which still moves only through start, complete and reopen, so every stage change stays in the activity log. The due date keeps `schedule`, because the calendar changes it by dragging.
 - `subtasks` is its own table, not a self-referencing `tasks.parent_id`. A sub-task is a checklist item on one task and never a row in the list, the board, the calendar or the stats; a self-reference would have made every read and every count ask whether it meant sub-tasks too. They are returned only by `show`, never by `index`.
@@ -139,6 +142,11 @@ Start every response that changes code with one line naming the active role(s), 
 - Activity is written from the task endpoints, not from model events, so seeding does not fill the log. A task with no project records nothing: the feed is only reachable from a project's menu, so the entry could never be read. The task's title is snapshotted onto the entry, because "Deleted X" has to still read correctly once the task is gone.
 
 - `schedule` takes `due_date` as `present|nullable`, so sending `null` is how the UI clears a date, while omitting the key is a 400 rather than a silent no-op.
+- `reorder` backs a board drop, which says two things at once: which column the card landed in and where in that column. It takes `status` (required) and `after` (`present|nullable`), the id of the task the moved one should follow, with `null` for the top of the column.
+- **`after` names a task rather than counting one.** An index would be counted against the cards the client drew, and a filter can hide some of them, so index 1 on screen is not position 1 in the column. An anchor the column no longer holds — another tab finished it between the drag and the drop — puts the card at the end rather than losing the move.
+- The whole column is **renumbered** on every drop rather than the neighbours being nudged, so positions cannot drift into ties or gaps however many times a card is dragged. The siblings move through the query builder, so a renumber does not stamp every one of them as updated.
+- **`reorder` changes a stage through `setStage()`**, the same private method `start`, `complete` and `reopen` use. There is still one path to a stage change, so widening a drop into a reorder did not give the activity log a fourth way to miss one. A drop inside one column records nothing, because rearranging is not a stage change.
+- A new task joins the **end** of its column. That happens in the model rather than the controller, so the factory and the seeder are covered too and no creation path leaves a column with several tasks all claiming position 0.
 - **A due date cannot be set in the past.** Both `store` and `schedule` carry `after_or_equal:today`, because a due date is a promise about work still ahead. `schedule` needs it as much as `store` does: without it, creating a task with no date and dragging it onto a past day would be the way around the rule. A task still becomes overdue the ordinary way, by the day arriving and passing, and a row that is already overdue can still be moved forward. Factories and the seeder write the model directly, so they can still place a task in the past for the Overdue view to have something to show.
 
 - Validation errors return **400** because the exam rubric lists 400. Laravel's default is 422, so override it in one place (a Form Request `failedValidation`, or the exception handler) and document the choice in the README.

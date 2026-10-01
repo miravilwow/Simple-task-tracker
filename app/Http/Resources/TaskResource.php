@@ -22,6 +22,9 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'priority' => $this->priority->value,
             'status' => $this->status->value,
+            // Where the task sits in its board column. The board sends it back when a card is
+            // dropped between two others.
+            'position' => $this->position,
             'due_date' => $this->due_date?->toDateString(),
             'is_overdue' => $this->isOverdue(),
             'category' => CategoryResource::make($this->whenLoaded('category')),

@@ -14,6 +14,7 @@ Route::patch('/tasks/{task}', [TaskController::class, 'update']);
 Route::patch('/tasks/{task}/start', [TaskController::class, 'start']);
 Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete']);
 Route::patch('/tasks/{task}/reopen', [TaskController::class, 'reopen']);
+Route::patch('/tasks/{task}/reorder', [TaskController::class, 'reorder']);
 Route::patch('/tasks/{task}/schedule', [TaskController::class, 'schedule']);
 Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
 // withTrashed, because the whole point of restore is to reach a task the default binding hides.

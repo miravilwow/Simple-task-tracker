@@ -7,6 +7,7 @@ use App\Enums\DueFilter;
 use App\Enums\TaskPriority;
 use App\Enums\TaskSort;
 use App\Enums\TaskStatus;
+use App\Http\Requests\ReorderTaskRequest;
 use App\Http\Requests\ScheduleTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
@@ -16,6 +17,7 @@ use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Src\TaskSorter;
 
@@ -128,32 +130,46 @@ class TaskController extends Controller
      */
     public function start(Task $task): TaskResource
     {
-        $task->status = TaskStatus::InProgress;
-        $task->save();
-
-        Activity::record($task, ActivityAction::Started);
+        $this->setStage($task, TaskStatus::InProgress);
 
         return TaskResource::make($task->load('category'));
     }
 
     public function complete(Task $task): TaskResource
     {
-        $task->status = TaskStatus::Completed;
-        $task->save();
-
-        Activity::record($task, ActivityAction::Completed);
+        $this->setStage($task, TaskStatus::Completed);
 
         return TaskResource::make($task->load('category'));
     }
 
     public function reopen(Task $task): TaskResource
     {
-        $task->status = TaskStatus::Pending;
-        $task->save();
-
-        Activity::record($task, ActivityAction::Reopened);
+        $this->setStage($task, TaskStatus::Pending);
 
         return TaskResource::make($task->load('category'));
+    }
+
+    /**
+     * Backs dropping a card between two others on the board, which says both which column the task
+     * belongs in and where in that column someone wants it.
+     *
+     * The stage change goes through setStage like every other one, so widening a drop into a
+     * reorder did not give the activity log a fourth way to be missed.
+     */
+    public function reorder(ReorderTaskRequest $request, Task $task): TaskResource
+    {
+        $status = TaskStatus::from($request->validated('status'));
+        $after = $request->validated('after');
+
+        DB::transaction(function () use ($task, $status, $after) {
+            if ($task->status !== $status) {
+                $this->setStage($task, $status);
+            }
+
+            $this->placeAfter($task, $status, $after === null ? null : (int) $after);
+        });
+
+        return TaskResource::make($task->refresh()->load('category'));
     }
 
     /**
@@ -226,6 +242,7 @@ class TaskController extends Controller
             TaskSort::Default => $sorter->sortTasks($rows),
             TaskSort::DueDate => $this->sortBy($rows, fn (array $task) => $task['due_date'] ?? '9999-12-31'),
             TaskSort::Name => $this->sortBy($rows, fn (array $task) => mb_strtolower($task['title'])),
+            TaskSort::Manual => $this->sortBy($rows, fn (array $task) => $task['position']),
         };
 
         return $this->byStage($sorted);
@@ -241,6 +258,52 @@ class TaskController extends Controller
         usort($rows, fn (array $a, array $b) => $key($a) <=> $key($b));
 
         return $rows;
+    }
+
+    /**
+     * The one path to a stage change. start, complete, reopen and a board drop all come through
+     * here, so the activity log records every one of them in exactly the same way.
+     */
+    private function setStage(Task $task, TaskStatus $status): void
+    {
+        $task->status = $status;
+        $task->save();
+
+        Activity::record($task, match ($status) {
+            TaskStatus::Pending => ActivityAction::Reopened,
+            TaskStatus::InProgress => ActivityAction::Started,
+            TaskStatus::Completed => ActivityAction::Completed,
+        });
+    }
+
+    /**
+     * Puts a task straight after another one in its column, or at the top when nothing precedes
+     * it, and renumbers the column from scratch.
+     *
+     * Renumbering rather than nudging the neighbours is what keeps the column honest: positions
+     * cannot drift into ties or gaps however many times a card is dragged. The siblings move
+     * through the query builder, so a renumber does not stamp every one of them as updated.
+     */
+    private function placeAfter(Task $task, TaskStatus $status, ?int $after): void
+    {
+        $ids = Task::query()
+            ->where('status', $status)
+            ->whereKeyNot($task->getKey())
+            ->orderBy('position')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        // An anchor this column no longer holds — another tab moved or finished it between the
+        // drag and the drop — puts the card at the end rather than losing the move.
+        $index = $after === null ? -1 : array_search($after, $ids, true);
+        $position = $index === false ? count($ids) : $index + 1;
+
+        array_splice($ids, $position, 0, [$task->getKey()]);
+
+        foreach ($ids as $place => $id) {
+            DB::table('tasks')->where('id', $id)->update(['position' => $place]);
+        }
     }
 
     /**

@@ -21,6 +21,12 @@
 
 /* Entrance animations, skipped entirely for anyone who asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
+    /* The cards slide apart around the gap rather than jumping, so it reads as the row
+       opening up. Motion is decoration, so it sits in here with the rest of it. */
+    .board-card {
+        transition: transform 150ms ease, opacity 150ms ease;
+    }
+
     @keyframes task-enter {
         from {
             opacity: 0;
@@ -299,6 +305,16 @@
     /* flex-col so the list inside can grow: the drop target is the whole column, not the strip
        its cards happen to cover. min-h so an empty column is still something you can aim at. */
     @apply flex min-h-32 flex-col rounded-xl border border-gray-200 bg-gray-50 transition-colors;
+}
+
+/*
+ * The gap a dragged card will drop into. It is a real element in the list, so the cards below it
+ * are moved by the layout rather than by a transform: nothing has to be measured, and the column
+ * cannot disagree with itself about where the card is going. The height is a card's own, so the
+ * cards part by exactly as much as the card coming in will take.
+ */
+@utility board-gap {
+    @apply h-20 shrink-0 rounded-lg border-2 border-dashed border-indigo-400 bg-indigo-50;
 }
 
 @utility board-card {

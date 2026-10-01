@@ -1427,23 +1427,55 @@ function shiftMonth(offset) {
 
 const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', completed: 'complete' };
 
-/** A drop on the board, and the keyboard move that does the same thing. */
+/**
+ * The task dialog's Status field. It knows the task's stage first-hand, and it has no column to
+ * place the task in, so it keeps the three stage endpoints.
+ */
 function moveTask(id, status, from) {
-    // The dialog knows the task's stage first-hand. The board reads it from the list, which is
-    // the only place a dropped card can have come from.
-    const current = from ?? latestTasks.find((item) => item.id === id)?.status;
-
-    if (!current || current === status || !STAGE_ENDPOINTS[status]) {
+    if (!from || from === status || !STAGE_ENDPOINTS[status]) {
         return;
     }
 
-    const undo = STAGE_ENDPOINTS[current];
+    const undo = STAGE_ENDPOINTS[from];
 
     return runAndReload(
         () => api(`/tasks/${id}/${STAGE_ENDPOINTS[status]}`, { method: 'PATCH' }),
         `Moved to ${STATUS_BADGES[status].label}`,
         () => api(`/tasks/${id}/${undo}`, { method: 'PATCH' }),
     );
+}
+
+/**
+ * A drop on the board, and the arrow keys that do the same thing. One request carries both halves
+ * of the move, because a card dropped between two others says which column and where in it.
+ *
+ * Undo names the task this one used to follow, so taking a move back puts the card exactly where
+ * it was rather than at the end of the column it came from.
+ */
+function reorderTask(id, status, after) {
+    const task = latestTasks.find((item) => item.id === id);
+
+    if (!task || (task.status === status && after === previousInColumn(task))) {
+        return;
+    }
+
+    const wasAfter = previousInColumn(task);
+    const message = task.status === status ? 'Task moved' : `Moved to ${STATUS_BADGES[status].label}`;
+    const reorder = (body) => api(`/tasks/${id}/reorder`, { method: 'PATCH', body });
+
+    return runAndReload(
+        () => reorder({ status, after }),
+        message,
+        () => reorder({ status: task.status, after: wasAfter }),
+    );
+}
+
+/** The task a card currently follows in its own column, or null when it is already at the top. */
+function previousInColumn(task) {
+    const column = latestTasks.filter((item) => item.status === task.status);
+    const index = column.findIndex((item) => item.id === task.id);
+
+    return index > 0 ? column[index - 1].id : null;
 }
 
 function showTaskDetail(id, trigger) {
@@ -1519,7 +1551,7 @@ $('calendar-today').addEventListener('click', () => {
 });
 
 wireTaskDetail();
-wireBoardDragging(moveTask, (id) => showTaskDetail(id));
+wireBoardDragging(reorderTask, (id) => showTaskDetail(id));
 enhanceDateFields();
 
 // The Display panel owns the layout, so the first render is its first change rather than a

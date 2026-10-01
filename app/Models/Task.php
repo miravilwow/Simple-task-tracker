@@ -58,12 +58,27 @@ class Task extends Model
             && $this->due_date->isBefore(today());
     }
 
+    /**
+     * A new task joins the end of its column, the way a line is joined. Doing it here rather than
+     * in the controller covers the factory and the seeder too, so no creation path leaves a column
+     * with several tasks all claiming position 0.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Task $task) {
+            $task->position ??= (int) static::withTrashed()
+                ->where('status', $task->status ?? TaskStatus::Pending->value)
+                ->max('position') + 1;
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'priority' => TaskPriority::class,
             'status' => TaskStatus::class,
             'due_date' => 'date',
+            'position' => 'integer',
         ];
     }
 }

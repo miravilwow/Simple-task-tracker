@@ -116,7 +116,7 @@
                         @foreach ([
                             ['sort', 'Sort', [
                                 ['grouping', 'Grouping', ['status' => 'Status', 'priority' => 'Priority', 'project' => 'Project', 'none' => 'None']],
-                                ['sorting', 'Sorting', ['default' => 'Default', 'due' => 'Due date', 'name' => 'Name']],
+                                ['sorting', 'Sorting', ['default' => 'Default', 'due' => 'Due date', 'name' => 'Name', 'manual' => 'Manual']],
                             ]],
                             ['filter', 'Filter', [
                                 ['filter-date', 'Date', ['' => 'All', 'overdue' => 'Overdue', 'today' => 'Today', 'upcoming' => 'Upcoming', 'none' => 'No date']],

@@ -246,7 +246,7 @@ One button in the page header carries **everything that answers "what am I looki
 - **Grouping works in both the list and the board.** One function builds the groups, so a board column and a list group always hold the same tasks under the same heading; the list draws each heading as a row of its own, and leaves out a group with nothing in it.
 - **The stages always read To do, In progress, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
 - **Grouping has no "None" on the Board**, because a board with nothing to group by is a list. The option is disabled there rather than accepted and quietly ignored.
-- **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date and Name replace it, and all three keep unfinished work above finished work.
+- **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date, Name and Manual replace it, and all four keep unfinished work above finished work. **Manual belongs to the Board**, which selects it and disables the control, because the board's order is the one someone arranged by dragging.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
 
 ## 5b. The Board layout
@@ -256,8 +256,11 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
 - **Grouped by status, dragging is how a task changes stage**, and the keyboard equivalent below is the other way. Complete stays on the card regardless: finishing something is the commonest action on the board, and dragging a card across its whole width to say so is a lot of hand for it.
 - **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
-- **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the arrows move it between columns, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
+- **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the left and right arrows move it between columns, **the up and down arrows move it within one column**, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
 - A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
+- **A card can be dropped at any height in a column**, not only at its end. The cards part around a gap that shows where it will land: above the first card, between any two, or below the last. The gap is a real element in the list, so the cards are moved by the layout rather than by a measurement, and the column cannot disagree with itself about where the card is going.
+- **The drop names the card it landed under, not a position number.** The Display panel can be hiding cards, so counting the ones on screen would land the task somewhere else in the real column.
+- **The board's order is the one you arrange**, which is why Sorting reads Manual there and is disabled. A sort would have to throw that arrangement away to mean anything, so it is withdrawn rather than ignored, the same way None is withdrawn from Grouping. Manual is offered nowhere else, because nothing else lets you arrange anything.
 - **A drop is accepted anywhere in a column**, not only on the strip its cards happen to cover. The columns stretch to one height and the list inside fills its column, so letting a card go in the empty space under the last one still moves it. Sizing each column to its own cards left that space outside the column, where a drop was refused with nothing on screen to explain why.
 - Below `md` the columns stack into one running list rather than scrolling sideways.
 
@@ -373,6 +376,11 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
 - [ ] A card dropped in the empty space below a column's last card still moves there
+- [ ] Dragging a card opens a gap where it will land, and the cards below it move down
+- [ ] A card can be dropped above the first card, between two cards, and below the last, and stays where it was put after the reload
+- [ ] A drop lands in the right place while the Completed toggle or a filter is hiding cards
+- [ ] The up and down arrows move a held card within its column, and Undo on the toast puts it back exactly where it was
+- [ ] Sorting reads Manual and is disabled on the Board, and the chip row says so
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
 - [ ] Grouped by priority or project, the cards carry Complete again and are not draggable
 - [ ] The dialog's Status field moves a task through all three stages, and the activity log records each one

@@ -57,7 +57,7 @@ export function groupTasks({ tasks, grouping, categories }) {
     }));
 }
 
-const SORTINGS = { default: 'Default', due: 'Due date', name: 'Name' };
+const SORTINGS = { default: 'Default', due: 'Due date', name: 'Name', manual: 'Manual' };
 const DATES = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', none: 'No date' };
 const PRIORITIES = { high: 'High', medium: 'Medium', low: 'Low' };
 
@@ -65,6 +65,10 @@ const $ = (id) => document.getElementById(id);
 
 export function createDisplay(onChange) {
     const state = { ...DEFAULTS };
+
+    // What the Sort select said before the board took it over, so leaving the board gives it back.
+    let sortingOffBoard = DEFAULTS.sorting;
+    let layoutLocked = false;
 
     const trigger = $('display-trigger');
     const panel = $('display-panel');
@@ -125,8 +129,30 @@ export function createDisplay(onChange) {
         }
     }
 
+    /**
+     * The board's order is the one someone arranged by dragging, so a sort there would have to
+     * throw that arrangement away to mean anything. Sorting is withdrawn rather than ignored, the
+     * same way None is withdrawn from Grouping, and Manual is offered nowhere else because nothing
+     * else lets you arrange anything.
+     */
+    function syncSorting() {
+        const onBoard = state.mode === 'board' && ! layoutLocked;
+        const select = selects.sorting;
+
+        if (! onBoard) {
+            sortingOffBoard = state.sorting === 'manual' ? sortingOffBoard : state.sorting;
+        }
+
+        state.sorting = onBoard ? 'manual' : sortingOffBoard;
+        select.value = state.sorting;
+        select.disabled = onBoard;
+        select.title = onBoard ? 'The board keeps the order you arrange by dragging' : '';
+        select.querySelector('option[value="manual"]').disabled = ! onBoard;
+    }
+
     function apply() {
         syncGrouping();
+        syncSorting();
         modeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode)));
         completed.setAttribute('aria-checked', String(state.showCompleted));
         onChange(state);
@@ -189,6 +215,12 @@ export function createDisplay(onChange) {
      * where it went, and the stored choice comes back on the next view.
      */
     function setLayoutLocked(locked) {
+        layoutLocked = locked;
+
+        // The caller changes the layout before it loads, so the sort has to settle here: Upcoming
+        // draws a calendar whatever the stored mode says, and a calendar arranges itself by date.
+        syncSorting();
+
         modeButtons.forEach((button) => {
             button.disabled = locked;
             button.title = locked ? 'Upcoming always shows the calendar' : '';
