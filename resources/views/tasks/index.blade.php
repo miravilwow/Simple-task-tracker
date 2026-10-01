@@ -81,14 +81,77 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <div role="group" aria-label="Switch layout" class="flex gap-1 rounded-lg bg-gray-100 p-1">
-                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
-                    <button type="button" data-mode="{{ $mode }}" aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}"
-                        class="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-indigo-700 aria-pressed:shadow-sm">
-                        <x-icon :name="$icon" class="size-4" />
-                        {{ $label }}
+                {{-- One control for the layout, the grouping, the sorting and the filters. They
+                     all answer "what am I looking at", so they belong behind one button rather
+                     than spread across the header and the task panel. --}}
+                <div class="relative">
+                    <button type="button" id="display-trigger" class="btn-secondary" aria-expanded="false"
+                        aria-controls="display-panel" aria-haspopup="true">
+                        <x-icon name="sliders" class="size-4" />
+                        Display
                     </button>
-                @endforeach
+
+                    <div id="display-panel" role="group" aria-label="Display options" hidden
+                        class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-lg">
+                        <div class="p-4">
+                            <h2 id="layout-label" class="mb-2.5 font-medium">Layout</h2>
+                            <div role="group" aria-labelledby="layout-label" class="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+                                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
+                                    <button type="button" data-mode="{{ $mode }}"
+                                        aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}" class="layout-choice">
+                                        <x-icon :name="$icon" class="size-5" />
+                                        {{ $label }}
+                                    </button>
+                                @endforeach
+                            </div>
+
+                            <div class="mt-1 flex min-h-11 items-center justify-between gap-3">
+                                <span id="completed-label">Completed tasks</span>
+                                <button type="button" id="show-completed" role="switch" aria-checked="true"
+                                    aria-labelledby="completed-label" class="switch"></button>
+                            </div>
+                        </div>
+
+                        @foreach ([
+                            ['sort', 'Sort', [
+                                ['grouping', 'Grouping', ['status' => 'Status', 'priority' => 'Priority', 'project' => 'Project', 'none' => 'None']],
+                                ['sorting', 'Sorting', ['default' => 'Default', 'due' => 'Due date', 'name' => 'Name']],
+                            ]],
+                            ['filter', 'Filter', [
+                                ['filter-date', 'Date', ['' => 'All', 'overdue' => 'Overdue', 'today' => 'Today', 'upcoming' => 'Upcoming', 'none' => 'No date']],
+                                ['filter-priority', 'Priority', ['' => 'All', 'high' => 'High', 'medium' => 'Medium', 'low' => 'Low']],
+                            ]],
+                        ] as [$key, $heading, $fields])
+                            <div class="border-t border-gray-200 p-4">
+                                <button type="button" data-section="{{ $key }}-body" aria-expanded="true"
+                                    aria-controls="{{ $key }}-body"
+                                    class="flex w-full items-center justify-between gap-2 font-medium focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                    {{ $heading }}
+                                    <x-icon name="chevron-down" class="size-4 text-gray-500 transition-transform aria-[expanded=false]:-rotate-90" />
+                                </button>
+
+                                <div id="{{ $key }}-body">
+                                    @foreach ($fields as [$id, $label, $options])
+                                        <div class="flex min-h-11 items-center justify-between gap-3">
+                                            <label for="{{ $id }}">{{ $label }}</label>
+                                            <select id="{{ $id }}" class="display-select">
+                                                @foreach ($options as $value => $text)
+                                                    <option value="{{ $value }}">{{ $text }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <div class="border-t border-gray-200 p-4">
+                            <button type="button" id="display-reset"
+                                class="text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                Reset to default
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="button" id="new-task-trigger"
@@ -147,16 +210,7 @@
                     {{-- tabindex allows focus to return here after a task row is removed. --}}
                     <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>
 
-                    <div role="group" aria-label="Filter tasks by status"
-                        class="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 sm:flex">
-                        @foreach (['' => 'All', 'pending' => 'To do', 'in_progress' => 'In progress', 'completed' => 'Done'] as $value => $label)
-                            <button type="button" data-filter="{{ $value }}"
-                                aria-pressed="{{ $value === '' ? 'true' : 'false' }}"
-                                class="min-h-9 rounded-md px-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-indigo-700 aria-pressed:shadow-sm">
-                                {{ $label }}
-                            </button>
-                        @endforeach
-                    </div>
+                    <div id="display-summary" class="flex flex-wrap items-center gap-1.5"></div>
                 </div>
 
                 <div id="column-headers" aria-hidden="true"
@@ -193,31 +247,14 @@
         </div>
 
         {{-- Board layout --}}
-        {{-- The columns are the three stages, so the board is the status filter drawn out. The
-             segmented filter lives inside the list panel and is hidden along with it; switching
-             here also clears it, or the board would open with two columns empty and no visible
-             control to explain why. --}}
-        {{-- `md:grid` sits in a media query and would otherwise win over `hidden`, so the grid
-             classes are added by JS when this view opens, exactly as the calendar's are. --}}
-        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-3 md:items-start xl:gap-6">
-            @foreach ([['pending', 'To do'], ['in_progress', 'In progress'], ['completed', 'Done']] as [$status, $label])
-                <section aria-labelledby="board-{{ $status }}-heading"
-                    class="rounded-xl border border-gray-200 bg-gray-50">
-                    <div class="flex items-center justify-between gap-2 px-4 py-3">
-                        <h2 id="board-{{ $status }}-heading"
-                            class="text-xs font-semibold tracking-wide text-gray-600 uppercase">{{ $label }}</h2>
-                        {{-- The count is a plain number beside the heading, not a badge: it says how
-                             much is in the column, which is not a status of its own. --}}
-                        <span data-board-count="{{ $status }}"
-                            class="text-xs font-medium text-gray-500 tabular-nums">0</span>
-                    </div>
-
-                    <ul data-board-list="{{ $status }}" class="flex flex-col gap-3 px-3 pb-3"></ul>
-
-                    <p data-board-empty="{{ $status }}" class="px-4 pb-4 text-sm text-gray-400">Nothing here yet.</p>
-                </section>
-            @endforeach
-        </div>
+        {{-- The columns are whatever the Display panel groups by, so they are built in JS rather
+             than fixed here. `md:grid` sits in a media query and would win over `hidden`, so the
+             grid classes are added when the view opens, exactly as the calendar's are. --}}
+        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] md:items-start xl:gap-6"></div>
+        <p id="board-help" class="sr-only">
+            Press Enter to open a task. Press Space to pick it up, the left and right arrows to move
+            it between columns, Space again to drop it, or Escape to cancel.
+        </p>
 
         {{-- Calendar layout --}}
 
@@ -635,4 +672,95 @@
 
     <div id="toast-region" aria-live="polite"
         class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"></div>
+    {{-- Task detail. Every field saves on its own, so there is no Save button and nothing is lost
+         by closing. Reminders, labels and a location are deliberately absent: the app has no
+         accounts and no mail, so a reminder would be a control that never fires. --}}
+    <dialog id="task-detail"
+        class="m-auto w-[min(62rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] overflow-hidden rounded-xl p-0 backdrop:bg-gray-900/40">
+        <div class="flex items-center justify-between gap-3 border-b border-gray-200 p-2.5">
+            <span id="detail-crumb" class="flex items-center gap-1.5 px-1 text-sm font-medium text-gray-600"></span>
+
+            <div class="flex items-center gap-0.5">
+                @foreach ([
+                    ['detail-prev', 'Previous task', 'chevron-up'],
+                    ['detail-next', 'Next task', 'chevron-down'],
+                    ['detail-delete', 'Delete task', 'trash'],
+                    ['detail-close', 'Close', 'close'],
+                ] as [$id, $label, $icon])
+                    <button type="button" id="{{ $id }}" aria-label="{{ $label }}" class="icon-button">
+                        <x-icon :name="$icon" class="size-4" />
+                    </button>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="grid max-h-[calc(100dvh-6rem)] overflow-auto lg:grid-cols-[minmax(0,1fr)_17rem]">
+            <div class="p-5 sm:p-6">
+                <div class="flex items-start gap-3">
+                    <button type="button" id="detail-tick" role="checkbox" aria-checked="false"
+                        aria-label="Mark as done" class="tick mt-1.5"></button>
+
+                    <div class="min-w-0 flex-1">
+                        <label for="detail-title" class="sr-only">Task name</label>
+                        <input type="text" id="detail-title" maxlength="255" class="detail-title" />
+
+                        <label for="detail-description" class="sr-only">Description</label>
+                        <textarea id="detail-description" rows="2" placeholder="Description"
+                            class="detail-description"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <div class="flex items-baseline justify-between gap-2 border-b border-gray-200 pb-2">
+                        <h2 class="text-sm font-medium text-gray-700">Sub-tasks</h2>
+                        <span id="subtask-count" class="text-xs text-gray-500 tabular-nums"></span>
+                    </div>
+
+                    <ul id="subtask-list"></ul>
+
+                    <button type="button" id="subtask-add"
+                        class="mt-2 inline-flex min-h-9 items-center gap-2 text-gray-500 transition-colors hover:text-indigo-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                        <x-icon name="plus" class="size-4" />
+                        Add sub-task
+                    </button>
+
+                    <form id="subtask-form" class="mt-2 flex gap-2" hidden>
+                        <label for="subtask-title" class="sr-only">Sub-task name</label>
+                        <input type="text" id="subtask-title" maxlength="255" placeholder="What needs doing?"
+                            class="min-h-10 flex-1 rounded-lg border border-gray-300 px-3 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none" />
+                        <button type="submit"
+                            class="min-h-10 rounded-lg bg-indigo-600 px-3.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            Add
+                        </button>
+                        <button type="button" id="subtask-cancel" class="btn-secondary">Cancel</button>
+                    </form>
+                </div>
+            </div>
+
+            <aside class="border-t border-gray-200 p-5 sm:p-6 lg:border-t-0 lg:border-l">
+                <div class="divide-y divide-gray-200">
+                    <div class="pb-3">
+                        <label for="detail-project" class="detail-label">Project</label>
+                        <select id="detail-project" class="detail-field"></select>
+                    </div>
+
+                    <div class="py-3">
+                        <label for="detail-date" class="detail-label">Date</label>
+                        <input type="date" id="detail-date" class="detail-field" />
+                    </div>
+
+                    <div class="pt-3">
+                        <label for="detail-priority" class="detail-label">Priority</label>
+                        <select id="detail-priority" class="detail-field">
+                            @foreach (['high' => 'High', 'medium' => 'Medium', 'low' => 'Low'] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </dialog>
+
 </x-layout>
+

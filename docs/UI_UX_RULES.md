@@ -246,11 +246,43 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 - Show field errors directly under the field in `text-sm text-red-600`, and link them with `aria-describedby`.
 - On error, keep what the user typed and leave the dialog open. On success, the dialog closes, which clears the form and returns focus to the New task button.
 
-## 5. Filter
+## 5. The Display panel
 
-- A segmented control with four buttons: **All**, **To do**, **In progress**, **Done**, matching the three stages plus everything.
-- The active option is visually distinct and marked with `aria-pressed="true"`.
-- Changing the filter refetches from `GET /api/tasks?status=...` without reloading the page.
+One button in the page header carries **everything that answers "what am I looking at"**: the layout, whether finished work shows, the grouping, the sorting and two filters. They were a segmented layout switch in the header and a segmented status filter inside the task panel; one control is what stops the two disagreeing.
+
+| Group | Items |
+|---|---|
+| Layout | List, Board, Calendar |
+| | Completed tasks (a `role="switch"` toggle) |
+| Sort | Grouping, Sorting |
+| Filter | Date, Priority |
+
+- **Sort and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
+- **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The empty message says the same thing: "Nothing matches these display settings."
+- **Grouping has no "None" on the Board**, because a board with nothing to group by is a list. The option is disabled there rather than accepted and quietly ignored.
+- **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date and Name replace it, and all three keep unfinished work above finished work.
+- The panel closes on Escape, on a click outside it, and returns focus to its button.
+
+## 5b. The Board layout
+
+The board's columns **are the grouping**: by status it is To do / In progress / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
+
+- A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
+- **Grouped by status, dragging is the move**: a card has no Start, Complete or Reopen, because the drag does that work and two ways to do one thing is how they drift apart. Delete stays, since no column means "gone".
+- **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
+- **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the arrows move it between columns, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
+- A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
+- Below `md` the columns stack into one running list rather than scrolling sideways.
+
+## 5c. The task dialog
+
+Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the name on the left with the description and the sub-task checklist under it, and Project, Date and Priority down the right.
+
+- **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
+- **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
+- The up and down arrows step through **the list the user is looking at**, so what they walk matches what is on the page behind the dialog.
+- **A sub-task is a checklist item, not a task.** It never appears in the list, the board or the calendar, and no stat tile counts it. That is what keeps `TaskSorter` and every graded figure exactly as the exam specifies.
+- **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. This is the same rule that kept Access out of the project dialog and the paperclip out of the comment box.
 
 ## 6. States
 
@@ -293,7 +325,7 @@ Every data view needs all four states:
 
 ## 10. Scope guard
 
-Build only what the exam asks for, plus the landing page the user requested. No dark mode, drag-and-drop, edit-task, auth, or animations beyond simple transitions, unless the user asks for them.
+Build only what the exam asks for, plus what the user has since asked for: the landing page, the project tree, the board, the task dialog and its sub-tasks, and dragging a card between the board's columns. No dark mode, auth, labels, reminders, or animations beyond simple transitions, unless the user asks for them.
 
 ---
 
@@ -341,6 +373,19 @@ Build only what the exam asks for, plus the landing page the user requested. No 
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view
+- [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
+- [ ] Each layout shows only itself, and switching moves nothing sideways
+- [ ] Grouping by status, priority and project each rebuilds the board's columns, and None is disabled on the board
+- [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all three
+- [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
+- [ ] Turning Completed tasks off hides finished work in both the list and the board
+- [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
+- [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
+- [ ] Grouped by priority or project, the cards carry Start and Complete again and are not draggable
+- [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
+- [ ] Each dialog field saves on its own, and the list behind it follows
+- [ ] The dialog's up and down arrows step through the list that is on the page
+- [ ] A sub-task adds, ticks off, deletes, and never appears as a task row or in a stat tile
 - [ ] Loading, empty (per filter), error, and success states all appear correctly
 - [ ] Full keyboard navigation with visible focus rings
 - [ ] No `innerHTML` with task data

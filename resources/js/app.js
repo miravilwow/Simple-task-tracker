@@ -1,4 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
+import { clearBoard, renderBoard, wireBoardDragging } from './board.js';
+import { createDisplay } from './display.js';
+import { openTaskDetail, wireTaskDetail } from './taskdialog.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { enhanceDateFields } from './datepicker.js';
 import { confirmAction, openMoveDialog, openProjectPanel, openScheduleDialog } from './dialogs.js';
@@ -109,6 +112,7 @@ const elements = {
     iconEmpty: $('icon-empty'),
     categorySelect: $('category_id'),
     listView: $('list-view'),
+    boardView: $('board-view'),
     calendarView: $('calendar-view'),
     form: $('task-form'),
     title: $('title'),
@@ -143,15 +147,11 @@ const stats = {
 };
 
 const viewButtons = document.querySelectorAll('[data-view]');
-const modeButtons = document.querySelectorAll('[data-mode]');
-const statusButtons = document.querySelectorAll('[data-filter]');
 
 const today = startOfToday();
 
 const state = {
     view: 'all',
-    mode: 'list',
-    status: '',
     categoryId: null,
     month: new Date(today.getFullYear(), today.getMonth(), 1),
     categories: [],
@@ -167,6 +167,9 @@ const state = {
 };
 
 let latestRequestId = 0;
+
+// The list as the page last drew it, so the board and the dialog can read what is on screen.
+let latestTasks = [];
 
 // ---------------------------------------------------------------- formatting
 
@@ -189,16 +192,9 @@ function emptyMessage() {
         return 'No tasks in this project.';
     }
 
-    // One message per status the filter offers, so an empty panel always says which of the
-    // three columns it is empty for.
-    const perStatus = {
-        completed: 'Nothing finished yet.',
-        in_progress: 'Nothing in progress. Start a task to see it here.',
-        pending: 'Nothing left to pick up.',
-    };
-
-    if (state.status) {
-        return perStatus[state.status];
+    // The Display panel can narrow the list to nothing, and "No tasks yet" would then be a lie.
+    if (display.state.date || display.state.priority || !display.state.showCompleted) {
+        return 'Nothing matches these display settings.';
     }
 
     return {
@@ -226,7 +222,97 @@ function createDueButton(task) {
     return button;
 }
 
+function actionLabel(text, className = '') {
+    const span = createElement('span', className, text);
+    span.dataset.label = '';
+
+    return span;
+}
+
+function deleteButton(task, compact) {
+    const button = createElement('button', `${BUTTON_BASE} text-red-600 hover:bg-red-50 focus-visible:ring-red-500`);
+
+    button.type = 'button';
+    button.append(createIcon('trash'), actionLabel('Delete', compact ? 'sr-only' : ''));
+    button.addEventListener('click', () => deleteTask(task, button));
+
+    return button;
+}
+
+/**
+ * The actions a task offers, built once for both layouts so a row and a card can never disagree
+ * about what can be done to a task.
+ *
+ * `compact` is the card, where Delete keeps its word as screen-reader text only. `stageButtons`
+ * is false on a draggable board, where the drag is the move and Start or Complete would be a
+ * second way to do the one thing the columns already do.
+ */
+function taskActions(task, { compact = false, stageButtons = true } = {}) {
+    if (!stageButtons) {
+        return [deleteButton(task, compact)];
+    }
+
+    const buttons = [];
+
+    // Only a task that has not been picked up yet can be started, so the button is on that row
+    // alone rather than shown disabled on the other two.
+    if (task.status === 'pending') {
+        const startButton = createElement(
+            'button',
+            `${BUTTON_BASE} border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-500`,
+        );
+        startButton.type = 'button';
+        startButton.append(createIcon('play'), actionLabel('Start'));
+        startButton.addEventListener('click', () => startTask(task, startButton));
+        buttons.push(startButton);
+    }
+
+    const primary =
+        task.status === 'completed'
+            ? {
+                  label: 'Reopen',
+                  icon: 'undo',
+                  classes:
+                      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 focus-visible:ring-indigo-500',
+                  run: reopenTask,
+              }
+            : {
+                  label: 'Complete',
+                  icon: 'check',
+                  classes:
+                      'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
+                  run: completeTask,
+              };
+
+    const primaryButton = createElement(
+        'button',
+        [BUTTON_BASE, compact ? '' : 'flex-1 md:flex-none', primary.classes].filter(Boolean).join(' '),
+    );
+    primaryButton.type = 'button';
+    primaryButton.append(createIcon(primary.icon), actionLabel(primary.label));
+    primaryButton.addEventListener('click', () => primary.run(task, primaryButton));
+
+    buttons.push(primaryButton, deleteButton(task, compact));
+
+    return buttons;
+}
+
+function titleButton(task) {
+
+    const button = createElement(
+        'button',
+        'block w-full text-left wrap-break-word hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none',
+        task.title,
+    );
+
+    button.type = 'button';
+    button.addEventListener('click', () => showTaskDetail(task.id, button));
+
+    return button;
+}
+
 // Mobile: a stacked card. From md: one row of the task-columns grid.
+
 function renderTask(task) {
     const priority = PRIORITY_BADGES[task.priority];
     const isCompleted = task.status === 'completed';
@@ -238,13 +324,9 @@ function renderTask(task) {
     item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`));
 
     const content = createElement('div', 'w-full min-w-0 md:w-auto');
-    content.append(
-        createElement(
-            'h3',
-            `font-medium wrap-break-word ${isCompleted ? 'text-gray-400 line-through' : ''}`,
-            task.title,
-        ),
-    );
+    const heading = createElement('h3', `font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
+    heading.append(titleButton(task));
+    content.append(heading);
 
     if (task.description) {
         content.append(
@@ -276,55 +358,65 @@ function renderTask(task) {
     statusCell.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
     const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
-
-    // Only a task that has not been picked up yet can be started, so the button is on that row
-    // alone rather than shown disabled on the other two.
-    if (task.status === 'pending') {
-        const startButton = createElement(
-            'button',
-            `${BUTTON_BASE} border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:ring-amber-500`,
-        );
-        startButton.type = 'button';
-        startButton.append(createIcon('play'), createElement('span', '', 'Start'));
-        startButton.addEventListener('click', () => startTask(task, startButton));
-        actions.append(startButton);
-    }
-
-    const primary = isCompleted
-        ? {
-              label: 'Reopen',
-              icon: 'undo',
-              classes: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 focus-visible:ring-indigo-500',
-              run: reopenTask,
-          }
-        : {
-              label: 'Complete',
-              icon: 'check',
-              classes:
-                  'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
-              run: completeTask,
-          };
-
-    const primaryButton = createElement('button', `${BUTTON_BASE} flex-1 md:flex-none ${primary.classes}`);
-    primaryButton.type = 'button';
-    primaryButton.append(createIcon(primary.icon), createElement('span', '', primary.label));
-    primaryButton.addEventListener('click', () => primary.run(task, primaryButton));
-
-    const deleteButton = createElement(
-        'button',
-        `${BUTTON_BASE} text-red-600 hover:bg-red-50 focus-visible:ring-red-500`,
-    );
-    deleteButton.type = 'button';
-    deleteButton.append(createIcon('trash'), createElement('span', '', 'Delete'));
-    deleteButton.addEventListener('click', () => deleteTask(task, deleteButton));
-
-    actions.append(primaryButton, deleteButton);
+    actions.append(...taskActions(task));
     item.append(content, priorityCell, statusCell, actions);
 
     return item;
 }
 
+/**
+ * A board card stacks the facts a row lays out in columns. Both call taskActions, so what a task
+ * can do never depends on which layout is open.
+ */
+function renderCard(task) {
+    const priority = PRIORITY_BADGES[task.priority];
+    const isCompleted = task.status === 'completed';
+    const draggable = display.state.grouping === 'status';
+
+    const item = createElement('li', 'board-card task-enter');
+    item.dataset.taskId = task.id;
+    item.dataset.status = task.status;
+
+    if (draggable) {
+        item.draggable = true;
+        item.tabIndex = 0;
+        item.classList.add('cursor-grab', 'focus-visible:ring-2', 'focus-visible:ring-indigo-500', 'focus-visible:outline-none');
+        item.setAttribute('aria-roledescription', 'Draggable task');
+        item.setAttribute('aria-describedby', 'board-help');
+    }
+
+    const heading = createElement('h3', `text-sm font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
+    heading.append(titleButton(task));
+    item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`), heading);
+
+    if (task.description) {
+        item.append(createElement('p', 'mt-1 text-xs whitespace-pre-line wrap-break-word text-gray-500', task.description));
+    }
+
+    const meta = createElement('div', 'mt-2 flex flex-wrap items-center gap-x-2 gap-y-1');
+
+    if (task.category) {
+        const chip = createElement('span', 'inline-flex items-center gap-1.5 text-xs text-gray-600');
+        chip.append(categoryIcon(task.category, 'size-3.5'), createElement('span', '', task.category.name));
+        meta.append(chip);
+    }
+
+    meta.append(createDueButton(task), createBadge(priority.label, priority.classes));
+
+    // Grouped by status the column already says it, so the badge would print it twice.
+    if (!draggable) {
+        meta.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
+    }
+
+    const actions = createElement('div', 'mt-3 flex items-center gap-2');
+    actions.append(...taskActions(task, { compact: true, stageButtons: !draggable }));
+    item.append(meta, actions);
+
+    return item;
+}
+
 function renderList(tasks) {
+
     const hasTasks = tasks.length > 0;
 
     elements.taskList.replaceChildren(...tasks.map(renderTask));
@@ -583,10 +675,18 @@ function renderCategories(categories, deleted) {
 // ---------------------------------------------------------------- loading
 
 function currentParams() {
-    const params = { ...VIEWS[state.view].params };
+    const params = { ...VIEWS[state.view].params, sort: display.state.sorting, priority: display.state.priority };
 
-    if (state.status) {
-        params.status = state.status;
+    // The Completed toggle and the Date filter both narrow the same list, and a sidebar view
+    // that already names one of them wins: Completed means completed.
+    if (state.view === 'completed') {
+        params.status = 'completed';
+    } else if (!display.state.showCompleted) {
+        params.completed = 0;
+    }
+
+    if (display.state.date) {
+        params.due = display.state.date;
     }
 
     if (state.categoryId) {
@@ -600,6 +700,7 @@ function showLoadError(error) {
     clearStats();
     elements.skeleton.classList.add('hidden');
     elements.taskList.replaceChildren();
+    clearBoard();
     elements.listMessage.classList.add('hidden');
     elements.listMessage.classList.remove('flex');
     elements.columnHeaders.classList.remove('md:grid');
@@ -623,12 +724,12 @@ async function load() {
         ];
 
         requests.push(
-            state.mode === 'calendar'
+            display.state.mode === 'calendar'
                 ? api('/tasks', { params: { ...currentParams(), ...range } })
                 : api('/tasks', { params: currentParams() }),
         );
 
-        if (state.mode === 'calendar') {
+        if (display.state.mode === 'calendar') {
             requests.push(api('/tasks', { params: { ...currentParams(), due: 'none' } }));
         }
 
@@ -644,7 +745,7 @@ async function load() {
         renderStats(statsResponse.data);
         renderCategories(categoriesResponse.data, deletedResponse.data);
 
-        if (state.mode === 'calendar') {
+        if (display.state.mode === 'calendar') {
             elements.calendarMonth.textContent = monthLabel(state.month);
             renderMonthGrid(elements.calendarGrid, {
                 tasks: tasksResponse.data,
@@ -660,9 +761,19 @@ async function load() {
             });
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
+        } else if (display.state.mode === 'board') {
+            renderBoard({
+                tasks: tasksResponse.data,
+                grouping: display.state.grouping,
+                categories: categoriesResponse.data,
+                renderCard,
+            });
         } else {
             renderList(tasksResponse.data);
         }
+
+        display.renderSummary(tasksResponse.data.length);
+        latestTasks = tasksResponse.data;
     } catch (error) {
         if (requestId === latestRequestId) {
             showLoadError(error);
@@ -703,10 +814,10 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
  * Run one request, say what happened, and reload. Every action that is a single call and a
  * toast goes through here: undoing a task, favouriting a project, moving it, restoring it.
  */
-async function runAndReload(request, message) {
+async function runAndReload(request, message, undo) {
     try {
         await request();
-        showToast(message);
+        showToast(message, 'success', undo ? { label: 'Undo', onClick: () => runAndReload(undo, 'Move undone') } : null);
         await load();
     } catch (error) {
         showToast(errorMessage(error), 'error');
@@ -1127,7 +1238,7 @@ async function submitProjectForm(event) {
 }
 
 function setFavorite(category, isFavorite) {
-    return runAndReload(
+    runAndReload(
         () => api(`/categories/${category.id}/favorite`, {
             method: 'PATCH',
             body: { is_favorite: isFavorite },
@@ -1137,7 +1248,7 @@ function setFavorite(category, isFavorite) {
 }
 
 function duplicateProject(category) {
-    return runAndReload(
+    runAndReload(
         () => api(`/categories/${category.id}/duplicate`, { method: 'POST' }),
         'Project duplicated',
     );
@@ -1265,7 +1376,7 @@ async function purgeCategory(category) {
         return;
     }
 
-    return runAndReload(
+    runAndReload(
         () => api(`/categories/${category.id}/force`, { method: 'DELETE' }),
         'Project deleted permanently',
     );
@@ -1283,15 +1394,11 @@ function applyView() {
     viewButtons.forEach((button) => {
         button.setAttribute('aria-pressed', String(!state.categoryId && button.dataset.view === state.view));
     });
-    statusButtons.forEach((button) => {
-        button.setAttribute('aria-pressed', String(button.dataset.filter === state.status));
-    });
 }
 
 function setView(key) {
     state.view = key;
     state.categoryId = null;
-    state.status = key === 'completed' ? 'completed' : '';
     applyView();
     closeDrawer();
     load();
@@ -1300,16 +1407,17 @@ function setView(key) {
 function selectCategory(category) {
     state.categoryId = state.categoryId === category.id ? null : category.id;
     state.view = 'all';
-    state.status = '';
     applyView();
     closeDrawer();
     load();
 }
 
-function setMode(mode) {
-    state.mode = mode;
-    modeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+// `md:grid` and `xl:grid` sit in media queries and would win over `hidden`, so each layout's
+// grid class is added only while that layout is open.
+function applyDisplay({ mode }) {
     elements.listView.classList.toggle('hidden', mode !== 'list');
+    elements.boardView.classList.toggle('hidden', mode !== 'board');
+    elements.boardView.classList.toggle('md:grid', mode === 'board');
     elements.calendarView.classList.toggle('hidden', mode !== 'calendar');
     elements.calendarView.classList.toggle('xl:grid', mode === 'calendar');
     load();
@@ -1320,7 +1428,38 @@ function shiftMonth(offset) {
     load();
 }
 
+const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', completed: 'complete' };
+
+/** A drop on the board, and the keyboard move that does the same thing. */
+function moveTask(id, status) {
+    const task = latestTasks.find((item) => item.id === id);
+
+    if (!task || task.status === status || !STAGE_ENDPOINTS[status]) {
+        return;
+    }
+
+    const undo = STAGE_ENDPOINTS[task.status];
+
+    return runAndReload(
+        () => api(`/tasks/${id}/${STAGE_ENDPOINTS[status]}`, { method: 'PATCH' }),
+        `Moved to ${STATUS_BADGES[status].label}`,
+        () => api(`/tasks/${id}/${undo}`, { method: 'PATCH' }),
+    );
+}
+
+function showTaskDetail(id, trigger) {
+    openTaskDetail(id, trigger, {
+        categories: state.categories,
+        order: latestTasks.map((task) => task.id),
+        onChange: load,
+        onDelete: (task) => deleteTask(task, null),
+    });
+}
+
+const display = createDisplay(applyDisplay);
+
 // ---------------------------------------------------------------- wiring
+
 
 elements.form.addEventListener('submit', createTask);
 elements.projectForm.addEventListener('submit', submitProjectForm);
@@ -1371,14 +1510,6 @@ elements.taskDialog.addEventListener('click', (event) => {
 elements.retry.addEventListener('click', load);
 
 viewButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
-modeButtons.forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode)));
-statusButtons.forEach((button) =>
-    button.addEventListener('click', () => {
-        state.status = button.dataset.filter;
-        applyView();
-        load();
-    }),
-);
 
 $('calendar-prev').addEventListener('click', () => shiftMonth(-1));
 $('calendar-next').addEventListener('click', () => shiftMonth(1));
@@ -1387,5 +1518,11 @@ $('calendar-today').addEventListener('click', () => {
     load();
 });
 
+wireTaskDetail();
+wireBoardDragging(moveTask, (id) => showTaskDetail(id));
 enhanceDateFields();
-load();
+
+// The Display panel owns the layout, so the first render is its first change rather than a
+// separate load() that would have to repeat what applyDisplay already does.
+display.apply();
+

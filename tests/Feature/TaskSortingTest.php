@@ -71,6 +71,16 @@ class TaskSortingTest extends TestCase
         $this->assertSame(['Urgent'], $this->titles('?priority=high'));
     }
 
+    public function test_the_completed_toggle_hides_finished_work(): void
+    {
+        Task::factory()->create(['title' => 'Open', 'status' => 'pending']);
+        Task::factory()->create(['title' => 'Started', 'status' => 'in_progress']);
+        Task::factory()->create(['title' => 'Finished', 'status' => 'completed']);
+
+        $this->assertSame(['Started', 'Open'], $this->titles('?completed=0'));
+        $this->assertCount(3, $this->titles('?completed=1'));
+    }
+
     public function test_rejects_an_unknown_priority(): void
     {
         $this->getJson('/api/tasks?priority=urgent')

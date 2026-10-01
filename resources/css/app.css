@@ -249,3 +249,56 @@
 @utility sidebar-group-label {
     @apply px-3 text-xs font-semibold tracking-wide text-gray-500 uppercase;
 }
+
+/* The Display panel's layout tiles, selects and toggle, plus the task dialog's fields. Blade
+   renders some and JavaScript the rest, so the strings live here once. */
+@utility layout-choice {
+    @apply flex flex-col items-center gap-1.5 rounded-md border border-transparent px-1 py-2.5 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:border-gray-200 aria-pressed:bg-white aria-pressed:text-gray-900 aria-pressed:shadow-sm;
+}
+
+@utility display-select {
+    @apply min-h-9 w-44 rounded-md border border-gray-300 bg-white px-2 text-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none;
+}
+
+/* aria-checked carries the state, so it is never in the colour alone. */
+@utility switch {
+    @apply relative h-6 w-10 shrink-0 rounded-full bg-gray-300 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none aria-checked:bg-indigo-600 after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform aria-checked:after:translate-x-4;
+}
+
+@utility icon-button {
+    @apply inline-flex size-9 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:opacity-35 disabled:hover:bg-transparent;
+}
+
+@utility tick {
+    @apply inline-flex size-5.5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-white text-transparent transition-colors hover:border-green-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-checked:border-green-700 aria-checked:bg-green-700 aria-checked:text-white;
+}
+
+@utility detail-title {
+    @apply -ml-2 w-full rounded-md border border-transparent px-2 py-1 text-xl font-semibold hover:border-gray-200 focus:border-gray-400 focus:outline-none;
+}
+
+@utility detail-description {
+    @apply -ml-2 min-h-14 w-full resize-y rounded-md border border-transparent px-2 py-1.5 text-gray-700 placeholder:text-gray-400 hover:border-gray-200 focus:border-gray-400 focus:outline-none;
+}
+
+@utility detail-label {
+    @apply mb-1.5 block text-xs font-medium text-gray-500;
+}
+
+@utility detail-field {
+    @apply min-h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none;
+}
+
+/* A chip under the heading naming one active Display setting, so the panel never hides what it
+   is doing to the list. */
+@utility display-chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-600;
+}
+
+@utility board-column {
+    @apply rounded-xl border border-gray-200 bg-gray-50 transition-colors;
+}
+
+@utility board-card {
+    @apply relative overflow-hidden rounded-lg border border-gray-200 bg-white p-3 pl-4 shadow-sm;
+}

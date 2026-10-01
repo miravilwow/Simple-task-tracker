@@ -31,6 +31,7 @@ class TaskController extends Controller
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'sort' => ['nullable', Rule::enum(TaskSort::class)],
+            'completed' => ['nullable', 'boolean'],
         ]);
 
         $tasks = Task::query()
@@ -38,6 +39,11 @@ class TaskController extends Controller
             ->with('category')
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['priority'] ?? null, fn (Builder $query, string $priority) => $query->where('priority', $priority))
+            // The Display panel's "Completed tasks" toggle. Only the off position narrows anything.
+            ->when(
+                isset($filters['completed']) && ! $request->boolean('completed'),
+                fn (Builder $query) => $query->whereIn('status', TaskStatus::unfinished()),
+            )
             ->when($filters['category_id'] ?? null, fn (Builder $query, int $id) => $query->where('category_id', $id))
             ->when($filters['due'] ?? null, fn (Builder $query, string $due) => $this->applyDueFilter($query, DueFilter::from($due)))
             ->when($filters['from'] ?? null, fn (Builder $query, string $from) => $query->whereDate('due_date', '>=', $from))

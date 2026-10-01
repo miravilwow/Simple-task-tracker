@@ -92,12 +92,17 @@ Start every response that changes code with one line naming the active role(s), 
   | GET | `/api/tasks` | 200 | 400 invalid filter |
   | GET | `/api/tasks/stats` | 200 + counts | none |
   | POST | `/api/tasks` | 201 + created task | 400 validation failure |
+  | GET | `/api/tasks/{id}` | 200 + task with its sub-tasks | 404 not found |
+  | PATCH | `/api/tasks/{id}` | 200 + updated task | 400 validation failure, 404 not found |
   | PATCH | `/api/tasks/{id}/start` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
   | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
   | PATCH | `/api/tasks/{id}/restore` | 200 + restored task | 404 not found |
+  | POST | `/api/tasks/{id}/subtasks` | 201 + created sub-task | 400 validation failure, 404 not found |
+  | PATCH | `/api/tasks/{id}/subtasks/{sub}` | 200 + updated sub-task | 400 validation failure, 404 not found |
+  | DELETE | `/api/tasks/{id}/subtasks/{sub}` | 200 + message | 404 not found |
   | GET | `/api/categories` | 200 + task counts | none |
   | POST | `/api/categories` | 201 + created category | 400 validation failure |
   | PATCH | `/api/categories/{id}` | 200 + updated category | 400 validation failure, 404 not found |
@@ -114,7 +119,11 @@ Start every response that changes code with one line naming the active role(s), 
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
   | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
 
-- `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), and a `from`/`to` date window for the calendar. Every one of them is used by the UI; do not add a filter nothing calls.
+- `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), a `from`/`to` date window for the calendar, and the Display panel's `sort`, `priority` and `completed`. Every one of them is used by the UI; do not add a filter nothing calls.
+- `sort` is `App\Enums\TaskSort`: `default` is `Src\TaskSorter`, while `due` and `name` replace it. All three then pass through `unfinishedFirst()`, so no sort can bury live work under finished work.
+- `completed=0` is the Display panel's toggle in its off position, and asks for `TaskStatus::unfinished()`. Only the off position narrows anything, so `completed=1` is the same list as omitting the key.
+- `PATCH /api/tasks/{id}` is the task dialog: name, description, priority and project, each field optional because the dialog saves one at a time. **It cannot change `status`**, which still moves only through start, complete and reopen, so every stage change stays in the activity log. The due date keeps `schedule`, because the calendar changes it by dragging.
+- `subtasks` is its own table, not a self-referencing `tasks.parent_id`. A sub-task is a checklist item on one task and never a row in the list, the board, the calendar or the stats; a self-reference would have made every read and every count ask whether it meant sub-tasks too. They are returned only by `show`, never by `index`.
 - `overdue`, `today` and `upcoming` are **work queues**: each one asks for `status` in `TaskStatus::unfinished()`, so completing a task drops it out of the view while starting one does not — the task someone is in the middle of is the one they are most likely looking for. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
 - `PATCH /api/categories/{id}` replaces the whole project: name, description, colour, icon and parent. Its unique rule ignores the row being edited, or changing only the icon would be a 400 against the project's own name.
 - `GET /api/categories` returns the active projects; `?archived=1` returns the archived ones instead. The sidebar asks for both, because it shows both and could not tell them apart in one list.
@@ -170,6 +179,9 @@ Start every response that changes code with one line naming the active role(s), 
   | `sidebar.js` | drawer, icon rail, Ctrl/Cmd+B, cookie persistence |
   | `menu.js` | the overflow menu behind a sidebar row's "…", including its submenus |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
+  | `display.js` | the Display panel: layout, grouping, sorting, filters, and the chips that name them |
+  | `board.js` | the board's columns, and dragging a card between them by pointer or keyboard |
+  | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |
   | `app.js` | state, data loading, list rendering, wiring |
 
 - Never build a `Date` from an ISO date string with `new Date('2026-10-05')`: that parses as UTC midnight and shows the previous day west of Greenwich. Use `parseDate` / `toIsoDate` from `dom.js`.
