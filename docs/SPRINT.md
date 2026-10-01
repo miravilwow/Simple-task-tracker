@@ -3,6 +3,23 @@
 One day of work, so that tomorrow is only frontend design. Every sprint names the senior role that
 owns it, the exact files it may touch, and the one check that says it is finished.
 
+## Result
+
+All seven ran on 2026-10-01. Every gate passed, and no later sprint sent an earlier one back.
+
+| Sprint | Role | Outcome | Commit |
+|---|---|---|---|
+| 1 Documentation | Technical Writer | Two endpoints promised but absent, one present but undocumented, a withdrawn feature described nine times. `DocumentedRoutesTest` now compares the tables to the routes both ways. | `f1a467c` |
+| 2 Duplicate crash | Backend | The copy-name search ignored deleted projects, which the unique index covers. Now one query instead of one per attempt, and bounded. | `8727fcd` |
+| 3 Sleeping index | Database | `EXPLAIN` went from `type: ALL`, no key, 20 rows to `type: range` on `tasks_due_date_index`, 5 rows. | `3021b1f` |
+| 4 Request counter | DevOps | Database trips for one task-list call: **12 → 2**. The limit still refuses with 429. | `8e88469` |
+| 5 README | Technical Writer | Part 4 written. The gate from Sprint 1 reads its tables too. The seeder is safe to run twice. | `bf1db9f` |
+| 6 Final gate | QA, Code Reviewer | Tests, style, lint, build, and `migrate:fresh` on a throwaway MySQL database — never the working one. | — |
+| 7 Review leftovers | Backend | A deleted project is refused in all five places. Comment routes scoped by the framework instead of by hand. | *(this commit)* |
+
+**220 tests, 1327 assertions.** Two things still need the user: the AI Disclosure wording, and the
+`OWNER/REPO` placeholder in the README's CI badge, which cannot be known without a git remote.
+
 The findings come from the architecture review of the database and the backend. Nothing here is a
 new feature: every item is something already built that does not yet hold up.
 
