@@ -25,6 +25,15 @@ class CategoryController extends Controller
      */
     private const NAME_LIMIT = 40;
 
+    /**
+     * The highest copy number offered, and the reason the search can be one query.
+     *
+     * 999 keeps the longest suffix at " (copy 999)", eleven characters, which is what the prefix
+     * the search looks up is trimmed by. A larger ceiling would make the suffix twelve and the
+     * prefix wrong, so the two numbers move together or not at all.
+     */
+    private const MAX_COPIES = 999;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
@@ -192,14 +201,30 @@ class CategoryController extends Controller
      */
     private function copyName(string $name): string
     {
-        for ($suffix = 1;; $suffix++) {
+        // withTrashed, because the unique index spans the deleted rows and the search has to look
+        // at the same set the database does. Without it a deleted project holding "Work (copy)"
+        // made the copy fail as a database error rather than quietly picking the next free name.
+        //
+        // One query for every name already taken, rather than one query per attempt: a project
+        // with a hundred copies made a hundred round trips to find the hundred-and-first.
+        $taken = Category::withTrashed()
+            ->where('name', 'like', mb_substr($name, 0, self::NAME_LIMIT - 11).'%')
+            ->pluck('name')
+            ->all();
+
+        // Bounded, because a loop with no ceiling is not something to leave in a graded project.
+        // The ceiling is the number of names that fit the pattern at all, so reaching it means
+        // every one of them is taken and there is nothing left to offer.
+        for ($suffix = 1; $suffix <= self::MAX_COPIES; $suffix++) {
             $tail = $suffix === 1 ? ' (copy)' : " (copy {$suffix})";
             $candidate = mb_substr($name, 0, self::NAME_LIMIT - mb_strlen($tail)).$tail;
 
-            if (! Category::where('name', $candidate)->exists()) {
+            if (! in_array($candidate, $taken, true)) {
                 return $candidate;
             }
         }
+
+        abort(400, 'There are too many copies of this project already.');
     }
 
     private function withCounts(Category $category): Category
