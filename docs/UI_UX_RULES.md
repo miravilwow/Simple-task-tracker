@@ -30,8 +30,8 @@ The tracker's own shell is three parts: a **sidebar**, a **header** (title, layo
 
 - **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed; Upcoming is the calendar), a **Favorites** group, and the **My projects** tree. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
   - **Favorites** appears only when something is in it, and it is flat: the point of the group is to skip the tree, not to repeat it. A favourite still appears in My projects, because removing it from there would make the tree lie about what is in it.
-  - **My projects** is a tree. A child is indented under its parent with a rule down the left edge. A project whose parent is not in the list — archived, say — is drawn as a root, so a branch can never disappear from the sidebar because of where its parent happens to be.
-  - **Archived** sits at the foot of My projects and appears only when something is archived. It is the way back: archiving is reversible, so the undo cannot be hidden somewhere the user has to remember.
+  - **My projects** is a tree. A child is indented under its parent with a rule down the left edge. A project whose parent is not in the list — deleted, say — is drawn as a root, so a branch can never disappear from the sidebar because of where its parent happens to be.
+  - **Deleted** sits at the foot of My projects and appears only when something has been deleted. It is the way back: a delete is reversible, so the undo cannot live only in a toast the user has to catch in time.
 
 #### Sidebar behaviour
 
@@ -61,7 +61,7 @@ The items are grouped by what they are for, with a rule between the groups:
 | The project itself | Edit, Add to favorites / Remove from favorites |
 | Where it sits | Project actions ▸ (Move, Duplicate) |
 | What is on it | Comments, View activity |
-| Getting rid of it | Archive, Delete |
+| Getting rid of it | Delete |
 
 - The menu is appended to `<body>` and positioned `fixed`. The sidebar scrolls on its own, so a panel placed inside it would be clipped by that overflow; the cost is that a panel does not follow the page, so any scroll closes the whole menu.
 - It is a real `role="menu"`: arrows move between items and wrap, Home and End reach the ends, and clicking or tabbing away dismisses it without stealing focus.
@@ -69,7 +69,7 @@ The items are grouped by what they are for, with a rule between the groups:
 - Focus follows the row through a re-render: the list is rebuilt after every action, and the "…" that had focus is found again by its project id.
 - **Move and "move into folder" are the same operation.** A folder here is simply a project with children, so there is one tree and not two. The reference app keeps folders and parent projects apart; building both would be two ways to say the same thing.
 - **Favourite is set, not toggled.** The menu already knows which of the two labels it is showing, and two clicks racing each other would otherwise undo one another.
-- **Archive is not delete.** An archived project keeps its tasks and is only out of the way, so the sidebar always shows the way back to it.
+- **There is no Archive.** It was built and then withdrawn: a delete the sidebar always shows a way back to does the same job, and two kinds of "out of the way" is one more than a tracker can explain. Deleting is the one way to put a project aside, and it is reversible.
 - **Deleting a project takes its tasks with it**, and Undo brings both back. A task is only ever reached through a list the project feeds, so leaving the tasks behind put rows in All tasks that nobody had created and nothing could explain.
 - **Delete is recoverable, and the toast says so.** Deleting a project soft deletes it and the toast carries **Undo**, exactly as deleting a task does. A project holds more than a task does, so it cannot be the one thing in the app that is thrown away for good. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
 - A deleted project's name stays reserved while it can still be restored, so creating another project with that name is a 400 until the old one is gone for good.
@@ -344,7 +344,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Editing a project and retyping its name keeps the icon it already had
 - [ ] The parent select never offers the project itself or one of its children
 - [ ] Favorites group appears only when something is in it, and a favourite still shows in the tree
-- [ ] Archive removes the project from the tree, the Archived section shows it, and Unarchive brings it back
+- [ ] Delete removes the project from the tree, the Deleted section shows it, and Undo brings it back
 - [ ] Deleting a project removes its tasks from every list and from the sidebar counts
 - [ ] Undo on the delete toast brings a project back with its tasks, comments, activity and children intact
 - [ ] Duplicate copies the tasks and lands as "<name> (copy)"

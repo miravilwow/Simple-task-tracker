@@ -70,7 +70,8 @@ Start every response that changes code with one line naming the active role(s), 
 - `categories.icon` is closed by `App\Enums\CategoryIcon`, never free text: its value goes straight into a CSS class name. The column itself is a `varchar`, because a 224-value database enum would be unreadable, so the application is what enforces the set.
 - Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. Every one of them is validated by `StoreTaskRequest`. `status` is deliberately absent, because it changes only through the complete and reopen endpoints.
 - `categories` carries `deleted_at` (`softDeletes()`) for the same reason `tasks` does, and `deleted_at` is left unindexed for the same reason too: it is NULL for nearly every row.
-- `categories` also carries `description`, `color` (closed by `App\Enums\CategoryColor`), `is_favorite`, `archived_at` and a self-referencing `parent_id`. The parent FK is `nullOnDelete`, so deleting a project promotes its children rather than taking them with it. `archived_at` is left unindexed for the same reason `deleted_at` is.
+- `categories` also carries `description`, `color` (closed by `App\Enums\CategoryColor`), `is_favorite` and a self-referencing `parent_id`. The parent FK is `nullOnDelete`, so deleting a project promotes its children rather than taking them with it.
+- There was an `archived_at` column and a pair of endpoints behind it. Both are gone: a soft delete that the sidebar always shows a way back to does the same job, and two kinds of "out of the way" was one too many for a tracker to explain. The column arrives and leaves in two migrations rather than one edited migration, because a migration that has run is a record of what happened.
 - A folder and a parent project are **one tree**, not two. A folder is simply a project with children, so "move into folder" and "set parent" are the same operation; building both would be two ways to say the same thing.
 - `category_comments` is named for what it comments on, because a bare `comments` table would be ambiguous the day a task gets comments too. It cascades with its project.
 - `comment_reactions` holds one row per (comment, emoji, browser). The app has no accounts, so `reactor` is a random token from the client's `localStorage`: it identifies a browser, not a person. The unique index across the three is what makes the count honest and lets the endpoint be retried safely. The emoji column is a `varchar(16)` and needs `utf8mb4` to hold a four-byte emoji at all; MySQL's older `utf8` would truncate it.
@@ -110,8 +111,6 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/categories/{id}` | 200 + updated category | 400 validation failure, 404 not found |
   | PATCH | `/api/categories/{id}/move` | 200 + moved category | 400 bad parent, 404 not found |
   | PATCH | `/api/categories/{id}/favorite` | 200 + updated category | 400 validation failure, 404 not found |
-  | PATCH | `/api/categories/{id}/archive` | 200 + archived category | 404 not found |
-  | PATCH | `/api/categories/{id}/unarchive` | 200 + restored category | 404 not found |
   | POST | `/api/categories/{id}/duplicate` | 201 + the copy | 404 not found |
   | GET | `/api/categories/{id}/comments` | 200 + thread | 404 not found |
   | POST | `/api/categories/{id}/comments` | 201 + created comment | 400 validation failure, 404 not found |
@@ -120,6 +119,7 @@ Start every response that changes code with one line naming the active role(s), 
   | GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
   | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
   | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
+  | DELETE | `/api/categories/{id}/force` | 200 + message | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), a `from`/`to` date window for the calendar, and the Display panel's `sort`, `priority` and `completed`. Every one of them is used by the UI; do not add a filter nothing calls.
 - `sort` is `App\Enums\TaskSort`: `default` is `Src\TaskSorter`, while `due`, `name` and `manual` replace it. All four then pass through `byStage()`, so no sort can bury live work under finished work.
@@ -129,7 +129,7 @@ Start every response that changes code with one line naming the active role(s), 
 - `subtasks` is its own table, not a self-referencing `tasks.parent_id`. A sub-task is a checklist item on one task and never a row in the list, the board, the calendar or the stats; a self-reference would have made every read and every count ask whether it meant sub-tasks too. They are returned only by `show`, never by `index`.
 - `overdue`, `today` and `upcoming` are **work queues**: each one asks for `status` in `TaskStatus::unfinished()`, so completing a task drops it out of the view while starting one does not — the task someone is in the middle of is the one they are most likely looking for. `stats.due_today` carries the same condition, because it is the badge on the Today view and the two must agree. `none` and the `from`/`to` window are **not** queues: they back the calendar's unscheduled tray and its month grid, which show a completed task where it sits.
 - `PATCH /api/categories/{id}` replaces the whole project: name, description, colour, icon and parent. Its unique rule ignores the row being edited, or changing only the icon would be a 400 against the project's own name.
-- `GET /api/categories` returns the active projects; `?archived=1` returns the archived ones instead. The sidebar asks for both, because it shows both and could not tell them apart in one list.
+- `GET /api/categories` returns the live projects; `?deleted=1` returns the soft-deleted ones instead. The sidebar asks for both, because it shows both and could not tell them apart in one list.
 - `favorite` takes the value it is setting rather than toggling, so two clicks racing each other cannot undo one another. The reactions endpoint has the same shape for the same reason.
 - The comment thread reads its `reactor` token from the query string and a reaction sends it in the body, so `CategoryCommentResource` uses `input()` rather than `query()`. With `query()` the reply to a reaction reports it as not mine, and only a reload corrects the button.
 - Any endpoint returning comments eager-loads `reactions`. A test pins the thread to three queries so an N+1 cannot creep back in.
@@ -164,7 +164,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Responses go through `TaskResource` / `CategoryResource`, so the JSON shape is explicit and separate from the database columns.
 - Any endpoint returning tasks eager-loads `category`. A test pins the list to two queries so an N+1 cannot creep back in.
 - Date comparisons in raw SQL wrap the column in `DATE()`. SQLite stores a cast date with a `00:00:00` time, so a bare comparison against `'Y-m-d'` matches nothing there while passing on MySQL.
-- All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs five requests (the action, then a refresh of the stats, the projects, the archived projects and the task list), so a tighter limit locks out ordinary clicking. The number grows every time the sidebar learns to show something new, which is the reason to keep the ceiling well clear of it rather than tuned to it.
+- All API routes are rate limited to 300 requests per minute per IP (the `api` limiter in `AppServiceProvider`). Going over the limit returns 429. The ceiling is deliberately generous: one user action costs five requests (the action, then a refresh of the stats, the projects, the deleted projects and the task list), so a tighter limit locks out ordinary clicking. The number grows every time the sidebar learns to show something new, which is the reason to keep the ceiling well clear of it rather than tuned to it.
 
 **Definition of Done:** every row in the table above is verified by a feature test.
 
