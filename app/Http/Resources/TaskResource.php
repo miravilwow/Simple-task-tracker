@@ -25,6 +25,8 @@ class TaskResource extends JsonResource
             'due_date' => $this->due_date?->toDateString(),
             'is_overdue' => $this->isOverdue(),
             'category' => CategoryResource::make($this->whenLoaded('category')),
+            // Only the task dialog loads these; the list and the board never ask for them.
+            'subtasks' => SubtaskResource::collection($this->whenLoaded('subtasks')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

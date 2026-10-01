@@ -8,6 +8,7 @@ use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
@@ -41,9 +42,18 @@ class Task extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /**
+     * @return HasMany<Subtask, $this>
+     */
+    public function subtasks(): HasMany
+    {
+        return $this->hasMany(Subtask::class)->orderBy('position')->orderBy('id');
+    }
+
     public function isOverdue(): bool
     {
-        return $this->status === TaskStatus::Pending
+        // Unfinished, not pending: starting a task does not stop it from being late.
+        return in_array($this->status->value, TaskStatus::unfinished(), true)
             && $this->due_date !== null
             && $this->due_date->isBefore(today());
     }

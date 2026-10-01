@@ -11,6 +11,7 @@ enum ActivityAction: string
     case Scheduled = 'scheduled';
     case Unscheduled = 'unscheduled';
     case Deleted = 'deleted';
+    case Updated = 'updated';
     case Restored = 'restored';
 
     /**
@@ -26,6 +27,7 @@ enum ActivityAction: string
             self::Scheduled => 'Scheduled',
             self::Unscheduled => 'Cleared the date on',
             self::Deleted => 'Deleted',
+            self::Updated => 'Edited',
             self::Restored => 'Restored',
         };
     }

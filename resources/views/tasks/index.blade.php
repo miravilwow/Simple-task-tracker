@@ -82,7 +82,7 @@
 
             <div class="flex items-center gap-3">
                 <div role="group" aria-label="Switch layout" class="flex gap-1 rounded-lg bg-gray-100 p-1">
-                @foreach ([['list', 'List', 'list'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
+                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board'], ['calendar', 'Calendar', 'calendar']] as [$mode, $label, $icon])
                     <button type="button" data-mode="{{ $mode }}" aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}"
                         class="inline-flex min-h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-indigo-700 aria-pressed:shadow-sm">
                         <x-icon :name="$icon" class="size-4" />
@@ -192,7 +192,35 @@
             </section>
         </div>
 
+        {{-- Board layout --}}
+        {{-- The columns are the three stages, so the board is the status filter drawn out. The
+             segmented filter lives inside the list panel and is hidden along with it; switching
+             here also clears it, or the board would open with two columns empty and no visible
+             control to explain why. --}}
+        {{-- `md:grid` sits in a media query and would otherwise win over `hidden`, so the grid
+             classes are added by JS when this view opens, exactly as the calendar's are. --}}
+        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-3 md:items-start xl:gap-6">
+            @foreach ([['pending', 'To do'], ['in_progress', 'In progress'], ['completed', 'Done']] as [$status, $label])
+                <section aria-labelledby="board-{{ $status }}-heading"
+                    class="rounded-xl border border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between gap-2 px-4 py-3">
+                        <h2 id="board-{{ $status }}-heading"
+                            class="text-xs font-semibold tracking-wide text-gray-600 uppercase">{{ $label }}</h2>
+                        {{-- The count is a plain number beside the heading, not a badge: it says how
+                             much is in the column, which is not a status of its own. --}}
+                        <span data-board-count="{{ $status }}"
+                            class="text-xs font-medium text-gray-500 tabular-nums">0</span>
+                    </div>
+
+                    <ul data-board-list="{{ $status }}" class="flex flex-col gap-3 px-3 pb-3"></ul>
+
+                    <p data-board-empty="{{ $status }}" class="px-4 pb-4 text-sm text-gray-400">Nothing here yet.</p>
+                </section>
+            @endforeach
+        </div>
+
         {{-- Calendar layout --}}
+
         {{-- The grid classes are added by JS when this view opens: `xl:grid` sits in a media
              query and would otherwise win over `hidden` on wide screens. --}}
         <div id="calendar-view" class="mt-6 hidden gap-6 xl:grid-cols-4 xl:items-start">
