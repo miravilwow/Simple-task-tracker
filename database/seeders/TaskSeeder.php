@@ -13,12 +13,24 @@ class TaskSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = collect([
+        $demo = [
             ['name' => 'Work', 'icon' => CategoryIcon::Briefcase],
             ['name' => 'Personal', 'icon' => CategoryIcon::Person],
             ['name' => 'School', 'icon' => CategoryIcon::HatGraduation],
             ['name' => 'Gaming', 'icon' => CategoryIcon::Games],
-        ])->mapWithKeys(fn (array $attributes) => [
+        ];
+
+        // Running this twice used to stop on a duplicate project name. Someone following the README
+        // should be able to run it again and have nothing happen, rather than read a stack trace
+        // and wonder what they broke. withTrashed, because a deleted project keeps its name
+        // reserved and would fail the same way.
+        if (Category::withTrashed()->whereIn('name', array_column($demo, 'name'))->exists()) {
+            $this->command?->info('Demo data is already here, so nothing was added.');
+
+            return;
+        }
+
+        $categories = collect($demo)->mapWithKeys(fn (array $attributes) => [
             $attributes['name'] => Category::create($attributes),
         ]);
 

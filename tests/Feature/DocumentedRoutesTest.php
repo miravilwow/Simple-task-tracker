@@ -17,14 +17,28 @@ class DocumentedRoutesTest extends TestCase
     private const DOC = 'docs/ROLES.md';
 
     /**
-     * Every endpoint the documentation claims, as "METHOD /path" with the id placeholders levelled
-     * so `{id}` in prose and `{task}` in a route read the same.
+     * The documents that carry an endpoint table. The README is the one that is graded, and it is
+     * the likeliest to promise something that does not run, so it is checked the same way.
      *
      * @return array<int, string>
      */
-    private function documented(): array
+    public static function documents(): array
     {
-        $markdown = file_get_contents(base_path(self::DOC));
+        return [
+            'the role documentation' => [self::DOC],
+            'the README' => ['README.md'],
+        ];
+    }
+
+    /**
+     * Every endpoint a document claims, as "METHOD /path" with the id placeholders levelled so
+     * `{id}` in prose and `{task}` in a route read the same.
+     *
+     * @return array<int, string>
+     */
+    private function documented(string $document = self::DOC): array
+    {
+        $markdown = file_get_contents(base_path($document));
 
         // The table is indented inside a list item, so the row does not start at the line's edge.
         preg_match_all('/^\s*\| (GET|POST|PATCH|DELETE) \| `([^`]+)` \|/m', $markdown, $matches, PREG_SET_ORDER);
@@ -74,33 +88,42 @@ class DocumentedRoutesTest extends TestCase
         return $unique;
     }
 
-    public function test_the_endpoint_table_is_actually_being_read(): void
+    /**
+     * @dataProvider documents
+     */
+    public function test_the_endpoint_table_is_actually_being_read(string $document): void
     {
         // Without this the other two tests pass by reading nothing: a regex that stops matching
         // leaves both sides of the comparison empty and reports perfect agreement. That happened
         // once already, so the gate has to prove it found the table before trusting it.
-        $this->assertGreaterThan(25, count($this->documented()));
+        $this->assertGreaterThan(25, count($this->documented($document)), "No endpoint table found in {$document}.");
         $this->assertGreaterThan(25, count($this->actual()));
     }
 
-    public function test_the_documentation_describes_an_endpoint_the_app_really_has(): void
+    /**
+     * @dataProvider documents
+     */
+    public function test_the_documentation_describes_an_endpoint_the_app_really_has(string $document): void
     {
-        $missing = array_values(array_diff($this->documented(), $this->actual()));
+        $missing = array_values(array_diff($this->documented($document), $this->actual()));
 
         $this->assertSame([], $missing, sprintf(
             "%s lists endpoints the application does not serve:\n  %s",
-            self::DOC,
+            $document,
             implode("\n  ", $missing),
         ));
     }
 
-    public function test_every_endpoint_the_app_has_is_documented(): void
+    /**
+     * @dataProvider documents
+     */
+    public function test_every_endpoint_the_app_has_is_documented(string $document): void
     {
-        $undocumented = array_values(array_diff($this->actual(), $this->documented()));
+        $undocumented = array_values(array_diff($this->actual(), $this->documented($document)));
 
         $this->assertSame([], $undocumented, sprintf(
             "These endpoints are not in the %s table:\n  %s",
-            self::DOC,
+            $document,
             implode("\n  ", $undocumented),
         ));
     }
