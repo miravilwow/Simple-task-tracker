@@ -460,6 +460,9 @@ function syncSelection() {
     const ticked = selection.size;
     const tasks = latestTasks.filter((task) => selection.has(task.id));
 
+    // The toolbar takes over the header row rather than sharing it, so checking a box never
+    // stacks a second line under "Tasks" and grows the panel on a narrow width.
+    elements.tasksHeading.classList.toggle('hidden', ticked > 0);
     setVisible(elements.selectionBar, ticked > 0);
     elements.selectionCount.textContent = ticked > 0 ? `${ticked} selected` : '';
     elements.selectionComplete.disabled = ! tasks.some((task) => task.status !== 'completed');

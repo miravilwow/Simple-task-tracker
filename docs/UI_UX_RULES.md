@@ -125,8 +125,9 @@ the two quietly come to disagree.
 
 #### The selection toolbar
 
-- It takes over the right of the panel header rather than appearing as a bar of its own, so the rows
-  do not move down the moment a checkbox is pressed.
+- It takes over the panel header rather than appearing as a bar of its own: the "Tasks" heading
+  hides while it is shown, so the toolbar fills the same row instead of stacking a second line
+  under the heading on a narrow width. The rows never move down the moment a checkbox is pressed.
 - It reads **"3 selected"**, then Complete, Delete and Clear. The count is `aria-live="polite"`.
 - **Complete is disabled when every selected row is already finished.** The endpoint would answer
   that nothing changed, and a button that says so first is better than a toast that says so after.
