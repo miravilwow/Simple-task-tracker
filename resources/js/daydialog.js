@@ -23,7 +23,8 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
         const open = createElement('button', `min-h-8 min-w-0 flex-1 truncate text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${task.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`, task.title);
 
         open.type = 'button';
-        open.addEventListener('click', () => onOpenTask(task.id));
+        open.addEventListener('click', () => onOpenTask(task.id, open));
+        open.dataset.taskId = task.id;
         item.append(createElement('span', `size-2 shrink-0 rounded-full ${PRIORITY_DOTS[task.priority]}`), open);
 
         return item;
@@ -61,12 +62,18 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
 
     return {
         open,
-        isOpen: () => dialog.open,
-        currentIso: () => iso,
         // Redrawn after every reload so the list never shows a task that moved or changed.
         refresh(tasksFor) {
-            if (dialog.open) {
-                draw(tasksFor(iso));
+            if (!dialog.open) {
+                return;
+            }
+
+            const focusedId = list.contains(document.activeElement) ? document.activeElement.dataset.taskId : null;
+
+            draw(tasksFor(iso));
+
+            if (focusedId !== null) {
+                (list.querySelector(`[data-task-id="${focusedId}"]`) ?? $('day-close')).focus();
             }
         },
     };

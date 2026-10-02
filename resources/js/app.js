@@ -900,7 +900,11 @@ const TASK_FIELDS = ['title', 'description', 'priority', 'category_name', 'due_d
 
 // The form sits in a dialog so the list keeps the full width. <dialog> traps focus and closes
 // on Escape by itself; what it does not do is clear a half-filled form, so closing does.
-function openTaskDialog() {
+// Where focus goes on close when something other than the New task button opened the dialog.
+let taskDialogReturnTarget = null;
+
+function openTaskDialog(returnTarget = null) {
+    taskDialogReturnTarget = returnTarget;
     clearFieldErrors(TASK_FIELDS);
     elements.taskDialog.showModal();
     elements.title.focus();
@@ -1110,13 +1114,14 @@ function showTaskDetail(id, trigger) {
 
 // Add task on this day: the New task form, already set to that day.
 function addTaskOn(iso) {
-    openTaskDialog();
+    // New task is hidden on Upcoming, so focus returns to the calendar heading instead.
+    openTaskDialog(document.getElementById('calendar-heading'));
     elements.dueDate.value = iso;
     elements.dueDate.dispatchEvent(new Event('change'));
 }
 
 const tasksOn = (iso) => latestTasks.filter((task) => task.due_date === iso);
-const dayDialog = createDayDialog({ onOpenTask: (id) => showTaskDetail(id), onAddTask: addTaskOn });
+const dayDialog = createDayDialog({ onOpenTask: (id, trigger) => showTaskDetail(id, trigger), onAddTask: addTaskOn });
 const openDay = (iso) => dayDialog.open(iso, tasksOn(iso));
 
 const display = createDisplay(applyDisplay);
@@ -1132,7 +1137,12 @@ elements.taskCancel.addEventListener('click', closeTaskDialog);
 elements.taskDialog.addEventListener('close', () => {
     elements.form.reset();
     clearFieldErrors(TASK_FIELDS);
-    elements.newTaskTrigger.focus();
+    const target = taskDialogReturnTarget?.isConnected && taskDialogReturnTarget.offsetParent !== null
+        ? taskDialogReturnTarget
+        : elements.newTaskTrigger;
+
+    taskDialogReturnTarget = null;
+    target.focus();
 });
 elements.taskDialog.addEventListener('click', (event) => {
     if (event.target === elements.taskDialog) {
