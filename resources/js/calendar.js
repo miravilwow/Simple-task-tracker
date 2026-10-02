@@ -1,10 +1,25 @@
 import { CARD_TINTS, createElement, parseDate, startOfToday, toIsoDate } from './dom.js';
 
-const PRIORITY_DOTS = {
+export const PRIORITY_DOTS = {
     high: 'bg-red-400',
     medium: 'bg-amber-400',
     low: 'bg-slate-300',
 };
+
+const MAX_CHIPS = 3;
+const WARN_AT = 8;
+const DANGER_AT = 10;
+
+export const dayLoad = (count) => (count >= DANGER_AT ? 'danger' : count >= WARN_AT ? 'warn' : null);
+
+// Full class strings. A busy day is told by its badge text as well, never the colour alone.
+const LOAD_CELL = { warn: 'bg-amber-50', danger: 'bg-red-50' };
+const LOAD_BADGE = { warn: 'bg-amber-100 text-amber-800', danger: 'bg-red-100 text-red-700' };
+
+const dayFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' });
+
+const createLoadBadge = (count, load) =>
+    createElement('span', `rounded-full px-1.5 text-xs font-medium tabular-nums ${LOAD_BADGE[load]}`, `${count} tasks`);
 
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const agendaFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -122,7 +137,7 @@ function groupByDate(tasks) {
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule }) {
+export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule, onOpenDay }) {
     const today = toIsoDate(startOfToday());
     const start = gridStart(month);
     const total = cellCount(month);
@@ -138,32 +153,63 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
         // can land. The day still shows whatever is already on it.
         const isPast = iso < today;
 
+        const dayTasks = byDate.get(iso) ?? [];
+        const load = dayLoad(dayTasks.length);
+
         const cell = createElement(
             'div',
             `min-h-28 space-y-1 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
-                inMonth && !isPast ? '' : 'bg-gray-50'
+                load ? LOAD_CELL[load] : inMonth && !isPast ? '' : 'bg-gray-50'
             }`,
         );
 
-        const number = createElement(
-            'span',
-            isToday
-                ? 'flex size-6 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
-                : `flex size-6 items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`,
-            String(date.getDate()),
-        );
+        const numberClasses = isToday
+            ? 'flex size-6 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
+            : `flex size-6 items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`;
+        let number;
 
-        const header = createElement('div', 'flex items-center justify-between');
+        if (onOpenDay) {
+            number = createElement(
+                'button',
+                `${numberClasses} rounded-full hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
+                String(date.getDate()),
+            );
+            number.type = 'button';
+            number.setAttribute(
+                'aria-label',
+                `${dayFormatter.format(date)}, ${dayTasks.length} ${dayTasks.length === 1 ? 'task' : 'tasks'}`,
+            );
+            number.addEventListener('click', () => onOpenDay(iso));
+        } else {
+            number = createElement('span', numberClasses, String(date.getDate()));
+        }
+
+        const header = createElement('div', 'flex items-center justify-between gap-1');
         header.append(number);
 
         if (isToday) {
             header.append(createElement('span', 'sr-only', 'Today'));
         }
 
+        if (load) {
+            header.append(createLoadBadge(dayTasks.length, load));
+        }
+
         cell.append(header);
 
-        for (const task of byDate.get(iso) ?? []) {
+        for (const task of dayTasks.slice(0, MAX_CHIPS)) {
             cell.append(createChip(task, { onOpen, draggable: true }));
+        }
+
+        if (onOpenDay && dayTasks.length > MAX_CHIPS) {
+            const more = createElement(
+                'button',
+                'w-full rounded-md px-2 py-1 text-left text-xs font-medium text-gray-600 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+                `+${dayTasks.length - MAX_CHIPS} more`,
+            );
+            more.type = 'button';
+            more.addEventListener('click', () => onOpenDay(iso));
+            cell.append(more);
         }
 
         if (!isPast) {
@@ -175,7 +221,7 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
     container.replaceChildren(...cells);
 }
 
-export function renderAgenda(container, { tasks, onOpen, emptyText = 'Nothing scheduled this month.' }) {
+export function renderAgenda(container, { tasks, onOpen, onOpenDay, emptyText = 'Nothing scheduled this month.' }) {
     const groups = groupByDate(tasks);
 
     if (groups.length === 0) {
@@ -190,14 +236,35 @@ export function renderAgenda(container, { tasks, onOpen, emptyText = 'Nothing sc
 
     container.replaceChildren(
         ...groups.map(([iso, dayTasks]) => {
+            const load = dayLoad(dayTasks.length);
             const section = createElement('div', 'p-4');
-            const heading = createElement(
-                'p',
-                `text-sm font-medium ${iso === today ? 'text-red-700' : 'text-gray-700'}`,
-                agendaFormatter.format(parseDate(iso)) + (iso === today ? ' · Today' : ''),
+            const headingClasses = `text-sm font-medium ${iso === today ? 'text-red-700' : 'text-gray-700'}`;
+            const headingText = agendaFormatter.format(parseDate(iso)) + (iso === today ? ' · Today' : '');
+            const headingRow = createElement(
+                'div',
+                `flex items-center justify-between gap-2 rounded-md ${load ? `${LOAD_CELL[load]} px-2 py-1` : ''}`,
             );
+            let heading;
 
-            section.append(heading);
+            if (onOpenDay) {
+                heading = createElement(
+                    'button',
+                    `${headingClasses} rounded-md text-left hover:underline focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
+                    headingText,
+                );
+                heading.type = 'button';
+                heading.addEventListener('click', () => onOpenDay(iso));
+            } else {
+                heading = createElement('p', headingClasses, headingText);
+            }
+
+            headingRow.append(heading);
+
+            if (load) {
+                headingRow.append(createLoadBadge(dayTasks.length, load));
+            }
+
+            section.append(headingRow);
 
             const list = createElement('div', 'mt-2 space-y-1.5');
             for (const task of dayTasks) {

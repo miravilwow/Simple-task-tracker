@@ -81,6 +81,7 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **The navbar is read as the top of the sidebar's column**, so its two levels line up with the sidebar's: a 24px mark plus an 8px gap reaches the same 32px as the sidebar's 20px icon plus its 12px gap, which puts the wordmark exactly where the sidebar's labels start. Changing one size means changing the other.
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
 - **The column grid is 4 columns with `gap-6` from `xl`.** Every layout resolves to it, so one panel's edge is also the next one's.
+- **A calendar day shows at most three tasks; the rest are behind "+N more".** Eight or more tasks tint the day amber and ten or more red, with a badge naming the count, so the colour is never the only signal. The day's number and "+N more" open the day dialog.
 - **All three layouts share the same outer edges.** List is one panel across the full width; Board is columns across that same width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
@@ -400,6 +401,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] A past day takes no chip and offers no button, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
+- [ ] A day with ten tasks shows three chips, "+7 more" and a red "10 tasks" badge; eight shows amber
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Ticking a row shows the toolbar, and the count matches what is ticked
 - [ ] The header checkbox selects every row shown, goes half-checked for a partial selection, and clears from Clear
