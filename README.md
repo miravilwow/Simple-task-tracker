@@ -116,19 +116,6 @@ rename worth finishing in one pass rather than half-doing.
 | Method | Path | Success | Errors |
 |---|---|---|---|
 | GET | `/api/categories` | 200 + task counts | none |
-| POST | `/api/categories` | 201 + created project | 400 validation failure |
-| PATCH | `/api/categories/{id}` | 200 + updated project | 400 validation failure, 404 not found |
-| PATCH | `/api/categories/{id}/move` | 200 + moved project | 400 bad parent, 404 not found |
-| PATCH | `/api/categories/{id}/favorite` | 200 + updated project | 400 validation failure, 404 not found |
-| POST | `/api/categories/{id}/duplicate` | 201 + the copy | 404 not found |
-| GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
-| DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
-| PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
-| DELETE | `/api/categories/{id}/force` | 200 + message | 404 not found |
-| GET | `/api/categories/{id}/comments` | 200 + thread | 404 not found |
-| POST | `/api/categories/{id}/comments` | 201 + created comment | 400 validation failure, 404 not found |
-| PATCH | `/api/categories/{id}/comments/{comment}/reactions` | 200 + updated comment | 400 validation failure, 404 not found |
-| DELETE | `/api/categories/{id}/comments/{comment}` | 200 + message | 404 not found |
 
 A test compares this table against the application's real routes in both directions, so a line
 cannot outlive the endpoint it describes.
@@ -211,9 +198,6 @@ PATCH /api/tasks/7/start      → status becomes in_progress
 PATCH /api/tasks/7/complete   → status becomes completed
 PATCH /api/tasks/7/reopen     → status becomes pending
 ```
-
-Each one writes an entry to its project's activity log. Stage changes have exactly one path through
-the code, so a change cannot reach the database without reaching the log.
 
 **Move a card on the board**
 

@@ -23,7 +23,7 @@ class StoreTaskRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'priority' => ['required', Rule::enum(TaskPriority::class)],
-            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
             // A due date is a promise about work still ahead, so it cannot be set in the past.
             // A task still becomes overdue the ordinary way, by the day arriving and passing.
             'due_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],

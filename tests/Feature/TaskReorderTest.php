@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Category;
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -123,32 +122,6 @@ class TaskReorderTest extends TestCase
 
         $this->assertSame(['Second'], $this->manualOrder('pending'));
         $this->assertSame(['First'], $this->manualOrder('in_progress'));
-    }
-
-    public function test_a_drop_into_another_column_is_recorded_once_in_the_activity_log(): void
-    {
-        $category = Category::factory()->create();
-        $task = Task::factory()->create(['category_id' => $category->id, 'title' => 'Ship it', 'status' => 'pending']);
-
-        $this->drop($task->id, 'in_progress', null)->assertOk();
-
-        $entries = $this->getJson("/api/categories/{$category->id}/activity")->assertOk()->json('data');
-
-        // One path per stage change: a drop must not log twice, nor log nothing.
-        $this->assertCount(1, $entries);
-        $this->assertSame('started', $entries[0]['action']);
-    }
-
-    public function test_a_drop_inside_the_same_column_records_no_stage_change(): void
-    {
-        $category = Category::factory()->create();
-        $ids = $this->column('First', 'Second');
-        Task::query()->whereKey(array_values($ids))->update(['category_id' => $category->id]);
-
-        $this->drop($ids['Second'], 'pending', null)->assertOk();
-
-        // Rearranging a column is not a stage change, so the log stays quiet.
-        $this->assertCount(0, $this->getJson("/api/categories/{$category->id}/activity")->json('data'));
     }
 
     public function test_a_drop_is_unaffected_by_what_a_filter_is_hiding(): void

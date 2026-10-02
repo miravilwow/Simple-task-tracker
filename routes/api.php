@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\CategoryCommentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SubtaskController;
 use App\Http\Controllers\TaskController;
@@ -29,20 +28,3 @@ Route::patch('/tasks/{task}/subtasks/{subtask}', [SubtaskController::class, 'upd
 Route::delete('/tasks/{task}/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->scopeBindings();
 
 Route::get('/categories', [CategoryController::class, 'index']);
-Route::post('/categories', [CategoryController::class, 'store']);
-Route::patch('/categories/{category}', [CategoryController::class, 'update']);
-Route::patch('/categories/{category}/move', [CategoryController::class, 'move']);
-Route::patch('/categories/{category}/favorite', [CategoryController::class, 'favorite']);
-Route::post('/categories/{category}/duplicate', [CategoryController::class, 'duplicate']);
-Route::get('/categories/{category}/activity', [CategoryController::class, 'activity']);
-Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
-// withTrashed on both, because they exist to reach a project the default binding hides.
-Route::patch('/categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed();
-Route::delete('/categories/{category}/force', [CategoryController::class, 'forceDestroy'])->withTrashed();
-
-// scopeBindings on the nested ones, the same as the sub-task routes: a comment id from another
-// project is then a 404 from the binding rather than a check written out by hand in the controller.
-Route::get('/categories/{category}/comments', [CategoryCommentController::class, 'index']);
-Route::post('/categories/{category}/comments', [CategoryCommentController::class, 'store']);
-Route::patch('/categories/{category}/comments/{comment}/reactions', [CategoryCommentController::class, 'react'])->scopeBindings();
-Route::delete('/categories/{category}/comments/{comment}', [CategoryCommentController::class, 'destroy'])->scopeBindings();

@@ -96,8 +96,8 @@ class DocumentedRoutesTest extends TestCase
         // Without this the other two tests pass by reading nothing: a regex that stops matching
         // leaves both sides of the comparison empty and reports perfect agreement. That happened
         // once already, so the gate has to prove it found the table before trusting it.
-        $this->assertGreaterThan(25, count($this->documented($document)), "No endpoint table found in {$document}.");
-        $this->assertGreaterThan(25, count($this->actual()));
+        $this->assertGreaterThan(10, count($this->documented($document)), "No endpoint table found in {$document}.");
+        $this->assertGreaterThan(10, count($this->actual()));
     }
 
     /**

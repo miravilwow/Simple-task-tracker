@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ActivityAction;
 use App\Enums\BulkAction;
 use App\Enums\DueFilter;
 use App\Enums\TaskPriority;
@@ -14,7 +13,6 @@ use App\Http\Requests\ScheduleTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
-use App\Models\Activity;
 use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +27,6 @@ class TaskController extends Controller
     {
         $filters = $request->validate([
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
-            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
             'due' => ['nullable', Rule::enum(DueFilter::class)],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
@@ -50,7 +47,6 @@ class TaskController extends Controller
                 isset($filters['completed']) && ! $request->boolean('completed'),
                 fn (Builder $query) => $query->whereIn('status', TaskStatus::unfinished()),
             )
-            ->when($filters['category_id'] ?? null, fn (Builder $query, int $id) => $query->where('category_id', $id))
             ->when($filters['due'] ?? null, fn (Builder $query, string $due) => $this->applyDueFilter($query, DueFilter::from($due)))
             ->when($filters['from'] ?? null, fn (Builder $query, string $from) => $query->whereDate('due_date', '>=', $from))
             ->when($filters['to'] ?? null, fn (Builder $query, string $to) => $query->whereDate('due_date', '<=', $to))
@@ -75,8 +71,6 @@ class TaskController extends Controller
     public function update(UpdateTaskRequest $request, Task $task): TaskResource
     {
         $task->update($request->validated());
-
-        Activity::record($task, ActivityAction::Updated);
 
         return TaskResource::make($task->load('category', 'subtasks'));
     }
@@ -119,8 +113,6 @@ class TaskController extends Controller
     {
         $task = Task::create($request->validated());
 
-        Activity::record($task, ActivityAction::Created);
-
         return TaskResource::make($task->load('category'))->response()->setStatusCode(201);
     }
 
@@ -155,8 +147,7 @@ class TaskController extends Controller
      * Backs dropping a card between two others on the board, which says both which column the task
      * belongs in and where in that column someone wants it.
      *
-     * The stage change goes through setStage like every other one, so widening a drop into a
-     * reorder did not give the activity log a fourth way to be missed.
+     * The stage change goes through setStage like every other one.
      */
     public function reorder(ReorderTaskRequest $request, Task $task): TaskResource
     {
@@ -182,9 +173,6 @@ class TaskController extends Controller
         $task->due_date = $request->validated('due_date');
         $task->save();
 
-        // Clearing a date is its own event: "Scheduled X" would be a lie about what happened.
-        Activity::record($task, $task->due_date === null ? ActivityAction::Unscheduled : ActivityAction::Scheduled);
-
         return TaskResource::make($task->load('category'));
     }
 
@@ -192,8 +180,6 @@ class TaskController extends Controller
     {
         // Soft delete: the row is stamped, not removed, so restore() can bring it back.
         $task->delete();
-
-        Activity::record($task, ActivityAction::Deleted);
 
         return response()->json(['message' => 'Task deleted.']);
     }
@@ -204,8 +190,6 @@ class TaskController extends Controller
     public function restore(Task $task): TaskResource
     {
         $task->restore();
-
-        Activity::record($task, ActivityAction::Restored);
 
         return TaskResource::make($task->load('category'));
     }
@@ -263,8 +247,6 @@ class TaskController extends Controller
                 return false;
             }
 
-            // The same private method start, complete, reopen and a board drop all use, so a bulk
-            // stage change cannot become the one path that forgets to write the activity log.
             $this->setStage($task, $status);
 
             return true;
@@ -272,13 +254,11 @@ class TaskController extends Controller
 
         if ($action === BulkAction::Delete) {
             $task->delete();
-            Activity::record($task, ActivityAction::Deleted);
 
             return true;
         }
 
         $task->restore();
-        Activity::record($task, ActivityAction::Restored);
 
         return true;
     }
@@ -344,19 +324,13 @@ class TaskController extends Controller
     }
 
     /**
-     * The one path to a stage change. start, complete, reopen and a board drop all come through
-     * here, so the activity log records every one of them in exactly the same way.
+     * The one path to a stage change. start, complete, reopen, a board drop and a bulk action all
+     * come through here.
      */
     private function setStage(Task $task, TaskStatus $status): void
     {
         $task->status = $status;
         $task->save();
-
-        Activity::record($task, match ($status) {
-            TaskStatus::Pending => ActivityAction::Reopened,
-            TaskStatus::InProgress => ActivityAction::Started,
-            TaskStatus::Completed => ActivityAction::Completed,
-        });
     }
 
     /**

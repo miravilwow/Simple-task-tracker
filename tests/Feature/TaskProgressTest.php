@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Category;
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -115,20 +114,6 @@ class TaskProgressTest extends TestCase
         $titles = array_column($this->getJson('/api/tasks?status=in_progress')->json('data'), 'title');
 
         $this->assertSame(['Doing'], $titles);
-    }
-
-    public function test_starting_a_task_is_recorded_in_its_projects_activity(): void
-    {
-        $category = Category::factory()->create();
-        $task = Task::factory()->create(['category_id' => $category->id, 'title' => 'Ship it']);
-
-        $this->patchJson("/api/tasks/{$task->id}/start")->assertOk();
-
-        $this->getJson("/api/categories/{$category->id}/activity")
-            ->assertOk()
-            ->assertJsonPath('data.0.action', 'started')
-            ->assertJsonPath('data.0.label', 'Started')
-            ->assertJsonPath('data.0.task_title', 'Ship it');
     }
 
     public function test_start_returns_404_for_a_missing_task(): void

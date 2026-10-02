@@ -109,18 +109,6 @@ class TaskSchedulingTest extends TestCase
             ->assertJsonPath('data.0.is_overdue', false);
     }
 
-    public function test_filters_by_category(): void
-    {
-        $work = Category::factory()->create();
-        $mine = Task::factory()->create(['category_id' => $work->id]);
-        Task::factory()->create();
-
-        $response = $this->getJson("/api/tasks?category_id={$work->id}");
-
-        $response->assertOk()->assertJsonCount(1, 'data');
-        $this->assertSame($mine->id, $response->json('data.0.id'));
-    }
-
     /**
      * @return array<string, array{string, array<int, string>}>
      */

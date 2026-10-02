@@ -108,19 +108,6 @@ Start every response that changes code with one line naming the active role(s), 
   | PATCH | `/api/tasks/{id}/subtasks/{sub}` | 200 + updated sub-task | 400 validation failure, 404 not found |
   | DELETE | `/api/tasks/{id}/subtasks/{sub}` | 200 + message | 404 not found |
   | GET | `/api/categories` | 200 + task counts | none |
-  | POST | `/api/categories` | 201 + created category | 400 validation failure |
-  | PATCH | `/api/categories/{id}` | 200 + updated category | 400 validation failure, 404 not found |
-  | PATCH | `/api/categories/{id}/move` | 200 + moved category | 400 bad parent, 404 not found |
-  | PATCH | `/api/categories/{id}/favorite` | 200 + updated category | 400 validation failure, 404 not found |
-  | POST | `/api/categories/{id}/duplicate` | 201 + the copy | 404 not found |
-  | GET | `/api/categories/{id}/comments` | 200 + thread | 404 not found |
-  | POST | `/api/categories/{id}/comments` | 201 + created comment | 400 validation failure, 404 not found |
-  | PATCH | `/api/categories/{id}/comments/{comment}/reactions` | 200 + updated comment | 400 validation failure, 404 not found |
-  | DELETE | `/api/categories/{id}/comments/{comment}` | 200 + message | 404 not found |
-  | GET | `/api/categories/{id}/activity` | 200 + recent entries | 404 not found |
-  | DELETE | `/api/categories/{id}` | 200 + message | 404 not found |
-  | PATCH | `/api/categories/{id}/restore` | 200 + restored project | 404 not found |
-  | DELETE | `/api/categories/{id}/force` | 200 + message | 404 not found |
 
 - `GET /api/tasks` accepts `status`, `category_id`, `due` (`overdue`, `today`, `upcoming`, `none`), a `from`/`to` date window for the calendar, and the Display panel's `sort`, `priority` and `completed`. Every one of them is used by the UI; do not add a filter nothing calls.
 - `sort` is `App\Enums\TaskSort`: `default` is `Src\TaskSorter`, while `due`, `name` and `manual` replace it. All four then pass through `byStage()`, so no sort can bury live work under finished work.

@@ -19,13 +19,7 @@ class CategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'description' => $this->description,
-            'color' => $this->color->value,
-            'icon' => $this->icon->value,
-            'is_favorite' => $this->is_favorite,
-            'parent_id' => $this->parent_id,
             'task_count' => $this->whenCounted('tasks'),
-            'comment_count' => $this->whenCounted('comments'),
         ];
     }
 }

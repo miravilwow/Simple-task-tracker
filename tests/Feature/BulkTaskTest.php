@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Activity;
-use App\Models\Category;
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -85,22 +83,6 @@ class BulkTaskTest extends TestCase
             ->assertJsonPath('count', 3);
 
         $this->assertSame(3, Task::query()->count());
-    }
-
-    public function test_every_stage_change_reaches_the_activity_log(): void
-    {
-        // The whole reason the endpoint loops rather than running one UPDATE: a bulk change is
-        // still a stage change, and the feed cannot be the one place that misses three of them.
-        $category = Category::factory()->create();
-        $tasks = Task::factory()->count(3)->create([
-            'category_id' => $category->id,
-            'status' => 'pending',
-        ]);
-
-        $this->postJson('/api/tasks/bulk', ['action' => 'complete', 'ids' => $this->ids(...$tasks)])
-            ->assertOk();
-
-        $this->assertSame(3, Activity::query()->where('action', 'completed')->count());
     }
 
     public function test_a_failure_part_way_leaves_nothing_changed(): void

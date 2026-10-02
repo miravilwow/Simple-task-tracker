@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\CategoryIcon;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Category;
@@ -14,17 +13,16 @@ class TaskSeeder extends Seeder
     public function run(): void
     {
         $demo = [
-            ['name' => 'Work', 'icon' => CategoryIcon::Briefcase],
-            ['name' => 'Personal', 'icon' => CategoryIcon::Person],
-            ['name' => 'School', 'icon' => CategoryIcon::HatGraduation],
-            ['name' => 'Gaming', 'icon' => CategoryIcon::Games],
+            ['name' => 'Work'],
+            ['name' => 'Personal'],
+            ['name' => 'School'],
+            ['name' => 'Gaming'],
         ];
 
         // Running this twice used to stop on a duplicate project name. Someone following the README
         // should be able to run it again and have nothing happen, rather than read a stack trace
-        // and wonder what they broke. withTrashed, because a deleted project keeps its name
-        // reserved and would fail the same way.
-        if (Category::withTrashed()->whereIn('name', array_column($demo, 'name'))->exists()) {
+        // and wonder what they broke.
+        if (Category::query()->whereIn('name', array_column($demo, 'name'))->exists()) {
             $this->command?->info('Demo data is already here, so nothing was added.');
 
             return;
