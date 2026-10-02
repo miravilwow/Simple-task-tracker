@@ -1106,16 +1106,8 @@ function showTaskDetail(id, trigger, ids) {
     });
 }
 
-// Add task on this day: the New task form, already set to that day.
-function addTaskOn(iso) {
-    // New task is hidden on Upcoming, so focus returns to the calendar heading instead.
-    openTaskDialog(document.getElementById('calendar-heading'));
-    elements.dueDate.value = iso;
-    elements.dueDate.dispatchEvent(new Event('change'));
-}
-
 const tasksOn = (iso) => latestTasks.filter((task) => task.due_date === iso);
-const dayDialog = createDayDialog({ onOpenTask: showTaskDetail, onAddTask: addTaskOn, onColorChange: () => load() });
+const dayDialog = createDayDialog({ onOpenTask: showTaskDetail, onColorChange: () => load() });
 const dayEmptyText = () => (filtersAreOn() ? FILTERED_EMPTY : undefined);
 const openDay = (iso) => dayDialog.open(iso, tasksOn(iso), dayEmptyText());
 

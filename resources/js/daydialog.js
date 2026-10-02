@@ -1,6 +1,7 @@
 /**
  * The day dialog: every task due on one day, because a calendar cell has room for three. It owns
- * the dialog and nothing else; opening a task and adding one are the page's to do.
+ * the dialog and the day's colour; opening a task is the page's to do. A task is not created from
+ * here — the day is read-only, and New task on the board is the one place a task is made.
  */
 import { PRIORITY_DOTS } from './calendar.js';
 import { dayColorOf, setDayColor } from './daycolor.js';
@@ -12,7 +13,7 @@ const EMPTY = 'Nothing on this day yet.';
 
 const $ = (id) => document.getElementById(id);
 
-export function createDayDialog({ onOpenTask, onAddTask, onColorChange }) {
+export function createDayDialog({ onOpenTask, onColorChange }) {
     const dialog = $('day-dialog');
     const colorField = $('day-color-field');
     const colorGroup = $('day-color');
@@ -20,9 +21,7 @@ export function createDayDialog({ onOpenTask, onAddTask, onColorChange }) {
     const title = $('day-title');
     const count = $('day-count');
     const list = $('day-list');
-    const add = $('day-add');
     let iso = null;
-    let returnFocus = false;
     let shown = [];
 
     // The rows are rebuilt on every reload, so a task's opener is looked up when focus returns.
@@ -73,13 +72,10 @@ export function createDayDialog({ onOpenTask, onAddTask, onColorChange }) {
         title.textContent = titleFormatter.format(parseDate(iso));
         count.textContent = `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`;
         list.replaceChildren(...(tasks.length > 0 ? tasks.map(row) : [createElement('li', 'py-6 text-center text-sm text-gray-500', emptyText)]));
-        // The server refuses a past due date, so a past day offers nothing to add.
-        add.hidden = iso < toIsoDate(startOfToday());
     }
 
     function open(day, tasks, emptyText = EMPTY) {
         iso = day;
-        returnFocus = true;
         draw(tasks, emptyText);
         dialog.showModal();
     }
@@ -113,14 +109,7 @@ export function createDayDialog({ onOpenTask, onAddTask, onColorChange }) {
             dialog.close();
         }
     });
-    dialog.addEventListener('close', () => returnFocus && opener().focus());
-    add.addEventListener('click', () => {
-        const day = iso;
-
-        returnFocus = false;
-        dialog.close();
-        onAddTask(day);
-    });
+    dialog.addEventListener('close', () => opener().focus());
 
     return {
         open,

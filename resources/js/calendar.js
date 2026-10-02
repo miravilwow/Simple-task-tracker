@@ -8,7 +8,7 @@ export const PRIORITY_DOTS = {
 };
 
 const MAX_CHIPS = 3;
-const WARN_AT = 6;
+const WARN_AT = 9;
 const DANGER_AT = 10;
 
 export const dayLoad = (count) => (count >= DANGER_AT ? 'danger' : count >= WARN_AT ? 'warn' : null);
@@ -179,34 +179,44 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         const dayTasks = byDate.get(iso) ?? [];
         const load = dayLoad(dayTasks.length);
 
+        // No `space-y`: it would push the overlay button below the top of the cell, because an
+        // inset-0 box with a margin is laid out inside its margins. The rows carry `mt-1` instead.
         const cell = createElement(
             'div',
-            `min-h-28 space-y-1 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
+            `relative min-h-28 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
                 cellBackground(isPast, inMonth, load, dayColorOf(iso))
             }`,
         );
 
-        const numberClasses = isToday
-            ? 'flex items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
-            : `flex items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`;
-        let number;
-
+        // The whole day opens the dialog, not just its number: the number is a 32px target in a
+        // cell many times its size. It stays a real button rather than a click handler on the
+        // cell, so the day is reachable by Tab and announces itself.
         if (onOpenDay) {
-            number = createElement(
+            const surface = createElement(
                 'button',
-                `${numberClasses} -my-1 min-h-8 min-w-8 rounded-full hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
-                String(date.getDate()),
+                'absolute inset-0 z-0 transition-colors hover:bg-gray-900/5 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-inset focus-visible:outline-none',
             );
-            number.type = 'button';
-            number.dataset.iso = iso;
-            number.setAttribute(
+            surface.type = 'button';
+            surface.dataset.iso = iso;
+            surface.setAttribute(
                 'aria-label',
                 `${dayFormatter.format(date)}, ${dayTasks.length} ${dayTasks.length === 1 ? 'task' : 'tasks'}`,
             );
-            number.addEventListener('click', () => onOpenDay(iso));
-        } else {
-            number = createElement('span', `${numberClasses} size-6`, String(date.getDate()));
+            surface.addEventListener('click', () => onOpenDay(iso));
+            cell.append(surface);
         }
+
+        const number = createElement(
+            'span',
+            `flex size-6 items-center justify-center text-xs font-medium ${
+                isToday
+                    ? 'rounded-full bg-red-600 font-semibold text-white'
+                    : inMonth
+                      ? 'text-gray-600'
+                      : 'text-gray-400'
+            }`,
+            String(date.getDate()),
+        );
 
         const header = createElement('div', 'flex items-center justify-between gap-1');
         header.append(number);
@@ -222,19 +232,23 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         cell.append(header);
 
         for (const task of dayTasks.slice(0, MAX_CHIPS)) {
-            cell.append(createChip(task, { onOpen, draggable: true }));
+            const chip = createChip(task, { onOpen, draggable: true });
+
+            // Above the day's overlay button, or the overlay would take the chip's own clicks.
+            chip.classList.add('relative', 'z-10', 'mt-1');
+            cell.append(chip);
         }
 
-        if (onOpenDay && dayTasks.length > MAX_CHIPS) {
-            const more = createElement(
-                'button',
-                'min-h-8 w-full rounded-md px-2 text-left text-xs font-medium text-gray-600 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
-                `+${dayTasks.length - MAX_CHIPS} more`,
+        // Text, not a button: the whole cell already opens the day, and a second control for it
+        // would only be another tab stop saying the same thing.
+        if (dayTasks.length > MAX_CHIPS) {
+            cell.append(
+                createElement(
+                    'p',
+                    'mt-1 px-2 text-xs font-medium text-gray-600',
+                    `+${dayTasks.length - MAX_CHIPS} more`,
+                ),
             );
-            more.type = 'button';
-            more.dataset.iso = iso;
-            more.addEventListener('click', () => onOpenDay(iso));
-            cell.append(more);
         }
 
         if (!isPast) {

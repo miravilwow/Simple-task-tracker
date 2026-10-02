@@ -408,11 +408,6 @@
         </div>
         <div class="flex justify-end gap-2 border-t border-gray-200 p-4 sm:px-6">
             <button type="button" id="day-close" class="btn-secondary">Close</button>
-            <button type="button" id="day-add"
-                class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none">
-                <x-icon name="plus" class="size-4" />
-                Add task on this day
-            </button>
         </div>
     </dialog>
 

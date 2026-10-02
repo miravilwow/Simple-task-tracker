@@ -288,7 +288,12 @@ class TrackerPageTest extends TestCase
             'id="day-count"',
             'id="day-list"',
             'id="day-close"',
-            'id="day-add"',
         ], false);
+    }
+
+    /** The dialog reads a day; New task on the board is the one place a task is created. */
+    public function test_the_day_dialog_offers_no_way_to_create_a_task(): void
+    {
+        $this->get('/tasks')->assertOk()->assertDontSee('id="day-add"', false);
     }
 }
