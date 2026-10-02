@@ -309,7 +309,7 @@
                     <h2 id="unscheduled-heading" class="font-medium">No due date</h2>
                     <span id="unscheduled-count" class="ml-auto text-xs text-gray-400 tabular-nums"></span>
                 </div>
-                <ul id="unscheduled-list" class="max-h-96 space-y-2 overflow-y-auto p-3"></ul>
+                <ul id="unscheduled-list" class="max-h-96 space-y-2 overflow-y-auto scrollbar-none p-3"></ul>
                 <p id="unscheduled-empty" class="hidden px-4 py-6 text-center text-sm text-gray-500">
                     Every task has a date.
                 </p>

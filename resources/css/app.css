@@ -11,6 +11,15 @@
     grid-template-columns: 1.75rem minmax(0, 1fr) 5.5rem 6.5rem 10.5rem;
 }
 
+/* Hides the bar, not the scrolling: wheel, touch, keyboard and trackpad all still scroll. */
+@utility scrollbar-none {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 /* Entrance animations, skipped entirely for anyone who asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
     /* The spinner on a button that is working. With motion turned off it stays a still arc,

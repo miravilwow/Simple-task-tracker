@@ -12,7 +12,7 @@
 
 <!DOCTYPE html>
 {{-- overscroll-y-none stops the rubber band at the top of the page; see app.css. --}}
-<html lang="en" @class(['motion-safe:scroll-smooth', 'overscroll-y-none' => $fluid])>
+<html lang="en" @class(['motion-safe:scroll-smooth', 'overscroll-y-none' => $fluid, 'scrollbar-none' => $fluid])>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
