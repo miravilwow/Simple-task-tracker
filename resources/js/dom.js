@@ -97,48 +97,7 @@ export function clearBusy(button) {
     button.disabled = false;
 }
 
-const toastRegion = document.getElementById('toast-region');
 
-/**
- * `action` turns the toast into the undo affordance for a destructive step:
- * `{ label, onClick }`, rendered as a button beside the message.
- */
-export function showToast(message, type = 'success', action = null) {
-    const styles = type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white';
-    const toast = createElement(
-        'div',
-        `toast-enter flex items-center gap-2 rounded-lg py-2.5 pr-2 pl-4 text-sm shadow-lg ${styles}`,
-    );
-
-    toast.append(createIcon(type === 'error' ? 'warning' : 'check-circle', 'size-4 shrink-0'));
-    toast.append(createElement('span', '', message));
-
-    if (action) {
-        const button = createElement(
-            'button',
-            'ml-1 inline-flex min-h-8 shrink-0 items-center rounded px-2 font-medium underline ' +
-                'underline-offset-2 hover:no-underline focus-visible:ring-2 focus-visible:ring-white ' +
-                'focus-visible:outline-none',
-            action.label,
-        );
-        button.type = 'button';
-        button.addEventListener('click', () => {
-            toast.remove();
-            action.onClick();
-        });
-        toast.append(button);
-
-        // #toast-region is pointer-events-none so a toast never swallows a click meant for the
-        // page behind it. A toast with something to press has to take its clicks back.
-        toast.classList.add('pointer-events-auto');
-    }
-
-    toastRegion.append(toast);
-
-    // An action has to be noticed and then reached, which 3s does not allow for;
-    // a message with nothing to click still goes at the usual pace.
-    setTimeout(() => toast.remove(), action ? 8000 : 3000);
-}
 
 /**
  * `new Date('2026-10-05')` is parsed as UTC midnight, which lands on the previous day

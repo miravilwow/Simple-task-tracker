@@ -289,8 +289,9 @@ docs/SPRINT.md              the plan that closed the architecture review
 
 ## Credits
 
-The sidebar's structure and behaviour follow [shadcn/ui](https://ui.shadcn.com)'s Sidebar (MIT),
-rebuilt for Blade and vanilla JS. Project icons come from Iconify's Fluent UI set (MIT) through
+The sidebar's structure and behaviour follow [shadcn/ui](https://ui.shadcn.com)'s Sidebar (MIT), and
+the toasts follow its [Sonner](https://sonner.emilkowal.ski) wrapper (MIT) — both rebuilt for Blade
+and vanilla JS rather than installed, since each ships as a React component. Project icons come from Iconify's Fluent UI set (MIT) through
 `@iconify/tailwind4`. Everything else is Heroicons or hand-written.
 
 ## AI Disclosure

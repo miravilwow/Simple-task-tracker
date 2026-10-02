@@ -17,10 +17,10 @@ import {
     setBusy,
     setVisible,
     shortDate,
-    showToast,
     startOfToday,
     toIsoDate,
 } from './dom.js';
+import { toast } from './toast.js';
 
 // Full class strings are listed here (not built dynamically) so Tailwind can find them.
 const PRIORITY_BADGES = {
@@ -592,7 +592,9 @@ function renderDeleted(categories) {
             restore.title = `Restore ${category.name}`;
             restore.append(createIcon('undo', 'size-4'), createElement('span', 'sr-only', `Restore ${category.name}`));
             restore.addEventListener('click', () =>
-                runAndReload(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
+                runAndReload(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), {
+                    message: 'Project restored',
+                }),
             );
 
             const purge = createElement(
@@ -773,7 +775,7 @@ async function load() {
 // ---------------------------------------------------------------- task actions
 
 // Re-rendering destroys the button that was clicked, so focus has to be parked somewhere.
-async function runAction(button, { busyLabel, request, successMessage, restoreFocus, undo, undoMessage }) {
+async function runAction(button, { busyLabel, request, successMessage, description, restoreFocus, undo, undoMessage }) {
     const hadFocus = restoreFocus ?? document.activeElement === button;
 
     if (button) {
@@ -782,7 +784,12 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
 
     try {
         await request();
-        showToast(successMessage, 'success', undo ? { label: 'Undo', onClick: () => runAndReload(undo, undoMessage) } : null);
+        toast.success(successMessage, {
+            description,
+            action: undo
+                ? { label: 'Undo', onClick: () => runAndReload(undo, { message: undoMessage, description }) }
+                : null,
+        });
         await load();
 
         if (hadFocus) {
@@ -791,7 +798,7 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
             (currentLayout() === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
         }
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     } finally {
         if (button) {
             clearBusy(button);
@@ -805,13 +812,18 @@ async function runAction(button, { busyLabel, request, successMessage, restoreFo
  * Run one request, say what happened, and reload. Every action that is a single call and a
  * toast goes through here: undoing a task, favouriting a project, moving it, restoring it.
  */
-async function runAndReload(request, message, undo) {
+async function runAndReload(request, { message, description = '', undo = null } = {}) {
     try {
         await request();
-        showToast(message, 'success', undo ? { label: 'Undo', onClick: () => runAndReload(undo, 'Move undone') } : null);
+        toast.success(message, {
+            description,
+            action: undo
+                ? { label: 'Undo', onClick: () => runAndReload(undo, { message: 'Move undone', description }) }
+                : null,
+        });
         await load();
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     }
 }
 
@@ -820,6 +832,7 @@ const completeTask = (task, button) =>
         busyLabel: 'Completing…',
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
         successMessage: 'Task completed',
+        description: task.title,
         undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
         undoMessage: 'Task reopened',
     });
@@ -843,6 +856,7 @@ async function deleteTask(task, button) {
         busyLabel: 'Deleting…',
         request: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
         successMessage: 'Task deleted',
+        description: task.title,
         restoreFocus: hadFocus,
         undo: () => api(`/tasks/${task.id}/restore`, { method: 'PATCH' }),
         undoMessage: 'Task restored',
@@ -853,10 +867,10 @@ async function deleteTask(task, button) {
 async function scheduleTask(taskId, date) {
     try {
         await api(`/tasks/${taskId}/schedule`, { method: 'PATCH', body: { due_date: date } });
-        showToast(date ? 'Task rescheduled' : 'Due date cleared');
+        toast.success(date ? 'Task rescheduled' : 'Due date cleared');
         await load();
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     }
 }
 
@@ -947,13 +961,13 @@ async function createTask(event) {
     try {
         await api('/tasks', { method: 'POST', body: payload });
         closeTaskDialog();
-        showToast('Task added');
+        toast.success('Task added', { description: payload.title });
         await load();
     } catch (error) {
         if (error instanceof ApiError && Object.keys(error.errors).length > 0) {
             showFieldErrors(error.errors, elements.form);
         } else {
-            showToast(errorMessage(error), 'error');
+            toast.error(errorMessage(error));
         }
     } finally {
         clearBusy(elements.submit);
@@ -1186,14 +1200,18 @@ async function submitProjectForm(event) {
     clearFieldErrors(PROJECT_FIELDS);
     setBusy(elements.projectSubmit, 'Saving…');
 
+    // Read once, before the request: closing the dialog clears the form, so the name would be
+    // gone by the time the toast wants to print it.
+    const payload = projectPayload();
+
     try {
         await api(editing ? `/categories/${editing.id}` : '/categories', {
             method: editing ? 'PATCH' : 'POST',
-            body: projectPayload(),
+            body: payload,
         });
 
         closeProjectDialog();
-        showToast(editing ? 'Project updated' : 'Project added');
+        toast.success(editing ? 'Project updated' : 'Project added', { description: payload.name });
         await load();
     } catch (error) {
         // The API names these fields "name", "icon" and so on; the inputs are prefixed to stay
@@ -1204,7 +1222,7 @@ async function submitProjectForm(event) {
             );
             showFieldErrors(prefixed, elements.projectForm);
         } else {
-            showToast(errorMessage(error), 'error');
+            toast.error(errorMessage(error));
         }
     } finally {
         clearBusy(elements.projectSubmit);
@@ -1217,14 +1235,14 @@ function setFavorite(category, isFavorite) {
             method: 'PATCH',
             body: { is_favorite: isFavorite },
         }),
-        isFavorite ? 'Added to favorites' : 'Removed from favorites',
+        { message: isFavorite ? 'Added to favorites' : 'Removed from favorites', description: category.name },
     );
 }
 
 function duplicateProject(category) {
     runAndReload(
         () => api(`/categories/${category.id}/duplicate`, { method: 'POST' }),
-        'Project duplicated',
+        { message: 'Project duplicated', description: `A copy of ${category.name}` },
     );
 }
 
@@ -1244,7 +1262,7 @@ async function moveProject(category) {
             method: 'PATCH',
             body: { parent_id: parentId.value },
         }),
-        'Project moved',
+        { message: 'Project moved', description: category.name },
     );
 }
 
@@ -1319,14 +1337,21 @@ async function deleteCategory(category) {
 
         // The same Undo a deleted task gets. A project holds more than a task does, so it would
         // be the odd one out without it.
-        showToast('Project deleted', 'success', {
-            label: 'Undo',
-            onClick: () =>
-                runAndReload(() => api(`/categories/${category.id}/restore`, { method: 'PATCH' }), 'Project restored'),
+        toast.success('Project deleted', {
+            description: `${category.name} — its tasks went with it`,
+            action: {
+                label: 'Undo',
+                onClick: () =>
+                    runAndReload(
+                        () => api(`/categories/${category.id}/restore`, { method: 'PATCH' }),
+                        'Project restored',
+                        category.name,
+                    ),
+            },
         });
         await load();
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     }
 }
 
@@ -1352,7 +1377,7 @@ async function purgeCategory(category) {
 
     runAndReload(
         () => api(`/categories/${category.id}/force`, { method: 'DELETE' }),
-        'Project deleted permanently',
+        { message: 'Project deleted permanently', description: `${category.name} cannot be restored` },
     );
 }
 
@@ -1440,8 +1465,10 @@ function moveTask(id, status, from) {
 
     return runAndReload(
         () => api(`/tasks/${id}/${STAGE_ENDPOINTS[status]}`, { method: 'PATCH' }),
-        `Moved to ${STATUS_BADGES[status].label}`,
-        () => api(`/tasks/${id}/${undo}`, { method: 'PATCH' }),
+        {
+            message: `Moved to ${STATUS_BADGES[status].label}`,
+            undo: () => api(`/tasks/${id}/${undo}`, { method: 'PATCH' }),
+        },
     );
 }
 
@@ -1465,8 +1492,11 @@ function reorderTask(id, status, after) {
 
     return runAndReload(
         () => reorder({ status, after }),
-        message,
-        () => reorder({ status: task.status, after: wasAfter }),
+        {
+            message,
+            description: task.title,
+            undo: () => reorder({ status: task.status, after: wasAfter }),
+        },
     );
 }
 

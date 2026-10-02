@@ -284,7 +284,9 @@ Every data view needs all four states:
 | Loading | Skeleton rows on first load, so the panel keeps its height instead of collapsing. Never a blank area. |
 | Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
 | Error | A red inline banner with a retry button. The sidebar counts and the meter clear, so stale numbers never sit beside an error. |
-| Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". |
+| Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". **A toast is a card, not a pill**, following shadcn/ui's Sonner (MIT): an icon, a title, and a quieter description under it. The white surface with a hairline border is what the rest of the app is built from, and `shadow-lg` is what every other floating panel already uses; the dark pill was the one surface belonging to nothing else. |
+| Description | **A toast names the thing it happened to.** "Task completed" alone makes someone who clicked the wrong row check the list to find out which one; "Task completed / Review pull request #42" does not. Titles are user input, so a description is set as text and never as markup. A toast with nothing more to say than its title carries no description rather than a filler line. |
+| Stacking | At most three at once. Beyond that the newest is pushing older ones off the screen, which is a tower nobody read, so the **oldest** goes — the newest is what just happened. |
 | Undo | A toast carrying an action button lasts 8s, not 3s, because the user has to notice it and then reach it. Complete and Delete both offer **Undo**; it reverses through the API (`reopen`, `restore`) and reports the result in a toast of its own. The button is a real 32px target, so it is tappable and keyboard-reachable. **`#toast-region` is `pointer-events-none`**, so a toast never swallows a click meant for the page behind it; a toast that has something to press must take its own clicks back with `pointer-events-auto`, or the button looks alive and does nothing under the mouse while still working from the keyboard. |
 
 - Action errors show the server's `message` when one exists, otherwise a generic "Something went wrong."
@@ -334,6 +336,8 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] The due date inside the New task dialog is the inline grid and is not clipped
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
 - [ ] Buttons disable while loading; Delete asks for confirmation
+- [ ] A toast reads as a card with an icon, a title and a description, and names the task or project it happened to
+- [ ] Four actions in a row leave at most three toasts on screen, and the newest is one of them
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
 - [ ] Add, Complete, Delete, and every Display setting work without a page reload
 - [ ] Upcoming opens the calendar, and the Layout buttons are disabled while it is open

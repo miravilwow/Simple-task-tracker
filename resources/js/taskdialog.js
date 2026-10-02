@@ -5,7 +5,8 @@
  * closing. A native <dialog> traps focus and closes on Escape for free.
  */
 import { api } from './api.js';
-import { createElement, createIcon, showToast } from './dom.js';
+import { createElement, createIcon } from './dom.js';
+import { toast } from './toast.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -144,7 +145,7 @@ async function save(request) {
 
         await handlers.onChange();
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     }
 }
 
@@ -200,7 +201,7 @@ export async function openTaskDetail(id, trigger, context) {
         await load(id);
         elements.dialog.showModal();
     } catch (error) {
-        showToast(errorMessage(error), 'error');
+        toast.error(errorMessage(error));
     }
 }
 

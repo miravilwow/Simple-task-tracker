@@ -313,6 +313,26 @@
  * cannot disagree with itself about where the card is going. The height is a card's own, so the
  * cards part by exactly as much as the card coming in will take.
  */
+/*
+ * A toast, following Sonner (MIT) as shadcn/ui wraps it: a card rather than the dark pill this
+ * used to be. A white surface with a hairline border is what the rest of the app is built from,
+ * and shadow-lg is what every other floating panel here already uses — the menu, the date grid
+ * and the Display panel. The dark pill was the one surface that belonged to nothing else.
+ */
+@utility toast-card {
+    @apply flex w-full max-w-md items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-lg;
+}
+
+/*
+ * The action on a toast. Solid indigo, like every other primary action, and min-h-8 because it is
+ * a real target that has to be reachable by thumb and by keyboard.
+ */
+@utility btn-toast-action {
+    @apply inline-flex min-h-8 shrink-0 items-center rounded-md bg-indigo-600 px-2.5 text-sm font-medium
+        text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500
+        focus-visible:ring-offset-2 focus-visible:outline-none;
+}
+
 @utility board-gap {
     @apply h-20 shrink-0 rounded-lg border-2 border-dashed border-indigo-400 bg-indigo-50;
 }

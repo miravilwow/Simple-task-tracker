@@ -186,7 +186,7 @@ Start every response that changes code with one line naming the active role(s), 
   | File | Responsibility |
   |---|---|
   | `api.js` | `fetch` wrapper, `ApiError`, query-string building |
-  | `dom.js` | element/icon/badge builders, toasts, busy states, visibility, shared date helpers |
+  | `dom.js` | element/icon/badge builders, busy states, visibility, shared date helpers |
   | `dialogs.js` | the confirm and reschedule modals |
   | `shell.js` | keeps `--header-height` matched to the navbar's real height |
   | `datepicker.js` | the month grid over each `<input type="date">` |
@@ -196,6 +196,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `display.js` | the Display panel: layout, grouping, sorting, filters, and the chips that name them |
   | `board.js` | the board's columns, and dragging a card between them by pointer or keyboard |
   | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |
+  | `toast.js` | the toast region, its three variants, and the action a toast can carry |
   | `app.js` | state, data loading, list rendering, wiring |
 
 - Never build a `Date` from an ISO date string with `new Date('2026-10-05')`: that parses as UTC midnight and shows the previous day west of Greenwich. Use `parseDate` / `toIsoDate` from `dom.js`.
@@ -205,7 +206,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Update the UI only after the API confirms success (no optimistic updates), and show the server's error message on failure.
 - Tailwind v4 is configured in CSS (`resources/css/app.css`). There is no `tailwind.config.js`, so don't create one.
 - Repeated class strings that both Blade and JavaScript need become an `@utility` in `app.css` rather than being copied into each. The sidebar's utilities work this way, and so do `btn-secondary`, `panel-tab` and `reaction-chip`. A string copied into six dialogs is how the copies quietly drift apart: one of the six had picked up a stray focus ring nobody had asked for.
-- Third-party designs that get ported (currently shadcn/ui's Sidebar, MIT) are credited in the code comment where they land and in the README.
+- Third-party designs that get ported (shadcn/ui's Sidebar and its Sonner toast, both MIT) are credited in the code comment where they land and in the README. **A port is a rebuild, not an install.** Sonner needs React, and the shadcn wrapper's classes (`bg-background`, `text-muted-foreground`) need a token layer this project's Tailwind does not have, so dropping them in renders nothing at all. What carries over is the design and the call shape; what does not is anything the app has no use for, which is why the theme hook and `toast.promise` were left behind.
 - Follow every rule in [UI_UX_RULES.md](UI_UX_RULES.md).
 
 **Definition of Done:** each action works in the browser with no console errors, at both mobile and desktop widths.
