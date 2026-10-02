@@ -85,7 +85,7 @@ class TaskController extends Controller
 
     public function stats(): JsonResponse
     {
-        // "Unfinished" covers To do and In progress alike. Starting a task is not finishing it, so
+        // "Unfinished" covers every stage before Done. Starting a task is not finishing it, so
         // it must not move the number that says how much is left.
         $open = TaskStatus::unfinished();
         $openList = implode(', ', array_fill(0, count($open), '?'));
@@ -145,6 +145,16 @@ class TaskController extends Controller
     public function start(Task $task): TaskResource
     {
         $this->setStage($task, TaskStatus::InProgress);
+
+        return TaskResource::make($task->load('category'));
+    }
+
+    /**
+     * Moves a task into review: the work is done, but nobody has checked it yet.
+     */
+    public function review(Task $task): TaskResource
+    {
+        $this->setStage($task, TaskStatus::InReview);
 
         return TaskResource::make($task->load('category'));
     }
@@ -388,8 +398,8 @@ class TaskController extends Controller
      * above today's urgent one. Splitting the sorted list keeps each group in TaskSorter's order
      * while leaving the actionable work on top.
      *
-     * To do, then In progress, then Done: the same order the board's columns read left to right,
-     * because they are the same three stages and one of them cannot run backwards. TaskSorter
+     * To do, In progress, In review, then Done: the same order the board's columns read left to
+     * right, because they are the same four stages and one of them cannot run backwards. TaskSorter
      * itself never learns any of this — the split is here, so Part 1 stays exactly as the exam
      * specifies it.
      *
@@ -406,6 +416,7 @@ class TaskController extends Controller
         return [
             ...$inStage(TaskStatus::Pending),
             ...$inStage(TaskStatus::InProgress),
+            ...$inStage(TaskStatus::InReview),
             ...$inStage(TaskStatus::Completed),
         ];
     }

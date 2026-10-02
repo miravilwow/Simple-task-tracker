@@ -36,8 +36,8 @@ class TaskSeeder extends Seeder
         $tasks = [
             ['Fix checkout payment timeout', 'Customers see a 504 after 30 seconds on the payment step.', 'Work', TaskPriority::High, TaskStatus::Pending, 30, -1],
             ['Rotate expired API keys', null, 'Work', TaskPriority::High, TaskStatus::Pending, 6, 0],
-            ['Review pull request #42', null, 'Work', TaskPriority::Medium, TaskStatus::Pending, 3, 0],
-            ['Write README setup steps', 'Cover composer, npm, .env, migrations, and tests.', 'Work', TaskPriority::Medium, TaskStatus::Pending, 20, 1],
+            ['Review pull request #42', null, 'Work', TaskPriority::Medium, TaskStatus::InReview, 3, 0],
+            ['Write README setup steps', 'Cover composer, npm, .env, migrations, and tests.', 'Work', TaskPriority::Medium, TaskStatus::InReview, 20, 1],
             ['Submit thesis outline', 'Three chapters plus the bibliography.', 'School', TaskPriority::High, TaskStatus::Pending, 50, 3],
             ['Read chapter 7 notes', null, 'School', TaskPriority::Low, TaskStatus::Pending, 26, 5],
             ['Book dentist appointment', null, 'Personal', TaskPriority::Medium, TaskStatus::Pending, 14, 2],

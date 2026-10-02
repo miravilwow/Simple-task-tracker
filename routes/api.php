@@ -14,6 +14,7 @@ Route::post('/tasks/bulk', [TaskController::class, 'bulk']);
 Route::get('/tasks/{task}', [TaskController::class, 'show']);
 Route::patch('/tasks/{task}', [TaskController::class, 'update']);
 Route::patch('/tasks/{task}/start', [TaskController::class, 'start']);
+Route::patch('/tasks/{task}/review', [TaskController::class, 'review']);
 Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete']);
 Route::patch('/tasks/{task}/reopen', [TaskController::class, 'reopen']);
 Route::patch('/tasks/{task}/reorder', [TaskController::class, 'reorder']);

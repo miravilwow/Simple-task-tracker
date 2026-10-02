@@ -97,6 +97,7 @@ An error is always shaped the same way:
 | GET | `/api/tasks/{id}` | 200 + task with its sub-tasks | 404 not found |
 | PATCH | `/api/tasks/{id}` | 200 + updated task | 400 validation failure, 404 not found |
 | PATCH | `/api/tasks/{id}/start` | 200 + updated task | 404 not found |
+| PATCH | `/api/tasks/{id}/review` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/reorder` | 200 + moved task | 400 validation failure, 404 not found |
@@ -165,7 +166,7 @@ GET /api/tasks?due=today&priority=high&sort=default&completed=0
 
 | Filter | Values |
 |---|---|
-| `status` | `pending`, `in_progress`, `completed` |
+| `status` | `pending`, `in_progress`, `in_review`, `completed` |
 | `due` | `overdue`, `today`, `upcoming`, `none` |
 | `from` / `to` | `YYYY-MM-DD`, the calendar's month window |
 | `priority` | `low`, `medium`, `high` |
@@ -173,7 +174,7 @@ GET /api/tasks?due=today&priority=high&sort=default&completed=0
 | `completed` | `0` hides finished work; `1` is the same as leaving it out |
 
 `sort=default` is `Src\TaskSorter`. `due`, `name` and `manual` replace it. All four then put To do
-before In progress before Done, which is the order the board's columns read, so no sort can bury
+before In progress before In review before Done, which is the order the board's columns read, so no sort can bury
 live work under finished work.
 
 `status` and `completed` cannot be sent together: "give me completed tasks, but hide completed
@@ -189,13 +190,14 @@ GET /api/tasks/stats
 { "data": { "total": 12, "pending": 1, "completed": 11, "high_priority_pending": 0, "overdue": 0, "due_today": 0 } }
 ```
 
-`pending` counts everything unfinished, To do and In progress alike: starting a task is not
+`pending` counts everything unfinished, To do, In progress and In review alike: starting a task is not
 finishing it, so it must not move the number that says how much is left.
 
 **Move a task through its stages**
 
 ```http
 PATCH /api/tasks/7/start      → status becomes in_progress
+PATCH /api/tasks/7/review     → status becomes in_review
 PATCH /api/tasks/7/complete   → status becomes completed
 PATCH /api/tasks/7/reopen     → status becomes pending
 ```
@@ -260,8 +262,8 @@ A delete stamps the row rather than removing it, so the toast that follows can o
 overridden in one place, `bootstrap/app.php`, rather than per controller.
 
 **The status set is wider than the brief.** The brief pins `pending|completed`; this adds
-`in_progress`, so the board's middle column has something to hold. Both original values keep their
-meaning: `pending` is still what a task is created with, and `completed` is still the end.
+`in_progress` and `in_review`, so the board's middle columns have something to hold, and finished
+work can wait for a check before it counts as done. Both original values keep their meaning: `pending` is still what a task is created with, and `completed` is still the end.
 
 **Four endpoints became more.** `reopen` exists because completing a task by mistake would otherwise
 be a dead end, with deleting and retyping the only way back. `restore` is that argument carried to
@@ -269,7 +271,7 @@ its end. `start`, `reorder` and `schedule` back the board and the calendar.
 
 **`TaskSorter` knows nothing about status.** It ranks by priority and then by age, exactly as the
 brief specifies, and nothing else. Splitting the sorted list into stages happens in the controller,
-so the graded class stays untouched while the list still reads To do, In progress, Done.
+so the graded class stays untouched while the list still reads To do, In progress, In review, Done.
 
 **The task list is not paginated.** It loads every matching task and orders them in PHP. That is on
 purpose: `TaskSorter` is the graded part and it is plain PHP, so the ordering has to happen there

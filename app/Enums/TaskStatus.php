@@ -6,6 +6,7 @@ enum TaskStatus: string
 {
     case Pending = 'pending';
     case InProgress = 'in_progress';
+    case InReview = 'in_review';
     case Completed = 'completed';
 
     /**
@@ -16,12 +17,13 @@ enum TaskStatus: string
         return match ($this) {
             self::Pending => 'To do',
             self::InProgress => 'In progress',
+            self::InReview => 'In review',
             self::Completed => 'Done',
         };
     }
 
     /**
-     * A task is unfinished until it is completed.
+     * To do, In progress and In review are all unfinished: a task is unfinished until it is completed.
      *
      * The smart views are work queues, so they ask this rather than naming Pending: starting a
      * task must not drop it out of Today, which is exactly where its owner expects to find the
@@ -31,6 +33,6 @@ enum TaskStatus: string
      */
     public static function unfinished(): array
     {
-        return [self::Pending->value, self::InProgress->value];
+        return [self::Pending->value, self::InProgress->value, self::InReview->value];
     }
 }

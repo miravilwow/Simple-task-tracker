@@ -58,7 +58,7 @@ Start every response that changes code with one line naming the active role(s), 
 **Owns:** schema, `Task` model.
 
 **Standards**
-- `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|in_progress|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
+- `tasks` table: `id`, `title` (string, required), `description` (text, nullable), `category_id` (nullable FK), `priority` enum `low|medium|high` (default `medium`), `status` enum `pending|in_progress|in_review|completed` (default `pending`), `due_date` (nullable date), `timestamps()`.
 - `categories` table: `id`, `name` (unique), `timestamps()`. The UI calls these "projects"; the schema has not been renamed. A project is created by typing its name on a task, never from a form of its own, so the row holds nothing but the name. `Category::named()` looks a name up case-insensitively and creates it only when nothing matches, which is how "Work" and "work" end up as one project.
 - `tasks.position` is where a task sits in its board column, backing `TaskSort::Manual` alone. Indexed as `(status, position)`, which is exactly how a column reads. It is not `$fillable`: a client never sets a position directly, it says which card the moved one should follow and the server renumbers the column.
 - Index `status` and `due_date`, since the list endpoint filters on both. `deleted_at` is left unindexed: it is NULL for nearly every row, so the index would not pay for itself.
@@ -90,6 +90,7 @@ Start every response that changes code with one line naming the active role(s), 
   | GET | `/api/tasks/{id}` | 200 + task with its sub-tasks | 404 not found |
   | PATCH | `/api/tasks/{id}` | 200 + updated task | 400 validation failure, 404 not found |
   | PATCH | `/api/tasks/{id}/start` | 200 + updated task | 404 not found |
+  | PATCH | `/api/tasks/{id}/review` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
   | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
@@ -130,10 +131,10 @@ Start every response that changes code with one line naming the active role(s), 
 - Use a Form Request for create validation and route model binding for `{task}` (gives 404 for free).
 - **The nested sub-task routes carry `scopeBindings()`.** A sub-task id from another task is then a 404 from the binding, in one declaration on the route, rather than a check written out again in each controller method. Two ways to answer one question is how the two quietly come to disagree.
 - `GET /api/tasks` returns tasks ordered with `Src\TaskSorter`, so Part 1 is actually used by the app. The controller then moves pending tasks ahead of completed ones, keeping each group in TaskSorter's order. `TaskSorter` itself stays exactly as the exam specifies (priority, then oldest first) and must never learn about status.
-- **The status set is wider than the brief.** The exam pins `pending|completed`; this adds `in_progress` so the board's middle column has something to hold. It is a deliberate deviation and belongs in the README's disclosure. Both original values keep their meaning: `pending` is still the default a task is created with, and `completed` is still the end. `start` moves a task into the middle; `reopen` is the way back out of either later stage.
+- **The status set is wider than the brief.** The exam pins `pending|completed`; this adds `in_progress` and `in_review` so the board's middle columns have something to hold. It is a deliberate deviation and belongs in the README's disclosure. Both original values keep their meaning: `pending` is still the default a task is created with, and `completed` is still the end. `start` moves a task into the middle and `review` on to the check before Done; `reopen` is the way back out of either later stage.
 - Status is never part of `PATCH /api/tasks/{id}`. The board's drag and the dialog's Status field both call `start`, `complete` or `reopen`, so there is one path to a stage change.
 - `TaskStatus::unfinished()` is what every "not done yet" condition asks, rather than each one naming `pending` itself. The stats' `pending` count, the three work queues and the list's ordering all use it, so none of them can disagree about what unfinished means.
-- `byStage()` orders the list To do, then In progress, then Done, keeping each group in TaskSorter's order. That is the same order the board's columns read left to right: they are the same three stages, and work does not run backwards through them. **`TaskSorter` still knows nothing about status** — the split is in the controller, so Part 1 stays exactly as the exam specifies.
+- `byStage()` orders the list To do, then In progress, then In review, then Done, keeping each group in TaskSorter's order. That is the same order the board's columns read left to right: they are the same four stages, and work does not run backwards through them. **`TaskSorter` still knows nothing about status** — the split is in the controller, so Part 1 stays exactly as the exam specifies.
 - `reopen` is beyond the exam's four endpoints. It exists because completing a task by mistake would otherwise be a dead end, with deleting and retyping the only way back.
 - `restore` is the same argument carried to its end. `DELETE` soft-deletes, so the row survives and the delete toast can offer Undo. Its route is bound `->withTrashed()`, because the default binding hides exactly the task it needs to reach. Deleting an already-deleted task is a 404, since the binding no longer finds it.
 - Controllers stay thin. No business logic in routes.
