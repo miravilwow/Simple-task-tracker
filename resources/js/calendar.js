@@ -168,12 +168,12 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
     container.replaceChildren(...cells);
 }
 
-export function renderAgenda(container, { tasks, onOpen }) {
+export function renderAgenda(container, { tasks, onOpen, emptyText = 'Nothing scheduled this month.' }) {
     const groups = groupByDate(tasks);
 
     if (groups.length === 0) {
         container.replaceChildren(
-            createElement('p', 'px-4 py-10 text-center text-sm text-gray-500', 'Nothing scheduled this month.'),
+            createElement('p', 'px-4 py-10 text-center text-sm text-gray-500', emptyText),
         );
 
         return;

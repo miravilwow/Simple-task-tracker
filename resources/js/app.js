@@ -52,6 +52,9 @@ const VIEWS = {
 
 // The string lives in app.css as @utility btn-action, because the selection toolbar in Blade needs
 // the same shape and a copy in each is how the two drift apart.
+const UNSCHEDULED_EMPTY = 'Every task has a date.';
+const FILTERED_EMPTY = 'Nothing matches these filters.';
+
 const BUTTON_BASE = 'btn-action';
 
 const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
@@ -154,14 +157,12 @@ function dueLabel(task) {
     return task.due_date === toIsoDate(today) ? 'Due today' : `Due ${formatted}`;
 }
 
-function emptyMessage() {
-    // The Display panel can narrow the list to nothing, and "No tasks yet" would then be a lie.
-    if (currentLayout() === 'board' && (display.state.date || display.state.priority || !display.state.showCompleted)) {
-        return 'Nothing matches these display settings.';
-    }
+const filtersAreOn = () => Object.values(filterBar.state).some((value) => value !== '');
 
-    if (currentLayout() !== 'board' && Object.values(filterBar.state).some((value) => value !== '')) {
-        return 'Nothing matches these filters.';
+function emptyMessage() {
+    // The filter bar can narrow the list to nothing, and "No tasks yet" would then be a lie.
+    if (filtersAreOn()) {
+        return FILTERED_EMPTY;
     }
 
     return {
@@ -663,13 +664,18 @@ async function load() {
                 onOpen: rescheduleFromDialog,
                 onReschedule: scheduleTask,
             });
-            renderAgenda(elements.calendarAgenda, { tasks: tasksResponse.data, onOpen: rescheduleFromDialog });
+            renderAgenda(elements.calendarAgenda, {
+                tasks: tasksResponse.data,
+                onOpen: rescheduleFromDialog,
+                emptyText: filtersAreOn() ? FILTERED_EMPTY : undefined,
+            });
             renderUnscheduled(elements.unscheduledList, {
                 tasks: unscheduledResponse.data,
                 onOpen: rescheduleFromDialog,
                 onReschedule: scheduleTask,
             });
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
+            elements.unscheduledEmpty.textContent = filtersAreOn() ? FILTERED_EMPTY : UNSCHEDULED_EMPTY;
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
         } else if (currentLayout() === 'board') {
             const showingProjects = display.state.grouping === 'project' && state.project === null;
@@ -784,8 +790,9 @@ const completeTask = (task, button) =>
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
         successMessage: 'Task completed',
         description: task.title,
-        undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
-        undoMessage: 'Task reopened',
+        // Back to the stage it left, not always To do: an In review task would otherwise lose its place.
+        undo: () => api(`/tasks/${task.id}/${STAGE_ENDPOINTS[task.status]}`, { method: 'PATCH' }),
+        undoMessage: `Moved back to ${STATUS_BADGES[task.status].label}`,
     });
 
 // Reopening from the row's menu. The same endpoint the dialog's Status field and a board drag use.
@@ -1014,6 +1021,8 @@ function applyDisplay({ date }) {
     // lost.
     if (date && VIEWS[state.view].params.due) {
         state.view = 'all';
+        state.project = null;
+        elements.projectCrumb.hidden = true;
         applyView();
     }
 
@@ -1031,7 +1040,7 @@ const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', in_review: 'r
 
 /**
  * The task dialog's Status field. It knows the task's stage first-hand, and it has no column to
- * place the task in, so it keeps the three stage endpoints.
+ * place the task in, so it keeps the four stage endpoints.
  */
 function moveTask(id, status, from) {
     if (!from || from === status || !STAGE_ENDPOINTS[status]) {
@@ -1162,7 +1171,7 @@ wireTaskDetail();
 wireBoardDragging(reorderTask, (id) => showTaskDetail(id));
 enhanceDateFields();
 
-// The Display panel owns the layout, so the first render is its first change rather than a
-// separate load() that would have to repeat what applyDisplay already does.
+// The view's layout table owns the layout, and the panel's first change is what applies it, so the
+// first render is that change rather than a separate load() repeating what applyDisplay does.
 display.apply();
 

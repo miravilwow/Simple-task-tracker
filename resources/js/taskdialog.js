@@ -227,8 +227,8 @@ export function wireTaskDetail() {
     elements.description.addEventListener('change', () => patchTask({ description: elements.description.value.trim() || null }));
     elements.priority.addEventListener('change', () => patchTask({ priority: elements.priority.value }));
 
-    // Status is not part of the update endpoint: it moves through start, complete and reopen, the
-    // same three the board's drag runs, so there is one path to a stage change.
+    // Status is not part of the update endpoint: it moves through start, review, complete and
+    // reopen, the same four the board's drag runs, so there is one path to a stage change.
     elements.status.addEventListener('change', async () => {
         await handlers.onStage(task.id, elements.status.value, task.status);
         await load(task.id);

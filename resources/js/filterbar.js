@@ -74,6 +74,7 @@ export function createFilterBar(onChange) {
 
         if (fields.project.value !== chosen) {
             state.project = '';
+            fields.project.value = '';
             changed();
         }
     }
