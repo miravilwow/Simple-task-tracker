@@ -93,7 +93,7 @@ They are **one dialog with a tab between them**, because both answer the same qu
 - The empty state is an illustration with a sentence under it. The SVG is `aria-hidden` and is never the only thing there, because a picture alone says nothing to a screen reader.
 - Comment text is user input and is rendered with `textContent` only.
 - All four states in both tabs: "Loading…", the content, an empty message, and the server's message on failure.
-- **The Comment button is indigo, not the red of the app this is modelled on.** Red is this app's destructive colour, and posting a comment is the least destructive thing on the screen.
+- **The Comment button is near-black, like every other primary action, and still not the red of the app this is modelled on.** The mark is red now, but red stayed this app's destructive colour, and posting a comment is the least destructive thing on the screen.
 - **The compose toolbar carries the emoji button and nothing else.** An attachment or a microphone that does nothing is the same decoration the project dialog already refused for Access.
 
 #### Reactions
@@ -161,7 +161,17 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **Spacing:** use Tailwind's scale only (`2, 3, 4, 6, 8`). No arbitrary values like `mt-[13px]`. The one exception is the task table's column template, which is defined once as the `task-columns` utility in `resources/css/app.css`.
 - **Typography:** the `font-sans` theme font. Page title `text-2xl font-semibold`, section headings `text-lg font-medium`, body `text-sm`/`text-base`, secondary text `text-gray-500`.
 - **Surfaces:** white cards on a `bg-gray-50` page, `rounded-lg`, `border border-gray-200`, at most `shadow-sm`.
-- **Color is meaningful, not decorative.** Keep one accent color (indigo) for primary actions.
+- **Color is meaningful, not decorative.** The palette comes from the logo: a red cube on white.
+
+| Role | Colour | Where |
+|---|---|---|
+| Primary action | `gray-900`, white text | New task, Add task, every dialog's save, Comment |
+| Accent | `red-600` and its tints | The mark, the selected sidebar row, today in the calendar, a drop target, a held card, every focus ring, the Undo on a toast |
+| Destructive | `red-600` | Delete, and only ever behind a confirmation |
+| Success | `green-700` | Done, and the Complete button |
+
+- **The accent is red, and so is the destructive colour.** That is only safe because red is never a primary button here: a red button in this app is either Undo on a toast or Delete inside a confirm dialog, and both are things you meant to press. The primary action is near-black instead, so the two can never be mistaken for one another on the same row.
+- **The accent is spent sparingly.** Red marks what is selected, what is about to take a drop, and where the keyboard is. Nothing else. A hint, a note or an inactive panel takes grey, because a pale red panel with dark red text is what this app's error banner is, and a hint that looks like an error is worse than no hint.
 
 ### Priority badges
 
@@ -189,7 +199,7 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 
 | Type | Use | Style |
 |---|---|---|
-| Primary | Add task, New task | Solid indigo, white text |
+| Primary | Add task, New task | Solid near-black (`gray-900`), white text |
 | Secondary | Complete | Outlined light green |
 | Destructive | Delete | Red text or outline, never the most prominent button on the row. It keeps its natural width, so it never stretches to fill the row when a task is already completed and Delete is the only action left. |
 
@@ -345,7 +355,8 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Buttons disable while loading, show a spinner, then a green tick and the past tense; Delete asks for confirmation
 - [ ] The button does not change width through any of its three states
 - [ ] A toast reads as a card with a bold title and a grey line naming the task or project and the time
-- [ ] The toast action is the dark button, is at least 32px, and works from the keyboard
+- [ ] The toast action is the red button, is at least 32px, and works from the keyboard
+- [ ] No primary button is red, and no hint or note wears the error banner's pale red
 - [ ] Rescheduling a task shows the new due date in full, not the moment it was dragged
 - [ ] Four actions in a row leave at most three toasts on screen, and the newest is one of them
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow

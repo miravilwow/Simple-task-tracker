@@ -126,7 +126,7 @@
                             <div class="border-t border-gray-200 p-4">
                                 <button type="button" data-section="{{ $key }}-body" aria-expanded="true"
                                     aria-controls="{{ $key }}-body"
-                                    class="flex w-full items-center justify-between gap-2 font-medium focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                    class="flex w-full items-center justify-between gap-2 font-medium focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                                     {{ $heading }}
                                     <x-icon name="chevron-down" class="size-4 text-gray-500 transition-transform aria-[expanded=false]:-rotate-90" />
                                 </button>
@@ -148,7 +148,7 @@
 
                         <div class="border-t border-gray-200 p-4">
                             <button type="button" id="display-reset"
-                                class="text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                class="text-sm font-medium text-red-600 underline underline-offset-2 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                                 Reset to default
                             </button>
                         </div>
@@ -156,7 +156,7 @@
                 </div>
 
                 <button type="button" id="new-task-trigger"
-                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none">
                     <x-icon name="plus" class="size-4" />
                     New task
                 </button>
@@ -248,22 +248,25 @@
                     </h2>
                     <div class="flex items-center gap-1">
                         <button type="button" id="calendar-prev" aria-label="Previous month"
-                            class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                             <x-icon name="chevron-left" class="size-4" />
                         </button>
                         <button type="button" id="calendar-today"
-                            class="inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            class="inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                             Today
                         </button>
                         <button type="button" id="calendar-next" aria-label="Next month"
-                            class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                             <x-icon name="chevron-right" class="size-4" />
                         </button>
                     </div>
                 </div>
 
                 {{-- Dragging only exists on the month grid, which itself only appears from md. --}}
-                <p class="border-b border-gray-200 bg-indigo-50/60 px-4 py-2 text-xs text-indigo-800 sm:px-6">
+                {{-- Grey, not the accent's tint. A pale red panel with dark red text is exactly what
+                     the load error above is, and a hint that looks like an error is worse than no
+                     hint. This one has nothing to announce; it is only telling you what you can do. --}}
+                <p class="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600 sm:px-6">
                     <span class="hidden md:inline">Drag a task onto a day to reschedule it, or open a task to pick a date.</span>
                     <span class="md:hidden">Tap a task to change its date.</span>
                 </p>
@@ -328,7 +331,7 @@
     <dialog id="task-dialog"
         class="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
         <div class="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-            <x-icon name="plus" class="size-5 text-indigo-600" />
+            <x-icon name="plus" class="size-5 text-red-600" />
             <h2 id="new-task-heading" class="font-medium">New task</h2>
         </div>
 
@@ -340,7 +343,7 @@
                         </label>
                         <input id="title" name="title" type="text" maxlength="255" required
                             placeholder="e.g. Fix the checkout timeout" aria-describedby="title-error"
-                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
+                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
                         <p id="title-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                     </div>
 
@@ -350,7 +353,7 @@
                         </label>
                         <textarea id="description" name="description" rows="2" placeholder="Add any details worth remembering"
                             aria-describedby="description-error"
-                            class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                            class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
                         <p id="description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                     </div>
 
@@ -366,7 +369,7 @@
                                 'high' => ['label' => 'High', 'active' => 'has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800'],
                             ] as $value => $option)
                                 <label
-                                    class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
+                                    class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-red-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
                                     <input type="radio" name="priority" value="{{ $value }}" class="sr-only"
                                         @checked($value === 'medium')>
                                     {{ $option['label'] }}
@@ -381,7 +384,7 @@
                                 Category <span class="font-normal text-gray-500">(optional)</span>
                             </label>
                             <select id="category_id" name="category_id" aria-describedby="category_id-error"
-                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
+                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
                                 <option value="">No category</option>
                             </select>
                             <p id="category_id-error" class="mt-1.5 hidden text-sm text-red-600"></p>
@@ -401,7 +404,7 @@
                             Cancel
                         </button>
                         <button type="submit" id="submit-button"
-                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
+                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
                             <x-icon name="plus" class="size-4" />
                             <span data-label>Add task</span>
                         </button>
@@ -430,7 +433,7 @@
                     Cancel
                 </button>
                 <button type="button" id="schedule-save"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none">
                     Save
                 </button>
             </div>
@@ -444,7 +447,7 @@
             <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-6 pb-4">
                 <h2 id="project-dialog-title" class="font-medium">New project</h2>
                 <button type="button" id="project-close" aria-label="Close"
-                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                     <x-icon name="close" />
                 </button>
             </div>
@@ -460,7 +463,7 @@
                     </div>
                     <input id="project-name" name="name" type="text" maxlength="40" required
                         aria-describedby="project-name-error"
-                        class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500">
+                        class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
                     <p id="project-name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                 </div>
 
@@ -468,7 +471,7 @@
                     <label for="project-description" class="block text-sm font-medium text-gray-700">Description</label>
                     <textarea id="project-description" name="description" rows="3" maxlength="500"
                         aria-describedby="project-description-error"
-                        class="mt-1.5 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                        class="mt-1.5 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
                     <p id="project-description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                 </div>
 
@@ -476,7 +479,7 @@
                     <div>
                         <label for="project-color" class="block text-sm font-medium text-gray-700">Color</label>
                         <select id="project-color" name="color" aria-describedby="project-color-error"
-                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none">
                             @foreach (\App\Enums\CategoryColor::cases() as $color)
                                 <option value="{{ $color->value }}">{{ $color->label() }}</option>
                             @endforeach
@@ -487,7 +490,7 @@
                     <div>
                         <label for="project-parent" class="block text-sm font-medium text-gray-700">Parent project</label>
                         <select id="project-parent" name="parent_id" aria-describedby="project-parent-error"
-                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                            class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none">
                             <option value="">No parent</option>
                         </select>
                         <p id="project-parent-error" class="mt-1.5 hidden text-sm text-red-600"></p>
@@ -500,7 +503,7 @@
                         class="mt-1.5 hidden max-h-44 flex-wrap gap-1 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 p-2">
                         @foreach (\App\Enums\CategoryIcon::cases() as $icon)
                             <label data-icon="{{ $icon->value }}" title="{{ $icon->label() }}"
-                                class="hidden size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500">
+                                class="hidden size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-gray-600 transition-colors hover:bg-gray-100 has-checked:border-gray-400 has-checked:bg-gray-100 has-checked:text-gray-900 has-focus-visible:ring-2 has-focus-visible:ring-red-500">
                                 <input type="radio" name="icon" value="{{ $icon->value }}" class="sr-only"
                                     @checked($icon === \App\Enums\CategoryIcon::Folder)>
                                 <span class="{{ $icon->cssClass() }} size-4" aria-hidden="true"></span>
@@ -521,7 +524,7 @@
                     Cancel
                 </button>
                 <button type="submit" id="project-submit"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
                     <span data-label>Add project</span>
                 </button>
             </div>
@@ -537,7 +540,7 @@
             <div class="mt-4">
                 <label for="move-parent" class="block text-sm font-medium text-gray-700">Parent project</label>
                 <select id="move-parent" aria-describedby="move-error"
-                    class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none">
+                    class="mt-1.5 block min-h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none">
                     <option value="">No parent</option>
                 </select>
                 <p id="move-error" class="mt-1.5 hidden text-sm text-red-600"></p>
@@ -549,7 +552,7 @@
                     Cancel
                 </button>
                 <button type="button" id="move-save"
-                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                    class="inline-flex min-h-10 items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none">
                     Move
                 </button>
             </div>
@@ -567,7 +570,7 @@
                     <span id="panel-project" class="truncate"></span>
                 </p>
                 <button type="button" id="panel-close" aria-label="Close"
-                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                     <x-icon name="close" />
                 </button>
             </div>
@@ -593,12 +596,12 @@
                             <path d="M52 50h16l-8 10z" class="fill-gray-200" />
                             <rect x="12" y="26" width="34" height="26" rx="7" class="fill-amber-200" />
                             <path d="M24 52h10l-5 7z" class="fill-amber-200" />
-                            <rect x="74" y="30" width="34" height="24" rx="7" class="fill-indigo-200" />
-                            <path d="M86 54h10l-5 7z" class="fill-indigo-200" />
+                            <rect x="74" y="30" width="34" height="24" rx="7" class="fill-red-200" />
+                            <path d="M86 54h10l-5 7z" class="fill-red-200" />
                             <path d="M60 60v22" class="stroke-gray-300" stroke-width="2" stroke-linecap="round" />
                             <circle cx="60" cy="86" r="4" class="fill-gray-300" />
                             <circle cx="20" cy="16" r="3" class="fill-amber-300" />
-                            <circle cx="104" cy="18" r="2.5" class="fill-indigo-300" />
+                            <circle cx="104" cy="18" r="2.5" class="fill-red-300" />
                             <circle cx="98" cy="70" r="3" class="fill-gray-200" />
                         </svg>
                         <p class="mt-4 max-w-xs text-sm text-gray-500">
@@ -610,7 +613,7 @@
                 </div>
 
                 <form id="comment-form" class="border-t border-gray-200 p-4" novalidate>
-                    <div class="rounded-lg border border-gray-300 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30">
+                    <div class="rounded-lg border border-gray-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/30">
                         <label for="comment-body" class="sr-only">Add a comment</label>
                         <textarea id="comment-body" name="body" rows="2" maxlength="1000" placeholder="Comment"
                             aria-describedby="comment-body-error"
@@ -618,20 +621,22 @@
                         <div class="flex items-center justify-between gap-2 px-2 pb-2">
                             <button type="button" id="comment-emoji" aria-expanded="false" aria-haspopup="true"
                                 aria-controls="comment-emoji-row" aria-label="Add an emoji"
-                                class="inline-flex size-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                class="inline-flex size-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                                 <x-icon name="face-smile" class="size-5" />
                             </button>
-                            {{-- Indigo, not the reference's red: red is this app's destructive colour and
-                                 posting a comment is the least destructive thing on the screen. --}}
+                            {{-- Near-black, like every other primary action here, and still not the
+                                 reference's red even though the mark is red now: red stays this app's
+                                 destructive colour, and posting a comment is the least destructive
+                                 thing on the screen. --}}
                             <button type="submit" id="comment-submit"
-                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60">
                                 <span data-label>Comment</span>
                             </button>
                         </div>
                         <div id="comment-emoji-row" class="hidden flex-wrap gap-1 border-t border-gray-200 p-2">
                             @foreach (\App\Enums\Reaction::cases() as $reaction)
                                 <button type="button" data-insert-emoji="{{ $reaction->value }}"
-                                    class="inline-flex size-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                                    class="inline-flex size-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                                     <span aria-hidden="true">{{ $reaction->value }}</span>
                                     <span class="sr-only">{{ $reaction->label() }}</span>
                                 </button>
@@ -698,7 +703,7 @@
                     <ul id="subtask-list"></ul>
 
                     <button type="button" id="subtask-add"
-                        class="mt-2 inline-flex min-h-9 items-center gap-2 text-gray-500 transition-colors hover:text-indigo-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                        class="mt-2 inline-flex min-h-9 items-center gap-2 text-gray-500 transition-colors hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                         <x-icon name="plus" class="size-4" />
                         Add sub-task
                     </button>
@@ -706,9 +711,9 @@
                     <form id="subtask-form" class="mt-2 flex gap-2" hidden>
                         <label for="subtask-title" class="sr-only">Sub-task name</label>
                         <input type="text" id="subtask-title" maxlength="255" placeholder="What needs doing?"
-                            class="min-h-10 flex-1 rounded-lg border border-gray-300 px-3 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none" />
+                            class="min-h-10 flex-1 rounded-lg border border-gray-300 px-3 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none" />
                         <button type="submit"
-                            class="min-h-10 rounded-lg bg-indigo-600 px-3.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                            class="min-h-10 rounded-lg bg-gray-900 px-3.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                             Add
                         </button>
                         <button type="button" id="subtask-cancel" class="btn-secondary">Cancel</button>

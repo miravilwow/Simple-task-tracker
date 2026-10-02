@@ -184,7 +184,7 @@ function reactionRow(comment, onToggle) {
 
     const add = createElement(
         'button',
-        'inline-flex size-8 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none',
+        'inline-flex size-8 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors hover:border-gray-400 hover:text-gray-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
     );
     add.type = 'button';
     add.setAttribute('aria-haspopup', 'menu');

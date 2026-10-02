@@ -70,7 +70,7 @@ function itemClasses(destructive) {
         'focus-visible:ring-2 focus-visible:outline-none',
         destructive
             ? 'text-red-600 hover:bg-red-50 focus-visible:ring-red-500'
-            : 'text-gray-700 hover:bg-gray-100 focus-visible:ring-indigo-500',
+            : 'text-gray-700 hover:bg-gray-100 focus-visible:ring-red-500',
     ].join(' ');
 }
 

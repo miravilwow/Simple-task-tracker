@@ -107,7 +107,7 @@ export function wireBoardDragging(onMove, onOpen) {
     const listOf = (section) => section.querySelector('ul');
 
     const clearHighlights = () =>
-        board.querySelectorAll('[data-group]').forEach((item) => item.classList.remove('border-indigo-600', 'bg-indigo-50'));
+        board.querySelectorAll('[data-group]').forEach((item) => item.classList.remove('border-red-600', 'bg-red-50'));
 
     function endDrag() {
         dragged?.classList.remove('hidden');
@@ -145,7 +145,7 @@ export function wireBoardDragging(onMove, onOpen) {
         // Without preventDefault the browser refuses the drop and the card springs back.
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
-        section.classList.add('border-indigo-600', 'bg-indigo-50');
+        section.classList.add('border-red-600', 'bg-red-50');
 
         const list = listOf(section);
 
@@ -156,7 +156,7 @@ export function wireBoardDragging(onMove, onOpen) {
         const section = columnOf(event.target);
 
         if (section && !section.contains(event.relatedTarget)) {
-            section.classList.remove('border-indigo-600', 'bg-indigo-50');
+            section.classList.remove('border-red-600', 'bg-red-50');
         }
     });
 
@@ -210,7 +210,7 @@ export function wireBoardDragging(onMove, onOpen) {
             event.preventDefault();
             held = held === id ? null : id;
             card.classList.toggle('ring-2', held === id);
-            card.classList.toggle('ring-indigo-600', held === id);
+            card.classList.toggle('ring-red-600', held === id);
 
             return;
         }
@@ -232,7 +232,7 @@ export function wireBoardDragging(onMove, onOpen) {
         }
 
         held = null;
-        card.classList.remove('ring-2', 'ring-indigo-600');
+        card.classList.remove('ring-2', 'ring-red-600');
         await onMove(id, move.status, move.after);
 
         // The move rebuilds the board, so the card that had focus has to be found again.

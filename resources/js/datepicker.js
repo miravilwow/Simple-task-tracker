@@ -23,11 +23,11 @@ const dayFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const DAY_BASE =
-    'flex size-9 items-center justify-center rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none';
+    'flex size-9 items-center justify-center rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none';
 const NAV_BUTTON =
-    'flex size-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none';
+    'flex size-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none';
 const FOOTER_BUTTON =
-    'min-h-8 rounded-md px-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none';
+    'min-h-8 rounded-md px-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none';
 
 const sameDay = (a, b) => toIsoDate(a) === toIsoDate(b);
 const addDays = (date, days) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
@@ -133,11 +133,11 @@ function enhance(field) {
             }
 
             if (isToday && !isChosen) {
-                tone = 'font-semibold text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-50';
+                tone = 'font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50';
             }
 
             if (isChosen) {
-                tone = 'bg-indigo-600 font-semibold text-white hover:bg-indigo-700';
+                tone = 'bg-red-600 font-semibold text-white hover:bg-red-700';
             }
 
             const day = createElement('button', `${DAY_BASE} ${tone}`, String(date.getDate()));

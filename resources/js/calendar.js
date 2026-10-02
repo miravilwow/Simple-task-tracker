@@ -9,7 +9,7 @@ const PRIORITY_DOTS = {
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const agendaFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-const DROP_ACTIVE = ['bg-indigo-50', 'ring-2', 'ring-indigo-400', 'ring-inset'];
+const DROP_ACTIVE = ['bg-red-50', 'ring-2', 'ring-red-400', 'ring-inset'];
 
 /** The grid always starts on a Monday, so it usually reaches into the neighbouring months. */
 export function gridStart(month) {
@@ -41,7 +41,7 @@ export const monthLabel = (month) => monthFormatter.format(month);
 function createChip(task, { onOpen, draggable }) {
     const chip = createElement(
         'button',
-        `flex w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-left text-xs transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+        `flex w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-left text-xs transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${
             task.is_overdue ? 'border-red-200 bg-red-50' : ''
         }`,
     );
@@ -141,7 +141,7 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule 
         const number = createElement(
             'span',
             isToday
-                ? 'flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white'
+                ? 'flex size-6 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
                 : `flex size-6 items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`,
             String(date.getDate()),
         );
@@ -186,7 +186,7 @@ export function renderAgenda(container, { tasks, onOpen }) {
             const section = createElement('div', 'p-4');
             const heading = createElement(
                 'p',
-                `text-sm font-medium ${iso === today ? 'text-indigo-700' : 'text-gray-700'}`,
+                `text-sm font-medium ${iso === today ? 'text-red-700' : 'text-gray-700'}`,
                 agendaFormatter.format(parseDate(iso)) + (iso === today ? ' · Today' : ''),
             );
 

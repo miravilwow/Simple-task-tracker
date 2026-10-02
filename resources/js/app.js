@@ -204,7 +204,7 @@ function emptyMessage() {
 function createDueButton(task) {
     const button = createElement(
         'button',
-        `-mx-1 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+        `-mx-1 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${
             task.is_overdue ? 'text-red-600' : 'text-gray-500'
         }`,
     );
@@ -272,7 +272,7 @@ function titleButton(task) {
 
     const button = createElement(
         'button',
-        'block w-full text-left wrap-break-word hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none',
+        'block w-full text-left wrap-break-word hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
         task.title,
     );
 
@@ -351,7 +351,7 @@ function renderCard(task) {
     if (draggable) {
         item.draggable = true;
         item.tabIndex = 0;
-        item.classList.add('cursor-grab', 'focus-visible:ring-2', 'focus-visible:ring-indigo-500', 'focus-visible:outline-none');
+        item.classList.add('cursor-grab', 'focus-visible:ring-2', 'focus-visible:ring-red-500', 'focus-visible:outline-none');
         item.setAttribute('aria-roledescription', 'Draggable task');
         item.setAttribute('aria-describedby', 'board-help');
     }

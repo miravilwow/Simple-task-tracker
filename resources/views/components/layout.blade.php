@@ -59,7 +59,7 @@
             {{-- The negative margin cancels the padding, so the focus ring has room to breathe
                  without moving the logo off the gutter the sidebar's icons sit on. --}}
             <a href="{{ route('tasks.index') }}"
-                class="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
+                class="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 font-semibold focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                 {{-- 24px mark plus an 8px gap is the 32px the sidebar's 20px icon and 12px gap
                      reach, so the wordmark starts exactly where the sidebar's labels do. --}}
                 <x-logo />
