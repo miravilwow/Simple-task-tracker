@@ -18,6 +18,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }}</title>
 
+    {{-- The SVG is offered first and the .ico is the fallback, so a browser that understands both
+         takes the one that stays sharp on a high-density screen. --}}
+    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet">
 
@@ -57,10 +62,7 @@
                 class="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 font-semibold focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none">
                 {{-- 24px mark plus an 8px gap is the 32px the sidebar's 20px icon and 12px gap
                      reach, so the wordmark starts exactly where the sidebar's labels do. --}}
-                <svg class="size-6 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
-                    <rect width="32" height="32" rx="8" class="fill-indigo-600" />
-                    <path d="M10 16.5l4 4 8-9" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+                <x-logo />
                 Simple Task Tracker
             </a>
 
