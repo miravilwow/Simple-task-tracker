@@ -898,11 +898,11 @@ function showFieldErrors(errors, scope) {
 
 const TASK_FIELDS = ['title', 'description', 'priority', 'category_name', 'due_date'];
 
-// The form sits in a dialog so the list keeps the full width. <dialog> traps focus and closes
-// on Escape by itself; what it does not do is clear a half-filled form, so closing does.
 // Where focus goes on close when something other than the New task button opened the dialog.
 let taskDialogReturnTarget = null;
 
+// The form sits in a dialog so the list keeps the full width. <dialog> traps focus and closes
+// on Escape by itself; what it does not do is clear a half-filled form, so closing does.
 function openTaskDialog(returnTarget = null) {
     taskDialogReturnTarget = returnTarget;
     clearFieldErrors(TASK_FIELDS);

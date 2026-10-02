@@ -18,12 +18,17 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
     let iso = null;
     let trigger = null;
 
+    // The rows are rebuilt on every reload, so a task's opener is looked up when focus returns.
+    function focusRow(id) {
+        (list.querySelector(`[data-task-id="${id}"]`) ?? $('day-close')).focus();
+    }
+
     function row(task) {
         const item = createElement('li', `flex items-center gap-2 rounded-lg border px-3 py-2 ${CARD_TINTS[task.color] ?? 'border-gray-200 bg-white'}`);
         const open = createElement('button', `min-h-8 min-w-0 flex-1 truncate text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${task.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`, task.title);
 
         open.type = 'button';
-        open.addEventListener('click', () => onOpenTask(task.id, open));
+        open.addEventListener('click', () => onOpenTask(task.id, { focus: () => focusRow(task.id) }));
         open.dataset.taskId = task.id;
         item.append(createElement('span', `size-2 shrink-0 rounded-full ${PRIORITY_DOTS[task.priority]}`), open);
 
@@ -68,13 +73,7 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
                 return;
             }
 
-            const focusedId = list.contains(document.activeElement) ? document.activeElement.dataset.taskId : null;
-
             draw(tasksFor(iso));
-
-            if (focusedId !== null) {
-                (list.querySelector(`[data-task-id="${focusedId}"]`) ?? $('day-close')).focus();
-            }
         },
     };
 }
