@@ -16,7 +16,7 @@ framework behind it, and the application really uses it — `GET /api/tasks` is 
 |---|---|
 | PHP | 8.2 or newer, with `pdo_mysql` and `mbstring` |
 | Composer | 2.x |
-| Node | 20 or newer, with npm |
+| Node | 20.19+ or 22.12+, with npm (what Vite 7 requires) |
 | MySQL | 5.7 / 8.x, or MariaDB 10.4 or newer |
 
 ## Setup

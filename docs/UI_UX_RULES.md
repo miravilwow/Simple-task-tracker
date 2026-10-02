@@ -139,16 +139,16 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **An interactive box may bleed into the gutter; its text may not.** A row's padding is cancelled with an equal negative margin, exactly as the sidebar's `p-3` panel and `px-3` rows do it. The hover and focus surface then has room to breathe while the words stay on the line — the navbar's brand link and its action are built this way.
 - **The navbar is read as the top of the sidebar's column**, so its two levels line up with the sidebar's: a 24px mark plus an 8px gap reaches the same 32px as the sidebar's 20px icon plus its 12px gap, which puts the wordmark exactly where the sidebar's labels start. Changing one size means changing the other.
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
-- **The column grid is 4 columns with `gap-6` from `xl`.** The stat row, the list layout and the calendar layout all use it, so a tile's edge is also a panel's edge.
-- **The two layouts share the same outer edges.** List is one panel across the full width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
+- **The column grid is 4 columns with `gap-6` from `xl`.** Every layout resolves to it, so one panel's edge is also the next one's.
+- **All three layouts share the same outer edges.** List is one panel across the full width; Board is columns across that same width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
 - **Order, top to bottom:**
-  1. Page heading and a one-line description, with the layout switch and the **New task** button on the right.
-  2. The progress meter.
-  3. Main area.
+  1. Page heading and a one-line description, with the Display button and the **New task** button on the right.
+  2. The row of chips naming every active display setting.
+  3. The active layout.
 - **There are no stat tiles.** There were four, and three of them printed the same number as a sidebar badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue". A dashboard that says the same figure twice on one screen is not twice as informative.
-- **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts. It carries `role="progressbar"` with `aria-valuenow`. With no tasks it reads "No tasks yet"; on a load failure, "Unavailable".
+- **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts instead, and they count every task rather than the filtered list.
 - **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
   - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
@@ -322,10 +322,10 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 
 ## UI/UX checklist (run before marking any UI task done)
 
-- [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, two columns from `lg`)
+- [ ] Works at 360px, 768px, and 1280px with no horizontal scroll (cards on mobile, table columns from `md`, board columns side by side from `md`)
 - [ ] `/` redirects to `/tasks`
 - [ ] "Skip to content" appears on the first Tab press
-- [ ] The sidebar counts and the progress meter update after every add, complete, reopen, and delete
+- [ ] The sidebar counts update after every add, complete, reopen, and delete
 - [ ] Skeleton rows show on first load and are gone afterwards
 - [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
@@ -362,7 +362,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] "Skip to content", the heading focus lands on after a delete, and anything else scrolled into view all clear the navbar rather than landing under it
 - [ ] Navbar logo, sidebar icons and page heading all start on the same left edge, and the wordmark starts where the sidebar labels do
 - [ ] The navbar row is vertically centred in the bar, and its action is a 40px target ending on the right gutter
-- [ ] Stat tiles sit on the same column edges as the form and the task panel, and switching List/Calendar moves nothing sideways
+- [ ] The heading, the chip row and the active layout all sit on the same column edges, and switching layout moves nothing sideways
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] A past day takes no chip and offers no button, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
@@ -371,7 +371,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Each layout shows only itself, and switching moves nothing sideways
 - [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board
 - [ ] To do comes before In progress before Done, in the board's columns and in the list
-- [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all three
+- [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all four
 - [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
@@ -387,7 +387,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows
 - [ ] The dialog's up and down arrows step through the list that is on the page
-- [ ] A sub-task adds, ticks off, deletes, and never appears as a task row or in a stat tile
+- [ ] A sub-task adds, ticks off, deletes, and never appears as a task row or in a sidebar count
 - [ ] Loading, empty (per filter), error, and success states all appear correctly
 - [ ] Full keyboard navigation with visible focus rings
 - [ ] No `innerHTML` with task data
