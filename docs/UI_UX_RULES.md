@@ -165,6 +165,7 @@ the two quietly come to disagree.
 - **Typography:** the `font-sans` theme font. Page title `text-2xl font-semibold`, section headings `text-lg font-medium`, body `text-sm`/`text-base`, secondary text `text-gray-500`.
 - **Surfaces:** white cards on a `bg-gray-50` page, `rounded-lg`, `border border-gray-200`, at most `shadow-sm`.
 - **Color is meaningful, not decorative.** The palette comes from the logo: a red cube on white.
+  The one exception is a card colour: a tint the user picks for their own sorting of the board, which is decoration and carries no meaning of its own.
 
 | Role | Colour | Where |
 |---|---|---|
@@ -284,6 +285,7 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 - **A project card shows its total, a count per stage and a done bar.** Clicking it opens that project's own board in the four stage columns, with dragging, under a "Projects / <name>" crumb. Projects returns to the cards and focus goes back to the card that was opened. Switching view or grouping closes the project, and the chip row says `Project: <name>` while one is open.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
+- **A card can carry one of eight colours**, picked in the task dialog. It tints the card and its calendar chip, and never replaces the priority badge, which still carries the meaning.
 - **A card's "…" holds Edit and Delete.** A card has room for one button and not for a row of them, so Delete moved into a 32px "…" at the card's top-right, with Edit (it opens the task dialog) beside it. Delete still asks for confirmation and still offers Undo. It is the same `role="menu"` the table row uses, so arrows, Home/End and Escape behave as they do there, and focus returns to the "…".
 - **Grouped by status, dragging is how a task changes stage**, and the keyboard equivalent below is the other way. Complete stays on the card regardless: finishing something is the commonest action on the board, and dragging a card across its whole width to say so is a lot of hand for it.
 - **Under any other grouping dragging is switched off.** The API can change a stage, not a priority or a project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
@@ -298,7 +300,7 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 
 ## 5c. The task dialog
 
-Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the name on the left with the description and the sub-task checklist under it, and Project, Date and Priority down the right.
+Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the name on the left with the description and the sub-task checklist under it, and Project, Date, Priority and Color down the right.
 
 - **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
 - **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
@@ -428,6 +430,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] The dialog's Status field moves a task through all four stages, and the board and the counts follow
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows
+- [ ] Picking a colour in the task dialog tints the card and its calendar chip; Default clears it; arrows move the choice
 - [ ] The dialog's up and down arrows step through the list that is on the page
 - [ ] A sub-task adds, ticks off, deletes, and never appears as a task row or in a sidebar count
 - [ ] Loading, empty (per filter), error, and success states all appear correctly

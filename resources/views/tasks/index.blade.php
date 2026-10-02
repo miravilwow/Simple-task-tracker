@@ -601,6 +601,17 @@
                             @endforeach
                         </select>
                     </div>
+
+                    <div class="pt-3">
+                        <span id="detail-color-label" class="detail-label">Color</span>
+                        <div id="detail-color" role="radiogroup" aria-labelledby="detail-color-label" class="mt-2 flex flex-wrap gap-2">
+                            @foreach (['' => 'bg-white', 'red' => 'bg-red-400', 'orange' => 'bg-orange-400', 'yellow' => 'bg-yellow-400', 'green' => 'bg-green-500', 'teal' => 'bg-teal-500', 'blue' => 'bg-blue-500', 'purple' => 'bg-purple-500', 'pink' => 'bg-pink-400'] as $value => $swatch)
+                                <button type="button" role="radio" aria-checked="false" data-color="{{ $value }}"
+                                    aria-label="{{ $value === '' ? 'Default' : ucfirst($value) }}"
+                                    class="color-swatch {{ $swatch }}"></button>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </aside>
         </div>

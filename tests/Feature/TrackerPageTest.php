@@ -260,4 +260,13 @@ class TrackerPageTest extends TestCase
             'id="board-view"',
         ], false);
     }
+
+    public function test_the_task_dialog_offers_the_card_colours(): void
+    {
+        $html = $this->get('/tasks')->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="detail-color"', $html);
+        $this->assertStringContainsString('role="radiogroup"', $html);
+        $this->assertSame(9, substr_count($html, 'data-color='));
+    }
 }

@@ -12,6 +12,7 @@ import { createSelection, rowCheckbox, syncHeaderCheckbox, syncSortHeaders } fro
 import './shell.js';
 import { closeDrawer } from './sidebar.js';
 import {
+    CARD_TINTS,
     clearBusy,
     createBadge,
     createElement,
@@ -365,7 +366,7 @@ function renderCard(task) {
     const isCompleted = task.status === 'completed';
     const draggable = boardGrouping() === 'status';
 
-    const item = createElement('li', `board-card ${enterClass(task)}`);
+    const item = createElement('li', `board-card ${CARD_TINTS[task.color] ?? 'bg-white border-gray-200'} ${enterClass(task)}`);
     item.dataset.taskId = task.id;
     item.dataset.status = task.status;
 

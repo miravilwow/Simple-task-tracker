@@ -185,3 +185,16 @@ export const startOfToday = () => {
 
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 };
+
+// Full class strings, so Tailwind finds them. A tint is light enough that every badge on the
+// card keeps its contrast.
+export const CARD_TINTS = {
+    red: 'bg-red-50 border-red-200',
+    orange: 'bg-orange-50 border-orange-200',
+    yellow: 'bg-yellow-50 border-yellow-200',
+    green: 'bg-green-50 border-green-200',
+    teal: 'bg-teal-50 border-teal-200',
+    blue: 'bg-blue-50 border-blue-200',
+    purple: 'bg-purple-50 border-purple-200',
+    pink: 'bg-pink-50 border-pink-200',
+};

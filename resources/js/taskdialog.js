@@ -19,6 +19,7 @@ const elements = {
     project: $('detail-category-name'),
     date: $('detail-date'),
     priority: $('detail-priority'),
+    color: $('detail-color'),
     status: $('detail-status'),
     prev: $('detail-prev'),
     next: $('detail-next'),
@@ -109,6 +110,21 @@ function renderSubtasks() {
     );
 }
 
+// Roving tabindex, as a radio group has: Tab lands on the checked swatch, arrows move within.
+function markSwatch(color) {
+    elements.color.querySelectorAll('[data-color]').forEach((item) => {
+        const checked = item.dataset.color === color;
+
+        item.setAttribute('aria-checked', String(checked));
+        item.tabIndex = checked ? 0 : -1;
+    });
+}
+
+function pickColor(swatch) {
+    markSwatch(swatch.dataset.color);
+    patchTask({ color: swatch.dataset.color || null });
+}
+
 function fill() {
     const isDone = task.status === 'completed';
 
@@ -122,6 +138,7 @@ function fill() {
     setDate(task.due_date ?? '');
     setValue(elements.priority, task.priority);
     setValue(elements.status, task.status);
+    markSwatch(task.color ?? '');
     elements.tick.setAttribute('aria-checked', String(isDone));
     elements.tick.setAttribute('aria-label', isDone ? 'Mark as not done' : 'Mark as done');
 
@@ -226,6 +243,30 @@ export function wireTaskDetail() {
     elements.title.addEventListener('change', () => patchTask({ title: elements.title.value.trim() }));
     elements.description.addEventListener('change', () => patchTask({ description: elements.description.value.trim() || null }));
     elements.priority.addEventListener('change', () => patchTask({ priority: elements.priority.value }));
+
+    elements.color.addEventListener('click', (event) => {
+        const swatch = event.target.closest('[data-color]');
+
+        if (swatch) {
+            pickColor(swatch);
+        }
+    });
+
+    elements.color.addEventListener('keydown', (event) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+        const swatches = [...elements.color.querySelectorAll('[data-color]')];
+        const index = swatches.indexOf(document.activeElement);
+
+        if (!step || index === -1) {
+            return;
+        }
+
+        event.preventDefault();
+        const next = swatches[(index + step + swatches.length) % swatches.length];
+
+        next.focus();
+        pickColor(next);
+    });
 
     // Status is not part of the update endpoint: it moves through start, review, complete and
     // reopen, the same four the board's drag runs, so there is one path to a stage change.

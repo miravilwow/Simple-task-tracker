@@ -1,4 +1,4 @@
-import { createElement, parseDate, startOfToday, toIsoDate } from './dom.js';
+import { CARD_TINTS, createElement, parseDate, startOfToday, toIsoDate } from './dom.js';
 
 const PRIORITY_DOTS = {
     high: 'bg-red-400',
@@ -38,12 +38,19 @@ export function monthRange(month) {
 
 export const monthLabel = (month) => monthFormatter.format(month);
 
+// Overdue keeps its red: a due date that has passed is meaning, a colour is decoration.
+function chipSurface(task) {
+    if (task.is_overdue) {
+        return 'border-red-200 bg-red-50';
+    }
+
+    return CARD_TINTS[task.color] ?? 'border-gray-200 bg-white';
+}
+
 function createChip(task, { onOpen, draggable }) {
     const chip = createElement(
         'button',
-        `flex w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-left text-xs transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${
-            task.is_overdue ? 'border-red-200 bg-red-50' : ''
-        }`,
+        `flex w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-xs transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${chipSurface(task)}`,
     );
     chip.type = 'button';
     chip.dataset.taskId = String(task.id);

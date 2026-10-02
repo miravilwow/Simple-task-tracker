@@ -161,7 +161,7 @@ Start every response that changes code with one line naming the active role(s), 
   | File | Responsibility |
   |---|---|
   | `api.js` | `fetch` wrapper, `ApiError`, query-string building |
-  | `dom.js` | element/icon/badge builders, busy states, visibility, shared date helpers |
+  | `dom.js` | element/icon/badge builders, the card colour tints, busy states, visibility, shared date helpers |
   | `dialogs.js` | the confirm and reschedule modals |
   | `shell.js` | keeps `--header-height` matched to the navbar's real height |
   | `datepicker.js` | the month grid over each `<input type="date">` |
