@@ -106,7 +106,7 @@ They are **one dialog with a tab between them**, because both answer the same qu
 
 #### Project icons
 
-The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
+The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. Where the set has nothing close, a glyph is **drawn to the same grid** — 24px, 1.5 stroke, round caps — and marked as drawn in the map, so the two sit together without reading as two families. The Display button's framed list is the only one so far. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
 
 Heroicons is kept in two maps: `<x-icon>` for markup the server renders, and the `ICONS` map in `resources/js/dom.js` for rows JavaScript builds. **Neither has to hold every icon** — each carries what its own side draws — but an icon asked for and not defined fails quietly: Blade throws only in debug, and `dom.js` writes `d="undefined"`, which draws nothing at all. `IconMapTest` fails instead, in both directions: an icon used but not defined, and an icon defined that nothing draws.
 
@@ -184,6 +184,8 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - Badges always include the text label. Never rely on color alone.
 
 ## 3. Buttons and actions
+
+**A secondary button carries `gap-2`**, or an icon sits against its label with only the whitespace the template happened to leave between them. It also carries `shadow-sm`, the same faint lift the app's other raised surfaces have.
 
 | Type | Use | Style |
 |---|---|---|

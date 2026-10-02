@@ -1,8 +1,15 @@
 @props(['name', 'class' => 'size-5'])
 
 @php
-    // Heroicons v2 (MIT), 24px outline set.
+    // Heroicons v2 (MIT), 24px outline set, plus the odd glyph drawn to the same grid where the
+    // set has nothing close. Each one is 24px, 1.5 stroke and round caps like the rest, so they
+    // sit together without reading as two families.
     $paths = [
+        // Drawn, not Heroicons: a framed list, for the control that chooses how the list is shown.
+        'display' => [
+            'M6.75 3h10.5a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75a2.25 2.25 0 0 1-2.25-2.25V5.25A2.25 2.25 0 0 1 6.75 3Z',
+            'M8.25 8.25h7.5M8.25 12h7.5M8.25 15.75h4.5',
+        ],
         'list' => ['M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z'],
         'clock' => ['M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'],
         'check-circle' => ['M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z'],
@@ -18,7 +25,6 @@
         'chevron-left' => ['M15.75 19.5 8.25 12l7.5-7.5'],
         'chevron-down' => ['m19.5 8.25-7.5 7.5-7.5-7.5'],
         'chevron-up' => ['m4.5 15.75 7.5-7.5 7.5 7.5'],
-        'sliders' => ['M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75'],
         'chevron-right' => ['m8.25 4.5 7.5 7.5-7.5 7.5'],
         'trash' => [
             'm14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',

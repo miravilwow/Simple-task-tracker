@@ -87,7 +87,7 @@
                 <div class="relative">
                     <button type="button" id="display-trigger" class="btn-secondary" aria-expanded="false"
                         aria-controls="display-panel" aria-haspopup="true">
-                        <x-icon name="sliders" class="size-4" />
+                        <x-icon name="display" class="size-4" />
                         Display
                     </button>
 
