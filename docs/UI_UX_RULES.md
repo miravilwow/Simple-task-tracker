@@ -82,7 +82,7 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
 - **The column grid is 4 columns with `gap-6` from `xl`.** Every layout resolves to it, so one panel's edge is also the next one's.
 - **A calendar day shows at most three tasks; the rest are behind "+N more".** Eight or more tasks tint the day amber and ten or more red, with a badge naming the count, so the colour is never the only signal. The day's number and "+N more" open the day dialog.
-- **The day dialog lists every task of one day.** Its title is the full date and a line under it counts the tasks; each row carries the task's colour and priority dot, and a finished one is struck through. A name opens the task dialog on top. **Add task on this day** opens New task with the date already set, and is absent on a past day, because the server refuses a past due date. There is no activity feed: it is a list of the day, not a log.
+- **The day dialog lists every task of one day.** Its title is the full date and a line under it counts the tasks; each row carries the task's colour, its priority dot and a status badge, and a finished one is struck through. A name opens the task dialog on top. **Add task on this day** opens New task with the date already set, and is absent on a past day, because the server refuses a past due date. There is no activity feed: it is a list of the day, not a log.
 - **All three layouts share the same outer edges.** List is one panel across the full width; Board is columns across that same width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
@@ -177,7 +177,7 @@ the two quietly come to disagree.
 | Success | `green-700` | Done, and the Complete button |
 
 - **The accent is red, and so is the destructive colour.** That is only safe because red is never a primary button here: a red button in this app is either Undo on a toast or Delete inside a confirm dialog, and both are things you meant to press. The primary action is near-black instead, so the two can never be mistaken for one another on the same row.
-- **The accent is spent sparingly.** Red marks what is selected, what is about to take a drop, and where the keyboard is. Nothing else. A hint, a note or an inactive panel takes grey, because a pale red panel with dark red text is what this app's error banner is, and a hint that looks like an error is worse than no hint.
+- **The accent is spent sparingly.** Red marks what is selected, what is about to take a drop, and where the keyboard is. Nothing else, bar a day with ten or more tasks, which is red as a warning, and a card colour, which is the user's own decoration and not the app's. A hint, a note or an inactive panel takes grey, because a pale red panel with dark red text is what this app's error banner is, and a hint that looks like an error is worse than no hint.
 
 ### Priority badges
 
@@ -401,7 +401,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] The heading, the chip row and the active layout all sit on the same column edges, and switching layout moves nothing sideways
 - [ ] The day's number or "+N more" opens the day dialog with every task; Add task there pre-fills the date; a past day offers no Add
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
-- [ ] A past day takes no chip and offers no button, in the calendar and in every date field
+- [ ] A past day takes no chip and no drop, and its day dialog offers no Add task, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] A day with ten tasks shows three chips, "+7 more" and a red "10 tasks" badge; eight shows amber
 - [ ] Pending tasks appear above completed ones in the All view
