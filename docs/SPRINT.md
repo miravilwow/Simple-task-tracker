@@ -5,6 +5,8 @@ owns it, the exact files it may touch, and the one check that says it is finishe
 
 ## Result
 
+This is a dated record. The project features it mentions (archive, duplicate, comments, force delete) were later removed, so its file and route names describe the app as it was that day.
+
 All seven ran on 2026-10-01. Every gate passed, and no later sprint sent an earlier one back.
 
 | Sprint | Role | Outcome | Commit |

@@ -28,10 +28,8 @@ The tracker runs the **full-bleed app shell**. `<x-layout :fluid="true">` is wha
 
 The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
 
-- **Sidebar** holds the smart views (All tasks, Today, Upcoming, Overdue, Completed; Upcoming is the calendar), a **Favorites** group, and the **My projects** tree. The UI says "project"; the API, the table and the model are still `category`, which is a rename worth finishing in one pass rather than half-doing. Views and categories are alternative selections: picking one clears the other, and the page title always names the current one.
-  - **Favorites** appears only when something is in it, and it is flat: the point of the group is to skip the tree, not to repeat it. A favourite still appears in My projects, because removing it from there would make the tree lie about what is in it.
-  - **My projects** is a tree. A child is indented under its parent with a rule down the left edge. A project whose parent is not in the list — deleted, say — is drawn as a root, so a branch can never disappear from the sidebar because of where its parent happens to be.
-  - **Deleted** sits at the foot of My projects and appears only when something has been deleted. It is the way back: a delete is reversible, so the undo cannot live only in a toast the user has to catch in time.
+- **Sidebar** holds the five smart views and nothing else: All tasks, Today, Upcoming, Overdue and Completed, each with a count. Upcoming is the calendar. The UI says "project"; the API, the table and the model are still `category`. A project is not a place in the sidebar but a label on a task, typed into the task's Project field, so there is no tree to browse and no second kind of selection: the page title always names the current view.
+- **There was a project tree, and it is gone.** Favourites, nesting, colours and icons, comments, reactions, an activity feed and a Deleted section were all built around the sidebar rows and were removed with them. A project was only ever a name a task carried, and every one of those features was a way of managing something that did not need managing. The Project field takes a typed name, offering the existing ones as suggestions, and a project exists exactly while a task carries it.
 
 #### Sidebar behaviour
 
@@ -45,79 +43,20 @@ The sidebar follows shadcn/ui's Sidebar (MIT), rebuilt for Blade and vanilla JS.
 
 - From `lg` it is **fixed, not sticky**: it runs from the bottom of the sticky navbar (`--header-height`) to the bottom of the viewport, flush against the left edge, and scrolls on its own rather than with the page.
 - **`--header-height` is measured, never assumed.** `--header-min-height` (4rem) is the floor the navbar is laid out against, and `shell.js` writes the bar's real height back into `--header-height` through a `ResizeObserver`. A constant would be wrong the moment the bar grows — under a text-only zoom, a larger default font, or a longer brand name — and the sidebar would then start behind it. The navbar's height also has to include its bottom border, so `app-header` sits on the `<header>` and not on the `<nav>` inside it; a pixel short leaves a hairline of content showing through. `<main>` is pushed clear of it by `--app-shell-offset`, which `<body data-sidebar-state>` swaps between the two widths below. Blade sets that attribute from the cookie and `sidebar.js` keeps it in step, so the content never starts at the wrong width.
-- It **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings, the category form), centres the icons and the rail button, and the content reclaims the space in the same 200ms. The icons keep a `title` so each button is still identifiable.
+- It **collapses to an icon rail**. Collapsing hides everything marked `.sidebar-collapsible` (labels, counts, group headings), centres the icons and the rail button, and the content reclaims the space in the same 200ms. The icons keep a `title` so each button is still identifiable.
 - The rail button and **Ctrl/Cmd+B** both toggle it. The state is written to a `sidebar_state` cookie and read back in Blade, so a collapsed sidebar never flashes open on load. That cookie is excluded from Laravel's cookie encryption, because JavaScript writes it; it holds nothing sensitive.
 - Below `lg` it is an off-canvas drawer behind a menu button, closed by its own button, the backdrop, Escape, choosing anything inside it, or the viewport growing past `lg`. While closed it is `visibility: hidden`, not merely translated off-screen, so it stays out of the tab order.
 - Rows built by JavaScript use the same `sidebar-menu-button` / `sidebar-menu-action` / `sidebar-menu-badge` utilities as the Blade ones, so the two can never drift apart.
 
-#### A project's actions
+#### Icons
 
-Every action a project offers sits behind one **"…"** at the end of its row, so the row carries a single control however many it has. Delete is inside it too: throwing work away is not a button to be brushed past on the way to selecting a project.
-
-The items are grouped by what they are for, with a rule between the groups:
-
-| Group | Items |
-|---|---|
-| The project itself | Edit, Add to favorites / Remove from favorites |
-| Where it sits | Project actions ▸ (Move, Duplicate) |
-| What is on it | Comments, View activity |
-| Getting rid of it | Delete |
-
-- The menu is appended to `<body>` and positioned `fixed`. The sidebar scrolls on its own, so a panel placed inside it would be clipped by that overflow; the cost is that a panel does not follow the page, so any scroll closes the whole menu.
-- It is a real `role="menu"`: arrows move between items and wrap, Home and End reach the ends, and clicking or tabbing away dismisses it without stealing focus.
-- **A submenu opens to the side**, flipping to the other side rather than hanging off the viewport. ArrowRight and a click both open it, hovering opens it for a pointer, and ArrowLeft steps back out. **Escape closes one level at a time**, so a submenu opened by mistake is cheap to undo.
-- Focus follows the row through a re-render: the list is rebuilt after every action, and the "…" that had focus is found again by its project id.
-- **Move and "move into folder" are the same operation.** A folder here is simply a project with children, so there is one tree and not two. The reference app keeps folders and parent projects apart; building both would be two ways to say the same thing.
-- **Favourite is set, not toggled.** The menu already knows which of the two labels it is showing, and two clicks racing each other would otherwise undo one another.
-- **There is no Archive.** It was built and then withdrawn: a delete the sidebar always shows a way back to does the same job, and two kinds of "out of the way" is one more than a tracker can explain. Deleting is the one way to put a project aside, and it is reversible.
-- **Deleting a project takes its tasks with it**, and Undo brings both back. A task is only ever reached through a list the project feeds, so leaving the tasks behind put rows in All tasks that nobody had created and nothing could explain.
-- **Delete is recoverable, and the toast says so.** Deleting a project soft deletes it and the toast carries **Undo**, exactly as deleting a task does. A project holds more than a task does, so it cannot be the one thing in the app that is thrown away for good. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
-- A deleted project's name stays reserved while it can still be restored, so creating another project with that name is a 400 until the old one is gone for good.
-
-#### The project dialog
-
-Add and Edit are **one** `<dialog>`. Two would mean two copies of the 224-option icon grid in the page, and two places for the picker's behaviour to drift apart.
-
-- Fields: Name (required, with a live `n/40` count because the server's limit is otherwise invisible), Description, Color, Parent project, Icon.
-- **There is no Access or Move-to-team field.** The reference app has both; this app has no accounts, so a "Restricted" control would be decoration that does nothing. A field that cannot work does not go in.
-- **The parent select leaves out the project itself and its own children**, because choosing one would cut the branch off the tree. The server refuses it as well; leaving the options out is what stops the user reaching for something that cannot work.
-- Opening focuses and selects Name. Closing — by Cancel, the close button, Escape, the backdrop, or a successful save — clears the form and returns focus to whatever opened it, which is the "…" when the dialog was opened from a row.
-
-#### Comments and activity
-
-They are **one dialog with a tab between them**, because both answer the same question: what has happened on this project. The menu keeps two entries so either one is a single click; they differ only in which tab opens.
-
-- The header is `#` and the project's name, and the tab switch is a segmented control with `aria-pressed` on the active tab.
-- **Comments are oldest first**, unlike the activity feed: a thread is read from the top, while a feed is scanned for the latest thing that happened.
-- **Activity is grouped by day**, newest day first, each day headed by its date, "Today" when it is, the weekday, and how many things happened. Times are relative ("2 hours ago") through `Intl.RelativeTimeFormat`, which is built into the browser; anything over a week old falls back to the date, because "23 days ago" is harder to place than the day it happened.
-- The empty state is an illustration with a sentence under it. The SVG is `aria-hidden` and is never the only thing there, because a picture alone says nothing to a screen reader.
-- Comment text is user input and is rendered with `textContent` only.
-- All four states in both tabs: "Loading…", the content, an empty message, and the server's message on failure.
-- **The Comment button is near-black, like every other primary action, and still not the red of the app this is modelled on.** The mark is red now, but red stayed this app's destructive colour, and posting a comment is the least destructive thing on the screen.
-- **The compose toolbar carries the emoji button and nothing else.** An attachment or a microphone that does nothing is the same decoration the project dialog already refused for Access.
-
-#### Reactions
-
-- **Nothing is installed for these.** An emoji is Unicode text, so the eight in `App\Enums\Reaction` need no package and no dataset. A searchable picker over 1,900 emoji would need one, and it would have been the project's first UI dependency; the fixed row is what reactions are actually used for.
-- A chip shows the emoji and the count, and carries `aria-pressed` for "I reacted", so the state is in the markup rather than in the colour alone. Its `aria-label` names the emoji and the count, because an emoji on its own is read out inconsistently.
-- The button beside the chips offers **only the emoji nobody has used yet**, so the same one is never offered twice.
-- **A reaction belongs to a browser, not a person**, because the app has no accounts: a random token in `localStorage`. That is the honest limit of what "who reacted" can mean here, and it means reactions are anonymous — a count, never a name. Losing the token loses only which reactions were mine, never the counts.
-- `mine` is worked out on the server from the token the request carries, never trusted from the client, so a button's pressed state and the row in the database cannot disagree.
-
-#### Project icons
-
-The app has two icon sources and they do not overlap. **Heroicons** is the chrome: every icon the app chooses for itself. Where the set has nothing close, a glyph is **drawn to the same grid** — 24px, 1.5 stroke, round caps — and marked as drawn in the map, so the two sit together without reading as two families. The Display button's framed list is the only one so far. **Iconify's Fluent UI set** (MIT, via `@iconify/tailwind4`) is only for the icon a user picks for their own category, where a handful of outline glyphs would not be enough to tell a category apart.
+Every icon is **Heroicons**, the chrome the app chooses for itself. Where the set has nothing close, a glyph is **drawn to the same grid** — 24px, 1.5 stroke, round caps — and marked as drawn in the map, so the two sit together without reading as two families. The Display button's framed list is the only one so far. There is no second icon set: a project's mark is the same folder icon for all of them, because a project is a name and nothing more.
 
 Heroicons is kept in two maps: `<x-icon>` for markup the server renders, and the `ICONS` map in `resources/js/dom.js` for rows JavaScript builds. **Neither has to hold every icon** — each carries what its own side draws — but an icon asked for and not defined fails quietly: Blade throws only in debug, and `dom.js` writes `d="undefined"`, which draws nothing at all. `IconMapTest` fails instead, in both directions: an icon used but not defined, and an icon defined that nothing draws.
 
-- A project carries **an icon and a colour**. The colour was dropped once, on the grounds that two marks for one project is one decision too many; it came back when projects gained a tree. Down a nested list the icon says what the project is and the colour is what tells two similar icons apart at a glance.
-- The colours are the seven in `App\Enums\CategoryColor`, not a free colour field, so nobody can pick one that fails contrast against the panel. The matching Tailwind classes are literal strings in `PROJECT_COLORS` in `resources/js/app.js`, the same way `PRIORITY_BADGES` works, and a test fails if the two drift apart.
-- The 224 choices are fixed in `App\Enums\CategoryIcon`, not free text, so the class name can never come from user input. The column is a `varchar`, not a database enum, because 224 values would make the schema unreadable; `Rule::enum()` closes the set instead.
-- **The project's name is the search; there is no second box to fill in.** Nothing is shown until something is typed, because 224 icons in a sidebar is a wall rather than a choice. A typed word matches the start of an icon's whole name or of any word in it, so "music" offers the music notes and "m" offers mail, money and music alike.
-- Fluent names its icons after the picture, not after the word a person would type: "Work" does not contain "briefcase" and "Gym" does not contain "dumbbell". `ICON_ALIASES` in `resources/js/app.js` carries the common words across, and a test checks every target is a real `CategoryIcon`, since a typo there would simply never show a suggestion.
-- The closest match is checked automatically, so picking one is a glance rather than a step. An icon that stops matching is unchecked with it, because the picker must never save something it is no longer showing; the form falls back to `folder`, which is what the note under it promises.
-- The class is `icon-[fluent--{value}-24-regular]` and it is built at runtime, which **Tailwind cannot see**. Every value is therefore repeated in `@source inline(...)` in `resources/css/app.css`. A case added to the enum without that line renders as an empty box, and a test fails if the two drift apart.
-- The icon is always `aria-hidden`, because the project's name sits right beside it.
+#### Scrollbars
+
+The sidebar, the page and the calendar's no-due-date tray scroll without drawing a scrollbar. `scrollbar-none` in `resources/css/app.css` hides the bar through `scrollbar-width` and the WebKit pseudo-element; **scrolling itself is untouched**, so the wheel, touch, the keyboard and a drag all still work. The tracker's shell puts it on `<html>`, because the page scroll belongs to the root element.
 
 - Both pages use the `<x-layout>` component, which provides the shared structure:
   - a "Skip to content" link
@@ -130,6 +69,8 @@ Heroicons is kept in two maps: `<x-icon>` for markup the server renders, and the
 ## 1. Layout (tracker dashboard)
 
 A dashboard in the `app-container`, beside the fixed sidebar.
+
+**The view decides the layout.** All tasks and Today are the **Board only**: a work queue is read as columns of stages, and the list had nothing to add to it. Upcoming is the calendar. Overdue and Completed keep the user's List or Board choice from the Display panel. While a view forces its layout, both Display mode buttons are disabled rather than accepted and ignored, the same way None is withdrawn from Grouping on the board. Because the list is the only layout with checkboxes, **the data table below lives on Overdue and Completed**.
 
 ### Grid alignment
 
@@ -213,12 +154,11 @@ two quietly come to disagree.
 
 - **Complete stays a button.** It is the commonest thing anyone does on this page, and putting it
   behind a menu would make one click into two.
-- **Everything else sits behind one "…"**, the same `role="menu"` the sidebar's rows use: Open,
+- **Everything else sits behind one "…"**, the same `role="menu"` the board card's "…" uses: Open,
   Reschedule or Set a date, Reopen on a finished task, and Delete. Delete inside it is where the
   rules already wanted it — never the most prominent thing on the row — and a table row is the one
   place on the page where horizontal space is genuinely contested.
-- **The board card keeps both buttons.** A card has room. What a task *can* do is identical in the
-  two layouts; only how many of them are on show differs.
+- **The board card has one button and a "…".** Complete stays on an unfinished card, and everything else sits in the card's own "…" (see the Board layout). A row and a card therefore differ in what they offer: a row has Complete, Open, Reschedule, Reopen and Delete; a card has Complete, Edit and Delete.
 
 ## 2. Visual design
 
@@ -229,7 +169,7 @@ two quietly come to disagree.
 
 | Role | Colour | Where |
 |---|---|---|
-| Primary action | `gray-900`, white text | New task, Add task, every dialog's save, Comment |
+| Primary action | `gray-900`, white text | New task, Add task, every dialog's save |
 | Accent | `red-600` and its tints | The mark, the selected sidebar row, today in the calendar, a drop target, a held card, every focus ring, the Undo on a toast |
 | Destructive | `red-600` | Delete, and only ever behind a confirmation |
 | Success | `green-700` | Done, and the Complete button |
@@ -291,7 +231,8 @@ two quietly come to disagree.
 - Opening focuses Title. Closing — by Cancel, Escape, the backdrop, or a successful save — clears the form and returns focus to the button that opened it, so a half-typed task is never waiting the next time it opens.
 
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
-- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority.
+- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority, Project.
+- **Project is a text input, not a select.** A project is created by typing its name: a new name makes the project, an existing one (matched without regard to case) reuses it, and leaving it empty means no project. `<datalist id="project-options">` offers the existing names as suggestions, with the hint "Type a new name to create a project." The task dialog's Project field is the same input on the same datalist and saves on change.
 - Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
 
 ### Date fields
@@ -334,9 +275,10 @@ One button in the page header carries **everything that answers "what am I looki
 The board's columns **are the grouping**: by status it is To do / In progress / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
+- **A card's "…" holds Edit and Delete.** A card has room for one button and not for a row of them, so Delete moved into a 32px "…" at the card's top-right, with Edit (it opens the task dialog) beside it. Delete still asks for confirmation and still offers Undo. It is the same `role="menu"` the table row uses, so arrows, Home/End and Escape behave as they do there, and focus returns to the "…".
 - **Grouped by status, dragging is how a task changes stage**, and the keyboard equivalent below is the other way. Complete stays on the card regardless: finishing something is the commonest action on the board, and dragging a card across its whole width to say so is a lot of hand for it.
-- **Under any other grouping the stage buttons come back.** The API can change a task's stage, not its priority or its project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
-- **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the left and right arrows move it between columns, **the up and down arrows move it within one column**, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the sidebar's "…" is.
+- **Under any other grouping dragging is switched off.** The API can change a stage, not a priority or a project, so a drop there would have nothing behind it. A gesture that silently does nothing is worse than no gesture.
+- **Dragging is never the only way.** A card is focusable and announces it: Enter opens the task, Space picks it up, the left and right arrows move it between columns, **the up and down arrows move it within one column**, Space drops it, Escape cancels. The card that had focus is found again after the move, the same way the card's "…" is.
 - A drop runs one request and the board updates only once the server answers, like every other action. The toast carries **Undo**, which is the reverse stage endpoint.
 - **A card can be dropped at any height in a column**, not only at its end. The cards part around a gap that shows where it will land: above the first card, between any two, or below the last. The gap is a real element in the list, so the cards are moved by the layout rather than by a measurement, and the column cannot disagree with itself about where the card is going.
 - **The drop names the card it landed under, not a position number.** The Display panel can be hiding cards, so counting the ones on screen would land the task somewhere else in the real column.
@@ -351,9 +293,9 @@ Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the nam
 - **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
 - **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
 - The up and down arrows step through **the list the user is looking at**, so what they walk matches what is on the page behind the dialog.
-- **Status is a field here, not a button on the row.** It runs `start`, `complete` and `reopen`, the same three endpoints the board's drag runs, so a stage change always reaches the activity log however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
+- **Status is a field here, not a button on the row.** It runs `start`, `complete` and `reopen`, the same three endpoints the board's drag runs, so a stage change has one path however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
 - **A sub-task is a checklist item, not a task.** It never appears in the list, the board or the calendar, and no stat tile counts it. That is what keeps `TaskSorter` and every graded figure exactly as the exam specifies.
-- **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. This is the same rule that kept Access out of the project dialog and the paperclip out of the comment box.
+- **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. A control that cannot work does not go in.
 
 ## 6. States
 
@@ -399,7 +341,7 @@ Every data view needs all four states:
 
 ## 10. Scope guard
 
-Build only what the exam asks for, plus what the user has since asked for: the project tree, the board, the task dialog and its sub-tasks, and dragging a card between the board's columns. No dark mode, auth, labels, reminders, or animations beyond simple transitions, unless the user asks for them.
+Build only what the exam asks for, plus what the user has since asked for: the board, the task dialog and its sub-tasks, and dragging a card between the board's columns. No dark mode, auth, labels, reminders, or animations beyond simple transitions, unless the user asks for them.
 
 ---
 
@@ -426,24 +368,15 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
 - [ ] Add, Complete, Delete, and every Display setting work without a page reload
 - [ ] Upcoming opens the calendar, and the Layout buttons are disabled while it is open
-- [ ] Sidebar views and categories filter the list, and the title names the current one
-- [ ] A project's "…" opens with its four groups; arrows, Home/End and Escape work, and focus returns to it
-- [ ] Project actions opens to the side, ArrowRight/ArrowLeft walk in and out, and Escape closes one level at a time
-- [ ] Edit opens the dialog filled in, Cancel leaves the project untouched, and a duplicate name shows the error under the field
-- [ ] Editing a project and retyping its name keeps the icon it already had
-- [ ] The parent select never offers the project itself or one of its children
-- [ ] Favorites group appears only when something is in it, and a favourite still shows in the tree
-- [ ] Delete removes the project from the tree, the Deleted section shows it, and Undo brings it back
-- [ ] Deleting a project removes its tasks from every list and from the sidebar counts
-- [ ] Undo on the delete toast brings a project back with its tasks, comments, activity and children intact
-- [ ] Duplicate copies the tasks and lands as "<name> (copy)"
-- [ ] Comments add, list oldest first, delete, and refuse an empty comment
-- [ ] The Comments / Activity tabs switch without closing the dialog, and the menu's two entries open the right one
-- [ ] A reaction adds, shows its count, and the chip reports itself pressed straight away
-- [ ] Pressing the same reaction again takes it back, and the chip disappears at zero
-- [ ] The add-reaction button stops offering an emoji once it is on the comment
-- [ ] Activity is grouped by day with relative times, and the empty state has a sentence, not only a picture
-- [ ] Activity lists what happened to that project, and reads correctly for a task that was deleted
+- [ ] The sidebar holds the five smart views with their counts, and nothing about projects
+- [ ] Sidebar views filter the list, and the title names the current one
+- [ ] Typing a new name in the New task form's Project field creates the project; typing an existing one in any case reuses it
+- [ ] The task dialog's Project field saves on change, and clearing it removes the project
+- [ ] All tasks and Today show the Board only, with both Display mode buttons disabled
+- [ ] Overdue and Completed keep the List and Board choice, and the data table appears there
+- [ ] A board card's "…" opens Edit and Delete, arrows and Escape work, and focus returns to it
+- [ ] Deleting from the card's "…" asks first, and the toast's Undo brings the task back
+- [ ] The sidebar, the page and the calendar tray scroll with the wheel and the keyboard, and draw no scrollbar
 - [ ] Drawer opens, closes on Escape/backdrop, and is untabbable while closed
 - [ ] Rail and Ctrl+B collapse the sidebar, and the state survives a reload without flashing
 - [ ] The sidebar stays put while the page scrolls, reaches the bottom of the viewport, and the content reclaims its space when it collapses
@@ -465,7 +398,7 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] A selection does not survive a reload, a filter change, or switching to the board
 - [ ] The Task and Priority headers sort, the Display panel's Sorting select follows them, and Status has no sort button
 - [ ] A row's "…" opens Open, Reschedule and Delete, with Reopen on a finished row, and focus returns to it
-- [ ] The board card still carries both Complete and Delete as buttons
+- [ ] An unfinished board card still carries Complete as a button
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching moves nothing sideways
 - [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board
@@ -481,8 +414,8 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] The up and down arrows move a held card within its column, and Undo on the toast puts it back exactly where it was
 - [ ] Sorting reads Manual and is disabled on the Board, and the chip row says so
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
-- [ ] Grouped by priority or project, the cards carry Complete again and are not draggable
-- [ ] The dialog's Status field moves a task through all three stages, and the activity log records each one
+- [ ] Grouped by priority or project, the cards are not draggable
+- [ ] The dialog's Status field moves a task through all three stages, and the board and the counts follow
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows
 - [ ] The dialog's up and down arrows step through the list that is on the page

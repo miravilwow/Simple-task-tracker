@@ -27,7 +27,7 @@ Red was not free. It already carried three jobs:
 
 | Job | Where |
 |---|---|
-| Destructive | Delete on a task row, Delete in the confirm dialog, the sidebar's purge |
+| Destructive | Delete on a task row, Delete in a card's menu, Delete in the confirm dialog |
 | High priority | The badge, and the 4px accent bar on a row and a calendar chip |
 | Something is wrong | Field errors, the error banner, an error toast's title, invalid borders |
 
@@ -47,7 +47,7 @@ Two routes were put up. **Route B was chosen.**
 
 | Role | Colour | Where |
 |---|---|---|
-| Primary action | gray 900, white text | New task, Add task, every dialog's save, Comment |
+| Primary action | gray 900, white text | New task, Add task, every dialog's save |
 | Accent | red 600 and its tints | The mark, the selected sidebar row, today in the calendar, a drop target, a held card, every focus ring, the Undo on a toast |
 | Destructive | red 600 | Delete, always behind a confirmation |
 | Success | green 700 | Done, and the Complete button |
@@ -65,7 +65,7 @@ dialog, and both are things you meant to press.
 2. **The calendar's hint strip.** A plain find-and-replace turned it into pale red with dark red text,
    which is exactly what the load-error banner is. A hint that looks like an error is worse than no
    hint, so it is grey.
-3. **The Comment button's comment in the markup.** It explained why the button was indigo rather than
+3. **The Comment button's comment in the markup** (the button went with comments later). It explained why the button was indigo rather than
    the reference app's red. The mark is red now, so the sentence had to be rewritten rather than
    recoloured.
 

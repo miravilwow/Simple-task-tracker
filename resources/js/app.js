@@ -203,7 +203,7 @@ function completeButton(task, compact) {
  * — "never the most prominent button on the row" — and a row is the one place on the page where
  * horizontal space is genuinely contested.
  *
- * What a task can do is the same in both layouts. Only how many of them are on show differs.
+ * A board card offers fewer: Complete, then Edit and Delete behind its own "…".
  */
 function rowActions(task) {
     const buttons = [];

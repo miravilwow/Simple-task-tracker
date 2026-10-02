@@ -5,7 +5,7 @@
 [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
 
 A task tracker built on Laravel 12 and MySQL: a sortable task list, a drag-and-drop board, a
-calendar, and a project tree, all driven by a JSON API.
+calendar, all driven by a JSON API. Projects are labels typed onto tasks.
 
 The sorting rule that the brief specifies lives in `src/TaskSorter.php` as plain PHP with no
 framework behind it, and the application really uses it — `GET /api/tasks` is ordered by it.
@@ -111,11 +111,13 @@ An error is always shaped the same way:
 ### Projects
 
 The interface calls these "projects". The table, the model and the API still say `category`; it is a
-rename worth finishing in one pass rather than half-doing.
+rename worth finishing in one pass rather than half-doing. A project has no endpoints of its own to
+create or edit: typing a name into a task's Project field creates it, and the list below returns only
+the projects that still have a live task, as `[{ "id": 10, "name": "Basketball", "task_count": 3 }]`.
 
 | Method | Path | Success | Errors |
 |---|---|---|---|
-| GET | `/api/categories` | 200 + task counts | none |
+| GET | `/api/categories` | 200 + projects that have live tasks, with their counts | none |
 
 A test compares this table against the application's real routes in both directions, so a line
 cannot outlive the endpoint it describes.
@@ -164,7 +166,6 @@ GET /api/tasks?due=today&priority=high&sort=default&completed=0
 | Filter | Values |
 |---|---|
 | `status` | `pending`, `in_progress`, `completed` |
-| `category_id` | a project id |
 | `due` | `overdue`, `today`, `upcoming`, `none` |
 | `from` / `to` | `YYYY-MM-DD`, the calendar's month window |
 | `priority` | `low`, `medium`, `high` |
@@ -251,8 +252,7 @@ DELETE /api/tasks/7           → { "message": "Task deleted." }
 PATCH  /api/tasks/7/restore   → the task again
 ```
 
-A delete stamps the row rather than removing it, so the toast that follows can offer Undo. Deleting a
-project takes its tasks with it, and restoring the project brings them back.
+A delete stamps the row rather than removing it, so the toast that follows can offer Undo.
 
 ## Choices worth explaining
 
@@ -284,7 +284,7 @@ parent, so no list, count or sort had to learn whether it meant sub-tasks too.
 ```
 src/TaskSorter.php          the brief's sorting rule, plain PHP, no framework
 tests/TaskSorterTest.php    its test, at the path the brief asks for
-app/Enums/                  every closed set of values: priority, status, colours, icons
+app/Enums/                  every closed set of values: priority, status, sort, due filter, bulk action
 app/Http/Requests/          validation, one class per shape of input
 app/Http/Resources/         the JSON shape, kept separate from the database columns
 resources/js/               vanilla JS, one file per job, no framework
@@ -304,8 +304,7 @@ is a state machine for a table that renders its own rows, so none of it would ha
 do here. Its column-visibility and faceted-filter parts were deliberately left out, because this app
 already has the Display panel and two controls for one setting is how they come to disagree.
 
-Project icons come from Iconify's Fluent UI set (MIT) through `@iconify/tailwind4`. Everything else
-is Heroicons or hand-written.
+Every icon is Heroicons or hand-drawn to the same grid.
 
 ## AI Disclosure
 
