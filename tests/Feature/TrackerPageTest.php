@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -267,7 +268,16 @@ class TrackerPageTest extends TestCase
 
         $this->assertStringContainsString('id="detail-color"', $html);
         $this->assertStringContainsString('role="radiogroup"', $html);
-        $this->assertSame(9, substr_count($html, 'data-color='));
+        $this->assertSame(18, substr_count($html, 'data-color='));
+    }
+
+    public function test_the_day_dialog_offers_the_same_colours_as_a_day_colour(): void
+    {
+        $html = $this->get('/tasks')->assertOk()->getContent();
+        $dialog = Str::before(Str::after($html, 'id="day-dialog"'), '</dialog>');
+
+        $this->assertStringContainsString('id="day-color"', $dialog);
+        $this->assertSame(9, substr_count($dialog, 'data-color='));
     }
 
     public function test_the_tracker_renders_the_day_dialog(): void

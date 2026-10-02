@@ -3,6 +3,7 @@
  * the dialog and nothing else; opening a task and adding one are the page's to do.
  */
 import { PRIORITY_DOTS } from './calendar.js';
+import { dayColorOf, setDayColor } from './daycolor.js';
 import { CARD_TINTS, createBadge, createElement, parseDate, startOfToday, STATUS_BADGES, toIsoDate } from './dom.js';
 
 const titleFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -11,8 +12,11 @@ const EMPTY = 'Nothing on this day yet.';
 
 const $ = (id) => document.getElementById(id);
 
-export function createDayDialog({ onOpenTask, onAddTask }) {
+export function createDayDialog({ onOpenTask, onAddTask, onColorChange }) {
     const dialog = $('day-dialog');
+    const colorField = $('day-color-field');
+    const colorGroup = $('day-color');
+    const swatches = () => [...colorGroup.querySelectorAll('[data-color]')];
     const title = $('day-title');
     const count = $('day-count');
     const list = $('day-list');
@@ -45,8 +49,27 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
         return item;
     }
 
+    // Roving tabindex, as the task dialog's colour group has: Tab lands on the checked swatch.
+    function markSwatch(color) {
+        swatches().forEach((item) => {
+            const checked = item.dataset.color === color;
+
+            item.setAttribute('aria-checked', String(checked));
+            item.tabIndex = checked ? 0 : -1;
+        });
+    }
+
+    function pickColor(swatch) {
+        markSwatch(swatch.dataset.color);
+        setDayColor(iso, swatch.dataset.color);
+        onColorChange();
+    }
+
     function draw(tasks, emptyText) {
         shown = tasks;
+        // A day with nothing on it has no cell worth colouring, and a past day stays grey.
+        colorField.hidden = tasks.length === 0 || iso < toIsoDate(startOfToday());
+        markSwatch(dayColorOf(iso) ?? '');
         title.textContent = titleFormatter.format(parseDate(iso));
         count.textContent = `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`;
         list.replaceChildren(...(tasks.length > 0 ? tasks.map(row) : [createElement('li', 'py-6 text-center text-sm text-gray-500', emptyText)]));
@@ -60,6 +83,29 @@ export function createDayDialog({ onOpenTask, onAddTask }) {
         draw(tasks, emptyText);
         dialog.showModal();
     }
+
+    colorGroup.addEventListener('click', (event) => {
+        const swatch = event.target.closest('[data-color]');
+
+        if (swatch) {
+            pickColor(swatch);
+        }
+    });
+
+    colorGroup.addEventListener('keydown', (event) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+        const index = swatches().indexOf(document.activeElement);
+
+        if (!step || index === -1) {
+            return;
+        }
+
+        event.preventDefault();
+        const next = swatches()[(index + step + swatches().length) % swatches().length];
+
+        next.focus();
+        pickColor(next);
+    });
 
     $('day-close').addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', (event) => {

@@ -1,3 +1,4 @@
+import { dayColorOf, DAY_TINTS } from './daycolor.js';
 import { CARD_TINTS, createElement, parseDate, startOfToday, toIsoDate } from './dom.js';
 
 export const PRIORITY_DOTS = {
@@ -16,10 +17,15 @@ export const dayLoad = (count) => (count >= DANGER_AT ? 'danger' : count >= WARN
 const LOAD_CELL = { warn: 'bg-amber-50', danger: 'bg-red-50' };
 const LOAD_BADGE = { warn: 'bg-amber-100 text-amber-800', danger: 'bg-red-100 text-red-700' };
 
-// A past day keeps its grey however busy it was; the badge still names the count.
-const cellBackground = (isPast, inMonth, load) => {
+// A past day keeps its grey however busy it was; the badge still names the count. A colour the
+// user chose wins over the busy tint, which is why the badge carries the warning on its own.
+const cellBackground = (isPast, inMonth, load, dayColor) => {
     if (isPast) {
         return 'bg-gray-50';
+    }
+
+    if (dayColor) {
+        return DAY_TINTS[dayColor];
     }
 
     return load ? LOAD_CELL[load] : inMonth ? '' : 'bg-gray-50';
@@ -176,7 +182,7 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         const cell = createElement(
             'div',
             `min-h-28 space-y-1 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
-                cellBackground(isPast, inMonth, load)
+                cellBackground(isPast, inMonth, load, dayColorOf(iso))
             }`,
         );
 
@@ -256,12 +262,14 @@ export function renderAgenda(container, { tasks, onOpen, onOpenDay, emptyText = 
     container.replaceChildren(
         ...groups.map(([iso, dayTasks]) => {
             const load = dayLoad(dayTasks.length);
+            const dayColor = iso < today ? null : dayColorOf(iso);
+            const headingTint = dayColor ? DAY_TINTS[dayColor] : load ? LOAD_CELL[load] : '';
             const section = createElement('div', 'p-4');
             const headingClasses = `text-sm font-medium ${iso === today ? 'text-red-700' : 'text-gray-700'}`;
             const headingText = agendaFormatter.format(parseDate(iso)) + (iso === today ? ' · Today' : '');
             const headingRow = createElement(
                 'div',
-                `flex items-center justify-between gap-2 rounded-md ${load ? `${LOAD_CELL[load]} px-2 py-1` : ''}`,
+                `flex items-center justify-between gap-2 rounded-md ${headingTint ? `${headingTint} px-2 py-1` : ''}`,
             );
             let heading;
 

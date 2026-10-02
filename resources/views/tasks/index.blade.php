@@ -395,6 +395,17 @@
             </div>
         </div>
         <ul id="day-list" class="max-h-96 space-y-2 overflow-y-auto scrollbar-none p-4 sm:px-6"></ul>
+        {{-- Colours the day's cell on the calendar. Kept in this browser, so there is no request. --}}
+        <div id="day-color-field" class="border-t border-gray-200 px-4 py-3 sm:px-6">
+            <span id="day-color-label" class="detail-label">Day colour</span>
+            <div id="day-color" role="radiogroup" aria-labelledby="day-color-label" class="mt-2 flex flex-wrap gap-2">
+                @foreach (['' => 'bg-white', 'red' => 'bg-red-400', 'orange' => 'bg-orange-400', 'yellow' => 'bg-yellow-400', 'green' => 'bg-green-500', 'teal' => 'bg-teal-500', 'blue' => 'bg-blue-500', 'purple' => 'bg-purple-500', 'pink' => 'bg-pink-400'] as $value => $swatch)
+                    <button type="button" role="radio" aria-checked="false" data-color="{{ $value }}"
+                        aria-label="{{ $value === '' ? 'Default' : ucfirst($value) }}"
+                        class="color-swatch {{ $swatch }}"></button>
+                @endforeach
+            </div>
+        </div>
         <div class="flex justify-end gap-2 border-t border-gray-200 p-4 sm:px-6">
             <button type="button" id="day-close" class="btn-secondary">Close</button>
             <button type="button" id="day-add"
@@ -597,6 +608,18 @@
                             placeholder="No project" class="detail-field">
                     </div>
 
+                    {{-- Above the date grid, which is tall enough to push this out of view. --}}
+                    <div class="py-3">
+                        <span id="detail-color-label" class="detail-label">Color</span>
+                        <div id="detail-color" role="radiogroup" aria-labelledby="detail-color-label" class="mt-2 flex flex-wrap gap-2">
+                            @foreach (['' => 'bg-white', 'red' => 'bg-red-400', 'orange' => 'bg-orange-400', 'yellow' => 'bg-yellow-400', 'green' => 'bg-green-500', 'teal' => 'bg-teal-500', 'blue' => 'bg-blue-500', 'purple' => 'bg-purple-500', 'pink' => 'bg-pink-400'] as $value => $swatch)
+                                <button type="button" role="radio" aria-checked="false" data-color="{{ $value }}"
+                                    aria-label="{{ $value === '' ? 'Default' : ucfirst($value) }}"
+                                    class="color-swatch {{ $swatch }}"></button>
+                            @endforeach
+                        </div>
+                    </div>
+
                     <div class="py-3">
                         {{-- Inline, because a <dialog> clips a floating panel. --}}
                         <x-date-field id="detail-date" label="Date" :inline="true" />
@@ -622,16 +645,6 @@
                         </select>
                     </div>
 
-                    <div class="pt-3">
-                        <span id="detail-color-label" class="detail-label">Color</span>
-                        <div id="detail-color" role="radiogroup" aria-labelledby="detail-color-label" class="mt-2 flex flex-wrap gap-2">
-                            @foreach (['' => 'bg-white', 'red' => 'bg-red-400', 'orange' => 'bg-orange-400', 'yellow' => 'bg-yellow-400', 'green' => 'bg-green-500', 'teal' => 'bg-teal-500', 'blue' => 'bg-blue-500', 'purple' => 'bg-purple-500', 'pink' => 'bg-pink-400'] as $value => $swatch)
-                                <button type="button" role="radio" aria-checked="false" data-color="{{ $value }}"
-                                    aria-label="{{ $value === '' ? 'Default' : ucfirst($value) }}"
-                                    class="color-swatch {{ $swatch }}"></button>
-                            @endforeach
-                        </div>
-                    </div>
                 </div>
             </aside>
         </div>

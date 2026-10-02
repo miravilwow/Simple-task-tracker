@@ -1115,7 +1115,7 @@ function addTaskOn(iso) {
 }
 
 const tasksOn = (iso) => latestTasks.filter((task) => task.due_date === iso);
-const dayDialog = createDayDialog({ onOpenTask: showTaskDetail, onAddTask: addTaskOn });
+const dayDialog = createDayDialog({ onOpenTask: showTaskDetail, onAddTask: addTaskOn, onColorChange: () => load() });
 const dayEmptyText = () => (filtersAreOn() ? FILTERED_EMPTY : undefined);
 const openDay = (iso) => dayDialog.open(iso, tasksOn(iso), dayEmptyText());
 

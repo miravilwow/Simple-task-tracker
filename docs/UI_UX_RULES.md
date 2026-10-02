@@ -82,7 +82,7 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **The navbar's height comes from the `<header>`, and so does its centring.** A `h-full` child resolves against a height the header does not have — it only sets `min-height` — and silently collapses to its content, leaving the row stuck to the top of the bar.
 - **The column grid is 4 columns with `gap-6` from `xl`.** Every layout resolves to it, so one panel's edge is also the next one's.
 - **A calendar day shows at most three tasks; the rest are behind "+N more".** Six or more tasks (past five) tint the day amber and ten or more red, with a badge naming the count, so the colour is never the only signal. The day's number and "+N more" open the day dialog.
-- **The day dialog lists every task of one day.** Its title is the full date and a line under it counts the tasks; each row carries the task's colour, its priority dot and a status badge, and a finished one is struck through. A name opens the task dialog on top. **Add task on this day** opens New task with the date already set, and is absent on a past day, because the server refuses a past due date. There is no activity feed: it is a list of the day, not a log.
+- **The day dialog lists every task of one day.** Its title is the full date and a line under it counts the tasks; each row carries the task's colour, its priority dot and a status badge, and a finished one is struck through. A name opens the task dialog on top. **Add task on this day** opens New task with the date already set, and is absent on a past day, because the server refuses a past due date. There is no activity feed: it is a list of the day, not a log. **Day colour** sits under the list: the card colours again, shown only on a day that has a task and is not past. It tints that day's cell (and its agenda heading) and wins over the busy-day tint, so the "N tasks" badge is what still warns. It is kept in this browser's `localStorage` (`day_colors`), not the API, because it is the user's own decoration.
 - **All three layouts share the same outer edges.** List is one panel across the full width; Board is columns across that same width; Calendar keeps the "No due date" tray in column 1 and the month grid in columns 2–4. Switching layouts must not move the outer edges.
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
@@ -403,6 +403,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Calendar: drag a chip to a day, drag to the tray to clear, and reschedule from the dialog
 - [ ] A past day takes no chip and no drop, and its day dialog offers no Add task, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
+- [ ] Day colour in the day dialog tints that cell, survives a reload, and Default clears it; it is absent on an empty or past day
 - [ ] A day with ten tasks shows three chips, "+7 more" and a red "10 tasks" badge; six shows amber and five stays plain
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Ticking a row shows the toolbar, and the count matches what is ticked
