@@ -91,7 +91,11 @@ class TaskController extends Controller
             $task->category()->associate($data['category_name'] === null ? null : Category::named($data['category_name']));
         }
 
-        $task->update(Arr::except($data, 'category_name'));
+        if (array_key_exists('color', $data)) {
+            $task->color = $data['color'];
+        }
+
+        $task->update(Arr::except($data, ['category_name', 'color']));
 
         return TaskResource::make($task->load('category', 'subtasks'));
     }

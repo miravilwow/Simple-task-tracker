@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TaskColor;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use Database\Factories\TaskFactory;
@@ -75,6 +76,7 @@ class Task extends Model
     {
         return [
             'priority' => TaskPriority::class,
+            'color' => TaskColor::class,
             'status' => TaskStatus::class,
             'due_date' => 'date',
             'position' => 'integer',

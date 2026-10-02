@@ -155,7 +155,7 @@ Content-Type: application/json
 `title` is required and trimmed, so a title of only spaces is empty. `category_name` is the project,
 typed by name: an existing one is reused regardless of case, a new one is created, and `null` or an
 empty string means no project (up to 40 characters). The same field on `PATCH /api/tasks/{id}` is
-applied only when the key is sent. `priority` must be `low`, `medium` or `high`. `due_date` is `YYYY-MM-DD` and **cannot be in the past**: a due date is a promise
+applied only when the key is sent. `color` on that endpoint is `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple` or `pink`, or `null` for the default. `priority` must be `low`, `medium` or `high`. `due_date` is `YYYY-MM-DD` and **cannot be in the past**: a due date is a promise
 about work still ahead. A task becomes overdue the ordinary way, by the day arriving and passing.
 
 `status` is deliberately not accepted here — it changes only through the stage endpoints below.

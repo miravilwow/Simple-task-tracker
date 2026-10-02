@@ -22,6 +22,7 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'priority' => $this->priority->value,
             'status' => $this->status->value,
+            'color' => $this->color?->value,
             // Where the task sits in its board column. The board sends it back when a card is
             // dropped between two others.
             'position' => $this->position,

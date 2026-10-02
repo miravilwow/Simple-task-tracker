@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TaskColor;
 use App\Enums\TaskPriority;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +26,7 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'priority' => ['sometimes', 'required', Rule::enum(TaskPriority::class)],
+            'color' => ['sometimes', 'nullable', Rule::enum(TaskColor::class)],
             'category_name' => ['sometimes', 'nullable', 'string', 'max:40'],
         ];
     }
