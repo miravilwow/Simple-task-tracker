@@ -9,7 +9,7 @@ import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnschedule
 import { enhanceDateFields } from './datepicker.js';
 import { confirmAction, openScheduleDialog } from './dialogs.js';
 import { openMenu } from './menu.js';
-import { createSelection, rowCheckbox, syncHeaderCheckbox, syncSortHeaders } from './table.js';
+import { syncSortHeaders } from './table.js';
 import './shell.js';
 import { closeDrawer } from './sidebar.js';
 import {
@@ -47,11 +47,11 @@ const VIEWS = {
     completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
 };
 
-// The string lives in app.css as @utility btn-action, because the selection toolbar in Blade needs
-// the same shape and a copy in each is how the two drift apart.
 const UNSCHEDULED_EMPTY = 'Every task has a date.';
 const FILTERED_EMPTY = 'Nothing matches these filters.';
 
+// The string lives in app.css as @utility btn-action, because Blade needs the same shape for the
+// task detail dialog's Done button, and a copy in each is how the two drift apart.
 const BUTTON_BASE = 'btn-action';
 
 const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
@@ -83,12 +83,6 @@ const elements = {
     taskList: $('task-list'),
     tasksHeading: $('tasks-heading'),
     columnHeaders: $('column-headers'),
-    selectAll: $('select-all'),
-    selectionBar: $('selection-bar'),
-    selectionCount: $('selection-count'),
-    selectionComplete: $('selection-complete'),
-    selectionDelete: $('selection-delete'),
-    selectionClear: $('selection-clear'),
     skeleton: $('skeleton'),
     boardSkeleton: $('board-skeleton'),
     listMessage: $('list-message'),
@@ -130,14 +124,6 @@ let latestTasks = [];
 // entrance animation. Replaying it on every card made the board blink after each drop.
 let drawnIds = new Set();
 const enterClass = (task) => (drawnIds.has(task.id) ? '' : 'task-enter');
-
-// The ids the list last drew, which is what "select every task shown" means and what a selection
-// is pruned against. Not the same as latestTasks: a grouping can leave an empty group out.
-let listedIds = [];
-
-// The rows the user has ticked. Only the list layout draws checkboxes, so the board and the
-// calendar leave it empty and the toolbar never appears over them.
-const selection = createSelection(() => syncSelection());
 
 // ---------------------------------------------------------------- formatting
 
@@ -316,8 +302,6 @@ function renderTask(task) {
     );
     item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`));
 
-    // flex-1 rather than w-full, so below md the checkbox and the title share the first line
-    // instead of the checkbox sitting alone above it.
     const content = createElement('div', 'min-w-0 flex-1 md:w-auto');
     const heading = createElement('h3', `font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
     heading.append(titleButton(task));
@@ -350,10 +334,7 @@ function renderTask(task) {
     const actions = createElement('div', 'flex w-full items-center gap-2 md:w-auto md:justify-end');
     actions.append(...rowActions(task));
 
-    const select = createElement('div', 'flex items-center');
-    select.append(rowCheckbox(task, selection));
-
-    item.append(select, content, priorityCell, statusCell, actions);
+    item.append(content, priorityCell, statusCell, actions);
 
     return item;
 }
@@ -443,78 +424,6 @@ function renderList(tasks, groups) {
     elements.listMessageText.textContent = emptyMessage();
     setVisible(elements.listMessage, !hasTasks);
     elements.columnHeaders.classList.toggle('md:grid', hasTasks);
-
-    // The rows have just been rebuilt, so anything ticked that is no longer drawn goes with them.
-    listedIds = tasks.map((task) => task.id);
-    selection.keepOnly(listedIds);
-    syncSelection();
-}
-
-/**
- * Points the toolbar and the header checkbox at the rows on screen.
- *
- * Complete is disabled when every ticked row is already finished. The endpoint would answer that
- * nothing changed, and a toast reporting nothing is worse than a button that says so first.
- */
-function syncSelection() {
-    const ticked = selection.size;
-    const tasks = latestTasks.filter((task) => selection.has(task.id));
-
-    // The toolbar takes over the header row rather than sharing it, so checking a box never
-    // stacks a second line under "Tasks" and grows the panel on a narrow width.
-    elements.tasksHeading.classList.toggle('hidden', ticked > 0);
-    setVisible(elements.selectionBar, ticked > 0);
-    elements.selectionCount.textContent = ticked > 0 ? `${ticked} selected` : '';
-    elements.selectionComplete.disabled = ! tasks.some((task) => task.status !== 'completed');
-    syncHeaderCheckbox(elements.selectAll, listedIds, selection);
-}
-
-/**
- * One action across the ticked rows.
- *
- * The response, not the selection, is what Undo sends back: a task already in the state asked for
- * is skipped by the server, so the two lists are not always the same and reversing the selection
- * would reopen work nobody touched.
- */
-function runBulk(button, { action, busyLabel, doneLabel, successMessage, undoMessage }) {
-    const ids = selection.ids();
-    let result = null;
-
-    return runAction(button, {
-        busyLabel,
-        doneLabel,
-        request: async () => {
-            result = await api('/tasks/bulk', { method: 'POST', body: { action, ids } });
-        },
-        successMessage,
-        description: () => countLabel(result.count),
-        undo: () => api('/tasks/bulk', { method: 'POST', body: { action: result.undo, ids: result.ids } }),
-        undoMessage,
-    });
-}
-
-const countLabel = (count) => `${count} ${count === 1 ? 'task' : 'tasks'}`;
-
-async function deleteSelection(button) {
-    const count = selection.size;
-    const confirmed = await confirmAction({
-        title: 'Delete tasks',
-        message: `Delete ${countLabel(count)}? You can undo this from the toast straight after.`,
-    });
-
-    if (! confirmed) {
-        button.focus();
-
-        return;
-    }
-
-    await runBulk(button, {
-        action: 'delete',
-        busyLabel: 'Deleting…',
-        doneLabel: 'Deleted',
-        successMessage: 'Tasks deleted',
-        undoMessage: 'Tasks restored',
-    });
 }
 
 // ---------------------------------------------------------------- stats & sidebar
@@ -656,8 +565,6 @@ async function load() {
         renderProjectOptions(categoriesResponse.data);
         filterBar.setProjects(categoriesResponse.data);
 
-        // Set before anything draws: renderList syncs the selection toolbar, which has to read the
-        // list it is about to show rather than the one it is replacing.
         latestTasks = tasksResponse.data;
 
         if (currentLayout() === 'calendar') {
@@ -1026,7 +933,7 @@ function setView(key) {
 
 /**
  * Every view decides its own layout: All tasks and Today are the board, Upcoming is the calendar,
- * and Overdue and Completed are the table, the one layout with checkboxes.
+ * and Overdue and Completed are the table.
  */
 const LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar', overdue: 'list', completed: 'list' };
 
@@ -1036,12 +943,6 @@ const currentLayout = () => LAYOUTS[state.view];
 // grid class is added only while that layout is open.
 function applyLayout() {
     const layout = currentLayout();
-
-    // Only the list has checkboxes. Leaving it with a selection still held would bring the toolbar
-    // back on return, counting rows the user ticked before they went somewhere else.
-    if (layout !== 'list') {
-        selection.clear();
-    }
 
     elements.listView.classList.toggle('hidden', layout !== 'list');
     elements.boardView.classList.toggle('hidden', layout !== 'board');
@@ -1177,24 +1078,6 @@ elements.taskDialog.addEventListener('click', (event) => {
 });
 elements.retry.addEventListener('click', load);
 elements.projectBack.addEventListener('click', closeProject);
-
-elements.selectAll.addEventListener('change', () =>
-    selection.setMany(listedIds, elements.selectAll.checked),
-);
-elements.selectionClear.addEventListener('click', () => {
-    selection.clear();
-    elements.selectAll.focus();
-});
-elements.selectionComplete.addEventListener('click', () =>
-    runBulk(elements.selectionComplete, {
-        action: 'complete',
-        busyLabel: 'Completing…',
-        doneLabel: 'Completed',
-        successMessage: 'Tasks completed',
-        undoMessage: 'Tasks reopened',
-    }),
-);
-elements.selectionDelete.addEventListener('click', () => deleteSelection(elements.selectionDelete));
 
 // The table's own headers are its only sort control. A header selects an order rather than
 // flipping one, so pressing the active one again does nothing.

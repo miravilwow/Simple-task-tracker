@@ -94,50 +94,22 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts instead, and they count every task rather than the filtered list.
 - **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
-  - Below `md`, each row stacks: the checkbox and the title on the first line, then description and date, then the badges, then the actions at full width.
-  - From `md` up, rows line up as table columns: **select | Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
+  - Below `md`, each row stacks: the title on the first line, then description and date, then the badges, then the actions at full width.
+  - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
 - **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
 - **No horizontal scroll** at any width. Long titles wrap (`break-words`) and never overflow.
 
 ### 1a. The task table
 
-The list is a data table, following shadcn/ui's Data Table (MIT) the way the sidebar follows its
-Sidebar: a checkbox column, a toolbar that appears for a selection, and headers that sort. Its code
-is React over TanStack Table, which is a state machine for a table that renders its own rows, so
-what is ported is the shape and not a line of it. **Column visibility and faceted filters are left
-behind on purpose** — the filter bar already narrows the table, and a second control for either is how
-the two quietly come to disagree.
-
-#### Selecting rows
-
-- Each row carries a checkbox, and the column header carries the one that selects every row shown.
-- **"Every row shown" means exactly that**, not every task in the database. The filter bar can be
-  narrowing the table by search, priority or project, and a select-all reaching past the screen would act
-  on rows the user has no way to check.
-- The header checkbox uses the element's own `indeterminate` property for the half-selected state,
-  so the browser announces "mixed" without the app describing it. That is the reason it is a real
-  `<input type="checkbox">` rather than a button with `role="checkbox"`.
-- **A selection never outlives the rows it named.** The list is rebuilt after every action, and
-  anything no longer drawn is dropped from the selection with it. Switching to the board or the
-  calendar clears it, because only the list has checkboxes.
-- The select-all sits in the column header row, which only appears from `md`. Below that, rows are
-  ticked one at a time.
-
-#### The selection toolbar
-
-- It takes over the panel header rather than appearing as a bar of its own: the "Tasks" heading
-  hides while it is shown, so the toolbar fills the same row instead of stacking a second line
-  under the heading on a narrow width. The rows never move down the moment a checkbox is pressed.
-- It reads **"3 selected"**, then Complete, Delete and Clear. The count is `aria-live="polite"`.
-- **Complete is disabled when every selected row is already finished.** The endpoint would answer
-  that nothing changed, and a button that says so first is better than a toast that says so after.
-- Delete asks for confirmation, exactly as a single row's does, and the toast that follows carries
-  **Undo**.
-- **One request, not one per row.** `POST /api/tasks/bulk` runs the whole selection in a transaction.
-  Five rows completed as five requests is five chances to stop half way, and it spends five of the
-  rate limiter's allowance on one click.
-- **Undo sends back what the server changed, not what was selected.** A row already in the state
-  asked for is skipped, so reversing the selection would reopen work nobody touched.
+The list is a data table. **Row selection and the bulk toolbar were tried and removed**: a checkbox
+on every row plus a toolbar that took over the header added a step (tick, then act) to work a
+row's own actions already did in one. Each row keeps its own Complete button and its own "…" for
+everything else, which covers single-row and multi-row cleanup alike — there is no action the
+toolbar offered that a few individual clicks do not. `POST /api/tasks/bulk` still exists and is
+still covered by `tests/Feature/BulkTaskTest.php`, since the exam rubric lists it; the UI simply
+does not call it. **Column visibility and faceted filters are left out on the same reasoning** —
+the filter bar already narrows the table, and a second control for either is how the two quietly
+come to disagree.
 
 #### Sorting from the headers
 
@@ -415,13 +387,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Day colour in the day dialog tints that cell, survives a reload, and Default clears it; it is absent on an empty or past day
 - [ ] A day with ten tasks shows three chips, "+7 more" and a red "10 tasks" badge; nine shows amber and eight stays plain
 - [ ] Pending tasks appear above completed ones in the All view
-- [ ] Ticking a row shows the toolbar, and the count matches what is ticked
-- [ ] The header checkbox selects every row shown, goes half-checked for a partial selection, and clears from Clear
-- [ ] A select-all with the filter bar narrowing the table never touches a row that is not on screen
-- [ ] Bulk Complete is disabled when every selected row is already finished
-- [ ] Bulk Complete and bulk Delete each run one request, and the toast's Undo puts the rows back
-- [ ] Undo after completing a mixed selection leaves the rows that were already done alone
-- [ ] A selection does not survive a reload, a filter change, or switching to the board
+- [ ] The table carries no selection checkboxes; every action is a row's own Complete or its "…"
 - [ ] The Task and Priority headers sort, and Status has no sort button
 - [ ] A row's "…" opens Open, Reschedule and Delete, with Reopen on a finished row, and focus returns to it
 - [ ] An unfinished board card still carries Complete as a button

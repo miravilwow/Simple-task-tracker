@@ -183,11 +183,10 @@ class TrackerPageTest extends TestCase
         $this->assertStringNotContainsString("actionLabel('Reopen')", file_get_contents(resource_path('js/app.js')));
     }
 
-    public function test_the_table_header_carries_the_select_all_and_the_sort_buttons(): void
+    public function test_the_table_header_carries_the_sort_buttons(): void
     {
         $this->get('/tasks')->assertOk()->assertSeeInOrder([
             'id="column-headers"',
-            'id="select-all"',
             'data-sort="name"',
             'data-sort="default"',
         ], false);
@@ -196,7 +195,7 @@ class TrackerPageTest extends TestCase
     public function test_the_column_header_row_is_not_hidden_from_a_screen_reader(): void
     {
         // It used to be aria-hidden, which was fair when it held four decorative words. It now
-        // holds the select-all checkbox and two real buttons, and hiding the row would hide them.
+        // holds two real buttons, and hiding the row would hide them.
         $html = $this->get('/tasks')->assertOk()->getContent();
 
         $this->assertStringNotContainsString('id="column-headers" aria-hidden', $html);
@@ -212,21 +211,14 @@ class TrackerPageTest extends TestCase
         $this->assertStringNotContainsString('data-sort="status"', $html);
     }
 
-    public function test_the_selection_toolbar_offers_complete_delete_and_clear(): void
+    public function test_the_table_has_no_selection_checkboxes(): void
     {
-        $this->get('/tasks')->assertOk()->assertSeeInOrder([
-            'id="selection-bar"',
-            'id="selection-count"',
-            'id="selection-complete"',
-            'id="selection-delete"',
-            'id="selection-clear"',
-        ], false);
-    }
+        // Row selection and the bulk toolbar were removed as not useful: a row's own actions
+        // (Complete, Open, Reschedule, Reopen, Delete) cover everything a selection did.
+        $html = $this->get('/tasks')->assertOk()->getContent();
 
-    public function test_the_selection_count_is_announced(): void
-    {
-        // The count is the only thing that says how much the toolbar is about to act on.
-        $this->get('/tasks')->assertOk()->assertSee('id="selection-count" aria-live="polite"', false);
+        $this->assertStringNotContainsString('id="select-all"', $html);
+        $this->assertStringNotContainsString('id="selection-bar"', $html);
     }
 
     public function test_the_display_chips_sit_outside_the_list_panel(): void
