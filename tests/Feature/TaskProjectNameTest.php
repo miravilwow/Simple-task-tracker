@@ -25,6 +25,15 @@ class TaskProjectNameTest extends TestCase
         $this->assertSame(['Work'], Category::pluck('name')->all());
     }
 
+    public function test_a_project_named_zero_is_still_a_project(): void
+    {
+        $this->createTask(['category_name' => '0'])
+            ->assertCreated()
+            ->assertJsonPath('data.category.name', '0');
+
+        $this->assertSame(['0'], Category::pluck('name')->all());
+    }
+
     public function test_the_category_in_a_response_is_exactly_id_and_name(): void
     {
         $with = $this->createTask(['category_name' => 'Work'])->assertCreated()->json('data.category');

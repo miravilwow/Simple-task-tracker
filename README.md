@@ -47,7 +47,7 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-`utf8mb4` is not optional: a reaction is stored as the emoji itself, and MySQL's older `utf8`
+`utf8mb4` is not optional: a task's title or description can contain an emoji, and MySQL's older `utf8`
 holds three bytes per character, which truncates a four-byte emoji.
 
 Then build the schema and the front end:

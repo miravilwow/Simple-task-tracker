@@ -81,6 +81,7 @@ const elements = {
     selectionDelete: $('selection-delete'),
     selectionClear: $('selection-clear'),
     skeleton: $('skeleton'),
+    boardSkeleton: $('board-skeleton'),
     listMessage: $('list-message'),
     listMessageText: $('list-message-text'),
     loadError: $('load-error'),
@@ -142,7 +143,7 @@ function emptyMessage() {
     }
 
     return {
-        all: 'No tasks yet. Use the form to add your first one.',
+        all: 'No tasks yet. Use New task to add your first one.',
         today: 'Nothing left for today. Nice work.',
         upcoming: 'Nothing scheduled ahead.',
         overdue: 'Nothing overdue. Nice work.',
@@ -367,7 +368,6 @@ function renderCard(task) {
         meta.append(projectChip(task.category));
     }
 
-
     meta.append(createDueButton(task), createBadge(priority.label, priority.classes));
 
     // Grouped by status the column already says it, so the badge would print it twice.
@@ -506,7 +506,7 @@ function clearStats() {
     }
 }
 
-// ---------------------------------------------------------------- loading
+// ---------------------------------------------------------------- projects
 
 // Both dialogs type into the one list, so a project created a moment ago is offered next time.
 function renderProjectOptions(categories) {
@@ -540,9 +540,14 @@ function currentParams() {
     return params;
 }
 
+function hideSkeletons() {
+    elements.skeleton.classList.add('hidden');
+    elements.boardSkeleton.remove();
+}
+
 function showLoadError(error) {
     clearStats();
-    elements.skeleton.classList.add('hidden');
+    hideSkeletons();
     elements.taskList.replaceChildren();
     clearBoard();
     elements.listMessage.classList.add('hidden');
@@ -581,7 +586,7 @@ async function load() {
             return;
         }
 
-        elements.skeleton.classList.add('hidden');
+        hideSkeletons();
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
         renderProjectOptions(categoriesResponse.data);
@@ -641,6 +646,10 @@ const DONE_HOLD = 700;
 const hold = () => new Promise((resolve) => setTimeout(resolve, DONE_HOLD));
 
 // Re-rendering destroys the button that was clicked, so focus has to be parked somewhere.
+// The Tasks heading lives inside the list panel, which is hidden in the other two layouts.
+// Focusing it there would drop focus onto the body.
+const focusHeading = () => (currentLayout() === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
+
 async function runAction(button, { busyLabel, doneLabel, request, successMessage, description, restoreFocus, undo, undoMessage }) {
     const hadFocus = restoreFocus ?? document.activeElement === button;
 
@@ -672,9 +681,7 @@ async function runAction(button, { busyLabel, doneLabel, request, successMessage
         await Promise.all([load(), button && doneLabel ? hold() : null]);
 
         if (hadFocus) {
-            // The Tasks heading lives inside the list panel, which is hidden in the other two
-            // layouts. Focusing it there would drop focus onto the body.
-            (currentLayout() === 'list' ? elements.tasksHeading : elements.viewTitle).focus();
+            focusHeading();
         }
     } catch (error) {
         toast.error(errorMessage(error));
@@ -689,7 +696,7 @@ async function runAction(button, { busyLabel, doneLabel, request, successMessage
 // left to put in a busy state. The toast reports how the reversal went instead.
 /**
  * Run one request, say what happened, and reload. Every action that is a single call and a
- * toast goes through here: undoing a task, favouriting a project, moving it, restoring it.
+ * toast goes through here, which is what the toasts' Undo buttons run.
  */
 async function runAndReload(request, { message, description = '', undo = null } = {}) {
     try {
@@ -727,17 +734,21 @@ const reopenTask = (task) =>
         undoMessage: 'Task completed',
     });
 
-async function deleteTask(task, button) {
-    // The dialog steals focus, so record where it came from before opening.
-    const hadFocus = document.activeElement === button;
+async function deleteTask(task, button = null) {
+    // The dialog steals focus, so record where it came from before opening. A menu item has no
+    // button of its own to come back to: the menu is gone by now, so the heading takes it.
+    const hadFocus = !button || document.activeElement === button;
     const confirmed = await confirmAction({
         title: 'Delete task',
         message: `Delete "${task.title}"? You can undo this from the toast straight after.`,
     });
 
     if (!confirmed) {
-        // The task dialog deletes without a button of its own, so there may be nothing to go back to.
-        button?.focus();
+        if (button) {
+            button.focus();
+        } else {
+            focusHeading();
+        }
 
         return;
     }
@@ -921,8 +932,8 @@ function applyLayout() {
 
 function applyDisplay({ date }) {
     // Today, Upcoming and Overdue are date filters already. Choosing a Date in the panel takes
-    // over, rather than leaving two filters to fight while
-    // the heading still names the view that lost.
+    // over, rather than leaving two filters to fight while the heading still names the view that
+    // lost.
     if (date && VIEWS[state.view].params.due) {
         state.view = 'all';
         applyView();
@@ -1008,7 +1019,6 @@ function showTaskDetail(id, trigger) {
 const display = createDisplay(applyDisplay);
 
 // ---------------------------------------------------------------- wiring
-
 
 elements.form.addEventListener('submit', createTask);
 elements.newTaskTrigger.addEventListener('click', () => openTaskDialog());

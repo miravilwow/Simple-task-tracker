@@ -30,8 +30,8 @@ class BulkTaskRequest extends FormRequest
 
         return [
             'action' => ['required', Rule::enum(BulkAction::class)],
-            // Capped at 100. The endpoint saves each task on its own so the activity log records
-            // every one of them, so the cap is what keeps a single request from being unbounded
+            // Capped at 100. The endpoint saves each task on its own so that setStage() stays the
+            // one path a status changes, so the cap is what keeps a single request from being unbounded
             // work. A table that can select more than 100 rows at once does not exist here.
             'ids' => ['required', 'array', 'min:1', 'max:100'],
             'ids.*' => ['integer', 'distinct', $exists],

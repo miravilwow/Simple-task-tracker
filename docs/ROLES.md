@@ -67,7 +67,7 @@ Start every response that changes code with one line naming the active role(s), 
 - Never edit a migration that has already run. Schema changes land as a new migration, which is why the category and due-date columns arrive in `add_category_and_due_date_to_tasks_table` rather than in the original `create_tasks_table`.
 - Two migrations generated in the same second sort by filename, so a table can end up referenced before it exists. Rename the file rather than rely on luck.
 - Allowed values live in PHP backed enums (`App\Enums\TaskPriority`, `App\Enums\TaskStatus`, `App\Enums\TaskSort`, `App\Enums\DueFilter`, `App\Enums\BulkAction`). The model casts to them, and validation uses `Rule::enum()`. Migrations keep literal values, because a migration is a snapshot of the schema at that point in time.
-- Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `category_id`, `due_date`. `category_id` is set by the controller from the typed `category_name`, never accepted from the client. `status` is deliberately absent, because it changes only through the start, complete and reopen endpoints.
+- Model `$fillable` lists the fields a client may send when creating a task: `title`, `description`, `priority`, `due_date`. `category_id` is not fillable: the controller sets it from the typed `category_name`, so a client never sends it. `status` is deliberately absent, because it changes only through the start, complete and reopen endpoints.
 - Project features were removed on purpose: favourites, the parent/child tree, colours and icons, comments, reactions and the activity log. The sidebar that reached them is gone, and a project is now just a label a task carries. Their columns and tables left in one migration (`remove_project_features`) rather than by editing the ones that created them, because a migration that has run is a record of what happened.
 - `TaskSeeder` provides realistic demo data (`php artisan db:seed`).
 - Migrations must also run on SQLite, because tests use it. `enum()` works on both.
@@ -168,7 +168,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `menu.js` | the overflow menu behind a row's or a board card's "…" |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
   | `display.js` | the Display panel: layout, grouping, sorting, filters, the chips that name them, and the layouts a view forces |
-  | `board.js` | the board's columns, the card's "…" menu, and dragging a card between columns by pointer or keyboard |
+  | `board.js` | the board's columns, and dragging a card between columns by pointer or keyboard |
   | `table.js` | the list's row selection, its header checkbox and its sortable column headers (Overdue and Completed) |
   | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |
   | `toast.js` | the toast region, its three variants, and the action a toast can carry |

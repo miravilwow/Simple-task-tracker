@@ -74,8 +74,6 @@ dialog, and both are things you meant to press.
 - **Green** stays Done and Complete. It is the one colour that must stay distinct from red for anyone
   with red-green colour blindness, which is also why every badge carries its word.
 - **Amber** stays Medium and In progress. **Blue** stays To do.
-- The seven project colours in `App\Enums\CategoryColor` stay. They are the user's choice for their
-  own projects, not the app's palette.
 - The logo's own hex values stay literal in the SVG. A logo keeps its colours when the interface
   around it changes.
 

@@ -324,7 +324,6 @@
     @apply text-xs text-gray-400 tabular-nums;
 }
 
-
 /* The Display panel's layout tiles, selects and toggle, plus the task dialog's fields. Blade
    renders some and JavaScript the rest, so the strings live here once. */
 @utility layout-choice {

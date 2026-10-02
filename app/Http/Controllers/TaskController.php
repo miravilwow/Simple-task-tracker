@@ -124,7 +124,7 @@ class TaskController extends Controller
         $task = DB::transaction(function () use ($data) {
             $task = new Task(Arr::except($data, 'category_name'));
 
-            if ($data['category_name'] ?? null) {
+            if (($data['category_name'] ?? null) !== null) {
                 $task->category()->associate(Category::named($data['category_name']));
             }
 

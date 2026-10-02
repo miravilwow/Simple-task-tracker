@@ -155,7 +155,7 @@
 
         {{-- List layout --}}
         {{-- With the form behind a dialog, the panel has the whole width to itself. --}}
-        <div id="list-view" class="mt-6">
+        <div id="list-view" class="mt-6 hidden">
             <section aria-labelledby="tasks-heading"
                 class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -243,8 +243,23 @@
         {{-- Board layout --}}
         {{-- The columns are whatever the Display panel groups by, so they are built in JS rather
              than fixed here. `md:grid` sits in a media query and would win over `hidden`, so the
-             grid classes are added when the view opens, exactly as the calendar's are. --}}
-        <div id="board-view" class="mt-6 hidden gap-4 md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] xl:gap-6"></div>
+             grid classes are added when the view opens, exactly as the calendar's are. All tasks
+             is the landing view and is a board, so the first paint is this skeleton, and both
+             skeletons are removed together once the first load settles. --}}
+        <div id="board-skeleton" class="mt-6 grid gap-4 md:grid-cols-3 xl:gap-6">
+            @for ($column = 0; $column < 3; $column++)
+                <div class="animate-pulse space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="h-4 w-1/3 rounded bg-gray-200"></div>
+                    @for ($card = 0; $card < 2; $card++)
+                        <div class="space-y-2 rounded-lg border border-gray-200 p-4">
+                            <div class="h-4 w-2/3 rounded bg-gray-200"></div>
+                            <div class="h-3 w-1/2 rounded bg-gray-100"></div>
+                        </div>
+                    @endfor
+                </div>
+            @endfor
+        </div>
+        <div id="board-view" class="mt-6 gap-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] xl:gap-6"></div>
         <p id="board-help" class="sr-only">
             Press Enter to open a task. Press Space to pick it up, the left and right arrows to move
             it between columns, Space again to drop it, or Escape to cancel.

@@ -221,6 +221,7 @@ export function createDisplay(onChange) {
 
     $('display-reset').addEventListener('click', () => {
         Object.assign(state, DEFAULTS);
+        sortingOffBoard = DEFAULTS.sorting;
         Object.entries(selects).forEach(([key, select]) => {
             select.value = DEFAULTS[key];
         });

@@ -51,6 +51,15 @@ class TrackerPageTest extends TestCase
             ->assertOk()
             ->assertDontSee('md:items-start', false);
     }
+    public function test_the_first_paint_is_the_boards_skeleton_not_the_list(): void
+    {
+        $this->get('/tasks')
+            ->assertOk()
+            ->assertSee('id="board-skeleton"', false)
+            ->assertSee('id="list-view" class="mt-6 hidden"', false)
+            ->assertDontSee('id="board-view" class="mt-6 hidden', false);
+    }
+
     public function test_the_tracker_renders_the_three_layout_containers(): void
     {
         $this->get('/tasks')->assertOk()->assertSeeInOrder([

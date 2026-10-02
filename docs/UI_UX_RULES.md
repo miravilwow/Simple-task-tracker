@@ -26,7 +26,7 @@ The tracker runs the **full-bleed app shell**. `<x-layout :fluid="true">` is wha
 
 **The navbar and the sidebar are one chrome layer, and both are `fixed`.** They must share a positioning scheme, because anything else lets them drift apart: a sticky navbar rides the document, so an overscroll bounce — Chrome's rubber band when you scroll up past the top — slides it down over the fixed sidebar and swallows the sidebar's heading. `<html>` also carries `overscroll-y-none` so the bounce does not happen in the first place, and `<main>` reserves `--header-height` at the top because the navbar no longer takes space in the flow.
 
-The tracker's own shell is three parts: a **sidebar**, a **header** (title, layout switch), and the active **layout**.
+The tracker's own shell is three parts: a **sidebar**, a **header** (title and the Display button), and the active **layout**.
 
 - **Sidebar** holds the five smart views and nothing else: All tasks, Today, Upcoming, Overdue and Completed, each with a count. Upcoming is the calendar. The UI says "project"; the API, the table and the model are still `category`. A project is not a place in the sidebar but a label on a task, typed into the task's Project field, so there is no tree to browse and no second kind of selection: the page title always names the current view.
 - **There was a project tree, and it is gone.** Favourites, nesting, colours and icons, comments, reactions, an activity feed and a Deleted section were all built around the sidebar rows and were removed with them. A project was only ever a name a task carried, and every one of those features was a way of managing something that did not need managing. The Project field takes a typed name, offering the existing ones as suggestions, and a project exists exactly while a task carries it.
@@ -304,7 +304,7 @@ Every data view needs all four states:
 | State | Behaviour |
 |---|---|
 | Loading | Skeleton rows on first load, so the panel keeps its height instead of collapsing. Never a blank area. |
-| Empty | A friendly message per filter: "No tasks yet. Use the form to add your first one." / "No pending tasks." / "No completed tasks yet." |
+| Empty | A friendly message per filter: "No tasks yet. Use New task to add your first one." / "No pending tasks." / "No completed tasks yet." |
 | Error | A red inline banner with a retry button. The sidebar counts and the meter clear, so stale numbers never sit beside an error. |
 | Success | A short, auto-dismissing toast (about 3s): "Task added", "Task completed", "Task reopened", "Task deleted". **A toast is a card, not a pill**, following shadcn/ui's Sonner (MIT): a title and a quieter line under it, with no icon. The two lines carry the whole message, and an error is told apart by its title in red rather than by a mark — the title is the server's own words, so the meaning is never in the colour alone. The white surface with a hairline border is what the rest of the app is built from, and `shadow-lg` is what every other floating panel already uses; the dark pill was the one surface belonging to nothing else. |
 | Description | **A toast names the thing it happened to, and when.** "Task completed" alone makes someone who clicked the wrong row check the list to find out which one. The second line is the name, then the time, separated by `·`. Names are user input, so the line is set as text and never as markup. |
@@ -360,7 +360,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
 - [ ] Buttons disable while loading, show a spinner, then a green tick and the past tense; Delete asks for confirmation
 - [ ] The button does not change width through any of its three states
-- [ ] A toast reads as a card with a bold title and a grey line naming the task or project and the time
+- [ ] A toast reads as a card with a bold title and a grey line naming the task and the time
 - [ ] The toast action is the red button, is at least 32px, and works from the keyboard
 - [ ] No primary button is red, and no hint or note wears the error banner's pale red
 - [ ] Rescheduling a task shows the new due date in full, not the moment it was dragged
