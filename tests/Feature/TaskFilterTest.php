@@ -61,11 +61,13 @@ class TaskFilterTest extends TestCase
 
     public function test_search_treats_percent_and_underscore_literally(): void
     {
-        Task::factory()->create(['title' => 'Raise to 50% done']);
+        Task::factory()->create(['title' => 'Raise to 5%d done']);
         Task::factory()->create(['title' => 'Anything else']);
         Task::factory()->create(['title' => 'snake_case names']);
+        Task::factory()->create(['title' => 'snakeXcase']);
+        Task::factory()->create(['title' => '5 and d']);
 
-        $this->assertSame(['Raise to 50% done'], $this->titles('search='.urlencode('50%')));
+        $this->assertSame(['Raise to 5%d done'], $this->titles('search='.urlencode('5%d')));
         $this->assertSame(['snake_case names'], $this->titles('search=e_c'));
     }
 
