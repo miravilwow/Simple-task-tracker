@@ -927,8 +927,20 @@ async function createTask(event) {
         due_date: elements.dueDate.value || null,
     };
 
+    // Both at once rather than one per submit: the server would report them together, and a form
+    // that reveals its second missing field only after the first is filled is a form that nags.
+    const missing = {};
+
     if (!payload.title) {
-        showFieldErrors({ title: ['The title field is required.'] }, elements.form);
+        missing.title = ['The title field is required.'];
+    }
+
+    if (!payload.due_date) {
+        missing.due_date = ['The due date field is required.'];
+    }
+
+    if (Object.keys(missing).length > 0) {
+        showFieldErrors(missing, elements.form);
 
         return;
     }

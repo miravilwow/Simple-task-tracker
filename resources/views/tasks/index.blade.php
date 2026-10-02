@@ -478,7 +478,9 @@
                             <p id="category_name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                         </div>
 
-                        <x-date-field id="due_date" name="due_date" label="Due date" :optional="true" :inline="true"
+                        {{-- Required: a task nobody has given a day to is one the calendar, Today,
+                             Upcoming and Overdue all have nothing to say about. --}}
+                        <x-date-field id="due_date" name="due_date" label="Due date" :required="true" :inline="true"
                             describedby="due_date-error">
                             <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                         </x-date-field>

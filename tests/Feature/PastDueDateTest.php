@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -40,9 +41,9 @@ class PastDueDateTest extends TestCase
         $this->create(['due_date' => today()->addMonth()->toDateString()])->assertCreated();
     }
 
-    public function test_accepts_a_task_with_no_due_date(): void
+    public function test_rejects_a_task_created_with_no_due_date(): void
     {
-        $this->create()->assertCreated();
+        $this->create()->assertStatus(400)->assertJsonValidationErrors('due_date');
     }
 
     public function test_rejects_rescheduling_into_the_past(): void
@@ -74,6 +75,15 @@ class PastDueDateTest extends TestCase
         $this->patchJson("/api/tasks/{$task->id}/schedule", ['due_date' => today()->toDateString()])
             ->assertOk()
             ->assertJsonPath('data.is_overdue', false);
+    }
+
+    /** The form must not offer a submit the server refuses, so the field is marked and required. */
+    public function test_the_new_task_form_requires_a_due_date(): void
+    {
+        $html = $this->get('/tasks')->assertOk()->getContent();
+        $field = Str::before(Str::after($html, 'id="due_date"'), '>');
+
+        $this->assertStringContainsString('required', $field);
     }
 
     public function test_the_date_fields_cannot_offer_what_the_api_refuses(): void

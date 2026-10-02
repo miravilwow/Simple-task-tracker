@@ -234,7 +234,8 @@ the two quietly come to disagree.
 - Opening focuses Title. Closing — by Cancel, Escape, the backdrop, or a successful save — clears the form and returns focus to the button that opened it, so a half-typed task is never waiting the next time it opens.
 
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
-- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority, Project.
+- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority, Project, Due date (required, marked with the same `*`, because the server refuses a task without one).
+- **A submit names every missing field at once**, rather than revealing the second one after the first is filled. The server reports them together, and so does the client-side check in front of it.
 - **Project is a text input, not a select.** A project is created by typing its name: a new name makes the project, an existing one (matched without regard to case) reuses it, and leaving it empty means no project. `<datalist id="project-options">` offers the existing names as suggestions, with the hint "Type a new name to create a project." The task dialog's Project field is the same input on the same datalist and saves on change.
 - Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
 
@@ -369,6 +370,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Delete dialog confirms, cancels, and closes on Escape without deleting
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
+- [ ] New task refuses to submit without a due date, and submitting an empty form names both Title and Due date at once
 - [ ] New task opens the dialog, Escape and the backdrop close it, and a half-typed task is gone the next time it opens
 - [ ] The due date inside the New task dialog is the inline grid and is not clipped
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains

@@ -81,6 +81,7 @@ class TaskApiTest extends TestCase
             'title' => 'Write README',
             'description' => 'Setup steps and AI disclosure',
             'priority' => 'high',
+            'due_date' => today()->toDateString(),
         ]);
 
         $response->assertCreated()
@@ -105,6 +106,16 @@ class TaskApiTest extends TestCase
         $this->postJson('/api/tasks', ['title' => 'Valid title', 'priority' => 'urgent'])
             ->assertStatus(400)
             ->assertJsonValidationErrors('priority');
+    }
+
+    /** Every new task is given a day to land on, so none is created without one. */
+    public function test_rejects_a_task_created_without_a_due_date(): void
+    {
+        $this->postJson('/api/tasks', ['title' => 'Someday', 'priority' => 'low'])
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('due_date');
+
+        $this->assertDatabaseCount('tasks', 0);
     }
 
     public function test_marks_a_task_as_completed(): void

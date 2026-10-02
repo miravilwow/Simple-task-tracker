@@ -13,7 +13,12 @@ class TaskProjectNameTest extends TestCase
 
     private function createTask(array $extra = [])
     {
-        return $this->postJson('/api/tasks', ['title' => 'A task', 'priority' => 'low', ...$extra]);
+        return $this->postJson('/api/tasks', [
+            'title' => 'A task',
+            'priority' => 'low',
+            'due_date' => today()->toDateString(),
+            ...$extra,
+        ]);
     }
 
     public function test_creates_a_new_project_from_a_name(): void

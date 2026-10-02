@@ -1,4 +1,4 @@
-@props(['id', 'label', 'name' => null, 'optional' => false, 'describedby' => null, 'inline' => false])
+@props(['id', 'label', 'name' => null, 'optional' => false, 'required' => false, 'describedby' => null, 'inline' => false])
 
 {{--
     A date field with our own month grid, because Chrome, Firefox and Safari each draw a different
@@ -15,12 +15,16 @@
         @if ($optional)
             <span class="font-normal text-gray-500">(optional)</span>
         @endif
+        {{-- The same mark Title carries, so one required field looks like the other. --}}
+        @if ($required)
+            <span class="text-red-600" aria-hidden="true">*</span>
+        @endif
     </label>
 
     <div class="relative mt-1.5">
         {{-- `min` is what a browser enforces on its own control, and it matches the server's
              after_or_equal:today, so the field cannot offer what the API would refuse. --}}
-        <input id="{{ $id }}" type="date" min="{{ now()->toDateString() }}" @if ($name) name="{{ $name }}" @endif
+        <input id="{{ $id }}" type="date" min="{{ now()->toDateString() }}" @required($required) @if ($name) name="{{ $name }}" @endif
             @if ($describedby) aria-describedby="{{ $describedby }}" @endif
             @class([
                 'date-input block min-h-11 w-full rounded-lg border border-gray-300 bg-white py-2 pl-3 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500',
