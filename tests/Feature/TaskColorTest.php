@@ -27,6 +27,15 @@ class TaskColorTest extends TestCase
             ->assertJsonPath('data.color', null);
     }
 
+    public function test_show_returns_the_tasks_color(): void
+    {
+        $task = Task::factory()->create(['color' => 'green']);
+
+        $this->getJson("/api/tasks/{$task->id}")
+            ->assertOk()
+            ->assertJsonPath('data.color', 'green');
+    }
+
     public function test_a_color_can_be_set_and_is_listed(): void
     {
         $task = Task::factory()->create();
