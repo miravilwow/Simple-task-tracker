@@ -581,6 +581,7 @@ function hideSkeletons() {
 function showLoadError(error) {
     clearStats();
     hideSkeletons();
+    elements.projectCrumb.hidden = true;
     elements.taskList.replaceChildren();
     clearBoard();
     elements.listMessage.classList.add('hidden');
@@ -597,14 +598,22 @@ const boardGrouping = () => (state.project === null ? display.state.grouping : '
 function openProject({ key, name }) {
     state.project = key;
     state.projectName = name;
-    load().then(() => elements.projectBack.focus());
+    load().then(() => {
+        if (state.project === key && !elements.projectCrumb.hidden) {
+            elements.projectBack.focus();
+        }
+    });
 }
 
 function closeProject() {
     const key = state.project;
 
     state.project = null;
-    load().then(() => elements.boardView.querySelector(`[data-project="${key}"]`)?.focus());
+    load().then(() => {
+        if (state.project === null) {
+            elements.boardView.querySelector(`[data-project="${key}"]`)?.focus();
+        }
+    });
 }
 
 async function load() {
@@ -959,6 +968,7 @@ function applyView() {
 
 function setView(key) {
     state.project = null;
+    elements.projectCrumb.hidden = true;
     state.view = key;
     filterBar.reset();
     applyView();
