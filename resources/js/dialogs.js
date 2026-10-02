@@ -7,9 +7,19 @@ const confirmCancel = document.getElementById('confirm-cancel');
 const scheduleDialog = document.getElementById('schedule-dialog');
 const scheduleTitle = document.getElementById('schedule-task-title');
 const scheduleDate = document.getElementById('schedule-date');
+const scheduleTime = document.getElementById('schedule-time');
 const scheduleSave = document.getElementById('schedule-save');
 const scheduleClear = document.getElementById('schedule-clear');
 const scheduleCancel = document.getElementById('schedule-cancel');
+
+/** A time has nothing to sit on without a day, the same rule the task dialog's Time field keeps. */
+function syncScheduleTime() {
+    scheduleTime.disabled = ! scheduleDate.value;
+
+    if (scheduleTime.disabled) {
+        scheduleTime.value = '';
+    }
+}
 
 /**
  * A real dialog can be styled, traps focus, and closes on Escape, which window.confirm cannot.
@@ -49,18 +59,21 @@ export function confirmAction({ title, message, confirmLabel = 'Delete' }) {
 }
 
 /**
- * Resolves to { date: 'YYYY-MM-DD' | null } when saved, or null when dismissed.
- * Dragging is pointer-only, so this is the path keyboard and touch users take.
+ * Resolves to { date: 'YYYY-MM-DD' | null, time: 'HH:mm' | null } when saved, or null when
+ * dismissed. Dragging is pointer-only, so this is the path keyboard and touch users take.
  */
 export function openScheduleDialog(task) {
     scheduleTitle.textContent = task.title;
     scheduleDate.value = task.due_date ?? '';
     // Setting .value fires nothing, and the inline month grid follows the field's change event.
     scheduleDate.dispatchEvent(new Event('change', { bubbles: true }));
+    scheduleTime.value = task.due_time ?? '';
+    syncScheduleTime();
 
     return openDialog(scheduleDialog, ({ on, finish }) => {
-        on(scheduleSave, 'click', () => finish({ date: scheduleDate.value || null }));
-        on(scheduleClear, 'click', () => finish({ date: null }));
+        on(scheduleDate, 'change', syncScheduleTime);
+        on(scheduleSave, 'click', () => finish({ date: scheduleDate.value || null, time: scheduleTime.value || null }));
+        on(scheduleClear, 'click', () => finish({ date: null, time: null }));
         on(scheduleCancel, 'click', () => finish(null));
     });
 }

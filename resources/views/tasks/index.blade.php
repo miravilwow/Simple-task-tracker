@@ -531,6 +531,17 @@
                 <x-date-field id="schedule-date" label="Due date" :inline="true" />
             </div>
 
+            <div class="mt-4">
+                {{-- Same control and styling as New task's Time field. Disabled while the dialog
+                     holds no date, because a time with nothing to sit on is what the API refuses. --}}
+                <label for="schedule-time" class="block text-sm font-medium text-gray-700">
+                    Time <span class="font-normal text-gray-500">(optional)</span>
+                </label>
+                <input id="schedule-time" type="time" aria-describedby="schedule-time-error"
+                    class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 disabled:bg-gray-50 disabled:text-gray-400">
+                <p id="schedule-time-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+            </div>
+
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" id="schedule-clear"
                     class="btn-secondary">

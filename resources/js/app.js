@@ -843,10 +843,18 @@ async function deleteTask(task, button = null) {
     });
 }
 
-/** Shared by dragging onto a day, dropping into the tray, and the reschedule dialog. */
-async function scheduleTask(taskId, date) {
+/**
+ * Shared by dragging onto a day, dropping into the tray, and the reschedule dialog. `time` is
+ * only ever passed by the dialog — a drag has no gesture for it — and only sent once a date is
+ * on the task, the same rule the task dialog's Time field keeps.
+ */
+async function scheduleTask(taskId, date, time) {
     try {
         await api(`/tasks/${taskId}/schedule`, { method: 'PATCH', body: { due_date: date } });
+
+        if (date && time !== undefined) {
+            await api(`/tasks/${taskId}`, { method: 'PATCH', body: { due_time: time } });
+        }
 
         // The date the task now carries, not the moment it was dragged: the new due date is the
         // thing worth reading back, and it is what a reschedule was for.
@@ -863,7 +871,7 @@ async function rescheduleFromDialog(task) {
     const result = await openScheduleDialog(task);
 
     if (result) {
-        await scheduleTask(task.id, result.date);
+        await scheduleTask(task.id, result.date, result.time);
     }
 }
 
