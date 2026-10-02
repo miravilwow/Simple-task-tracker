@@ -385,6 +385,26 @@
         </div>
     </dialog>
 
+    {{-- Every task of one day, because a cell only has room for three. --}}
+    <dialog id="day-dialog" aria-labelledby="day-title"
+        class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
+        <div class="flex items-start justify-between gap-4 border-b border-gray-200 p-4 sm:px-6">
+            <div>
+                <h2 id="day-title" class="font-medium"></h2>
+                <p id="day-count" class="text-sm text-gray-500"></p>
+            </div>
+        </div>
+        <ul id="day-list" class="max-h-96 space-y-2 overflow-y-auto scrollbar-none p-4 sm:px-6"></ul>
+        <div class="flex justify-end gap-2 border-t border-gray-200 p-4 sm:px-6">
+            <button type="button" id="day-close" class="btn-secondary">Close</button>
+            <button type="button" id="day-add"
+                class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none">
+                <x-icon name="plus" class="size-4" />
+                Add task on this day
+            </button>
+        </div>
+    </dialog>
+
     {{-- Dragging is a pointer-only gesture, so rescheduling also has to work from a dialog. --}}
     {{-- The New task form lives here rather than in the page, so the list keeps the full width.
          A <dialog> clips a floating panel, so its date field is the inline grid. --}}

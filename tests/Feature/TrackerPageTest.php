@@ -269,4 +269,16 @@ class TrackerPageTest extends TestCase
         $this->assertStringContainsString('role="radiogroup"', $html);
         $this->assertSame(9, substr_count($html, 'data-color='));
     }
+
+    public function test_the_tracker_renders_the_day_dialog(): void
+    {
+        $this->get('/tasks')->assertOk()->assertSeeInOrder([
+            'id="day-dialog"',
+            'id="day-title"',
+            'id="day-count"',
+            'id="day-list"',
+            'id="day-close"',
+            'id="day-add"',
+        ], false);
+    }
 }

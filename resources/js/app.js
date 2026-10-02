@@ -2,6 +2,7 @@ import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { clearBoard, renderBoard, wireBoardDragging } from './board.js';
 import { createDisplay, groupTasks } from './display.js';
 import { renderProjectGrid } from './projects.js';
+import { createDayDialog } from './daydialog.js';
 import { createFilterBar } from './filterbar.js';
 import { openTaskDetail, wireTaskDetail } from './taskdialog.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
@@ -664,10 +665,12 @@ async function load() {
                 month: state.month,
                 onOpen: rescheduleFromDialog,
                 onReschedule: scheduleTask,
+                onOpenDay: openDay,
             });
             renderAgenda(elements.calendarAgenda, {
                 tasks: tasksResponse.data,
                 onOpen: rescheduleFromDialog,
+                onOpenDay: openDay,
                 emptyText: filtersAreOn() ? FILTERED_EMPTY : undefined,
             });
             renderUnscheduled(elements.unscheduledList, {
@@ -675,6 +678,7 @@ async function load() {
                 onOpen: rescheduleFromDialog,
                 onReschedule: scheduleTask,
             });
+            dayDialog.refresh(tasksOn);
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
             elements.unscheduledEmpty.textContent = filtersAreOn() ? FILTERED_EMPTY : UNSCHEDULED_EMPTY;
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
@@ -1103,6 +1107,17 @@ function showTaskDetail(id, trigger) {
         onDelete: (task) => deleteTask(task, null),
     });
 }
+
+// Add task on this day: the New task form, already set to that day.
+function addTaskOn(iso) {
+    openTaskDialog();
+    elements.dueDate.value = iso;
+    elements.dueDate.dispatchEvent(new Event('change'));
+}
+
+const tasksOn = (iso) => latestTasks.filter((task) => task.due_date === iso);
+const dayDialog = createDayDialog({ onOpenTask: (id) => showTaskDetail(id), onAddTask: addTaskOn });
+const openDay = (iso) => dayDialog.open(iso, tasksOn(iso));
 
 const display = createDisplay(applyDisplay);
 const filterBar = createFilterBar(() => load());
