@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/tasks/stats', [TaskController::class, 'stats']);
 Route::get('/tasks', [TaskController::class, 'index']);
 Route::post('/tasks', [TaskController::class, 'store']);
+// Before /tasks/{task} is irrelevant for POST, but it is grouped with the other writes so the
+// table's selection toolbar is findable beside the single-task actions it stands in for.
+Route::post('/tasks/bulk', [TaskController::class, 'bulk']);
 Route::get('/tasks/{task}', [TaskController::class, 'show']);
 Route::patch('/tasks/{task}', [TaskController::class, 'update']);
 Route::patch('/tasks/{task}/start', [TaskController::class, 'start']);

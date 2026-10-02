@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ActivityAction;
+use App\Enums\BulkAction;
 use App\Enums\DueFilter;
 use App\Enums\TaskPriority;
 use App\Enums\TaskSort;
 use App\Enums\TaskStatus;
+use App\Http\Requests\BulkTaskRequest;
 use App\Http\Requests\ReorderTaskRequest;
 use App\Http\Requests\ScheduleTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
@@ -206,6 +208,79 @@ class TaskController extends Controller
         Activity::record($task, ActivityAction::Restored);
 
         return TaskResource::make($task->load('category'));
+    }
+
+    /**
+     * One action across a selection of tasks, from the table's selection toolbar.
+     *
+     * It is one request and one transaction rather than one request per row. Five rows completed
+     * as five requests is five chances to fail half way, leaving a selection the user has to work
+     * out for themselves; it also spends five of the rate limiter's allowance on one click.
+     *
+     * A task already in the state being asked for is skipped, not refused. Selecting five rows of
+     * which two are already done and pressing Complete should finish the other three, so what comes
+     * back is the ids that actually changed — which is exactly what Undo has to send to reverse it,
+     * and the reason Undo cannot simply reuse what was selected.
+     */
+    public function bulk(BulkTaskRequest $request): JsonResponse
+    {
+        $action = $request->enum('action', BulkAction::class);
+        $ids = $request->collect('ids')->all();
+
+        $changed = DB::transaction(function () use ($action, $ids): array {
+            $query = $action === BulkAction::Restore
+                ? Task::withTrashed()->whereIn('id', $ids)
+                : Task::whereIn('id', $ids);
+
+            $changed = [];
+
+            foreach ($query->get() as $task) {
+                if (! $this->applyBulk($task, $action)) {
+                    continue;
+                }
+
+                $changed[] = $task->getKey();
+            }
+
+            return $changed;
+        });
+
+        return response()->json([
+            'message' => count($changed).' '.(count($changed) === 1 ? 'task' : 'tasks').' updated.',
+            'count' => count($changed),
+            'ids' => $changed,
+            'undo' => $action->reverse()->value,
+        ]);
+    }
+
+    /** Returns whether the task actually changed, which is what makes it part of the undo. */
+    private function applyBulk(Task $task, BulkAction $action): bool
+    {
+        $status = $action->status();
+
+        if ($status !== null) {
+            if ($task->status === $status) {
+                return false;
+            }
+
+            // The same private method start, complete, reopen and a board drop all use, so a bulk
+            // stage change cannot become the one path that forgets to write the activity log.
+            $this->setStage($task, $status);
+
+            return true;
+        }
+
+        if ($action === BulkAction::Delete) {
+            $task->delete();
+            Activity::record($task, ActivityAction::Deleted);
+
+            return true;
+        }
+
+        $task->restore();
+        Activity::record($task, ActivityAction::Restored);
+
+        return true;
     }
 
     /**

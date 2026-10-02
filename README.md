@@ -100,6 +100,7 @@ An error is always shaped the same way:
 | PATCH | `/api/tasks/{id}/complete` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/reopen` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/reorder` | 200 + moved task | 400 validation failure, 404 not found |
+| POST | `/api/tasks/bulk` | 200 + the ids that changed | 400 validation failure |
 | PATCH | `/api/tasks/{id}/schedule` | 200 + updated task | 400 bad date, 404 not found |
 | DELETE | `/api/tasks/{id}` | 200 + message | 404 not found |
 | PATCH | `/api/tasks/{id}/restore` | 200 + restored task | 404 not found |
@@ -227,6 +228,27 @@ A drop says two things: which column the card landed in, and where in that colum
 of the task this one should follow, and `null` means the top of the column. It names a task rather
 than counting positions, because the display panel can be hiding cards and an index counted on
 screen is not a position in the real column.
+
+**Act on a selection of rows**
+
+```http
+POST /api/tasks/bulk
+Content-Type: application/json
+
+{ "action": "complete", "ids": [7, 12, 19] }
+```
+
+```json
+{ "message": "2 tasks updated.", "count": 2, "ids": [7, 19], "undo": "reopen" }
+```
+
+One action across up to 100 tasks, in one transaction. The actions are `complete`, `reopen`, `delete`
+and `restore`.
+
+It answers with the ids that **actually changed**, which is not always the ids it was sent: a task
+already in the state being asked for is skipped rather than refused, so selecting three rows where
+one is already done completes the other two. Undo sends that shorter list back under the action named
+in `undo`, so it never reopens work the user did not touch.
 
 **Schedule or clear a due date**
 
