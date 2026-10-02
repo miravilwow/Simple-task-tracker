@@ -122,8 +122,8 @@
         </div>
 
 
-        {{-- The chips name every active Display setting. They sit above all three layouts, not
-             inside the list panel: the board is where nothing else says what is filtered. --}}
+        {{-- The chips name every active Display setting. They sit above the board, which is the only
+             layout the Display panel drives, and the one where nothing else says what is filtered. --}}
         <div id="display-summary" class="mt-4 flex flex-wrap items-center gap-1.5"></div>
 
         {{-- Upcoming, Overdue and Completed have no Display panel; these are their filters. --}}
@@ -225,7 +225,7 @@
                         </button>
                     </span>
                     {{-- Status does not sort. Every order runs through byStage() already, so To do
-                         always precedes In progress and Done; a sort button here would be a control
+                         always precedes the later stages; a sort button here would be a control
                          that changes nothing. --}}
                     <span class="flex items-center">Status</span>
                     <span class="flex items-center justify-end">Actions</span>

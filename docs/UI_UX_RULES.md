@@ -26,7 +26,7 @@ The tracker runs the **full-bleed app shell**. `<x-layout :fluid="true">` is wha
 
 **The navbar and the sidebar are one chrome layer, and both are `fixed`.** They must share a positioning scheme, because anything else lets them drift apart: a sticky navbar rides the document, so an overscroll bounce — Chrome's rubber band when you scroll up past the top — slides it down over the fixed sidebar and swallows the sidebar's heading. `<html>` also carries `overscroll-y-none` so the bounce does not happen in the first place, and `<main>` reserves `--header-height` at the top because the navbar no longer takes space in the flow.
 
-The tracker's own shell is three parts: a **sidebar**, a **header** (title and the Display button), and the active **layout**.
+The tracker's own shell is three parts: a **sidebar**, a **header** (the title, and the Display button on the board views), and the active **layout**.
 
 - **Sidebar** holds the five smart views and nothing else: All tasks, Today, Upcoming, Overdue and Completed, each with a count. Upcoming is the calendar. The UI says "project"; the API, the table and the model are still `category`. A project is not a place in the sidebar but a label on a task, typed into the task's Project field, so there is no tree to browse and no second kind of selection: the page title always names the current view.
 - **There was a project tree, and it is gone.** Favourites, nesting, colours and icons, comments, reactions, an activity feed and a Deleted section were all built around the sidebar rows and were removed with them. A project was only ever a name a task carried, and every one of those features was a way of managing something that did not need managing. The Project field takes a typed name, offering the existing ones as suggestions, and a project exists exactly while a task carries it.
@@ -85,8 +85,8 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - A card that is `sticky` uses `app-sticky-top`, never a hard-coded offset, so it clears the sticky navbar.
 
 - **Order, top to bottom:**
-  1. Page heading and a one-line description, with the Display button and the **New task** button on the right.
-  2. The row of chips naming every active display setting.
+  1. Page heading and a one-line description. On All tasks and Today the Display button and the **New task** button sit on the right; the other views have neither.
+  2. On All tasks and Today, the row of chips naming every active display setting. On Upcoming, Overdue and Completed the filter bar (see 5a) takes the chips' place.
   3. The active layout.
 - **There are no stat tiles.** There were four, and three of them printed the same number as a sidebar badge: Total tasks was "All tasks", Done was "Completed", Overdue was "Overdue". A dashboard that says the same figure twice on one screen is not twice as informative.
 - **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts instead, and they count every task rather than the filtered list.
@@ -103,14 +103,14 @@ The list is a data table, following shadcn/ui's Data Table (MIT) the way the sid
 Sidebar: a checkbox column, a toolbar that appears for a selection, and headers that sort. Its code
 is React over TanStack Table, which is a state machine for a table that renders its own rows, so
 what is ported is the shape and not a line of it. **Column visibility and faceted filters are left
-behind on purpose** — they are already the Display panel, and a second control for either is how the
-two quietly come to disagree.
+behind on purpose** — the filter bar already narrows the table, and a second control for either is how
+the two quietly come to disagree.
 
 #### Selecting rows
 
 - Each row carries a checkbox, and the column header carries the one that selects every row shown.
-- **"Every row shown" means exactly that**, not every task in the database. The Display panel can be
-  hiding finished work or filtering by priority, and a select-all reaching past the screen would act
+- **"Every row shown" means exactly that**, not every task in the database. The filter bar can be
+  narrowing the table by search, priority or project, and a select-all reaching past the screen would act
   on rows the user has no way to check.
 - The header checkbox uses the element's own `indeterminate` property for the half-selected state,
   so the browser announces "mixed" without the app describing it. That is the reason it is a real
@@ -145,9 +145,9 @@ two quietly come to disagree.
   carry `aria-pressed` rather than `aria-sort`. Claiming ascending would promise something the API
   does not have.
 - **Status has no sort button.** Every order already runs through `byStage()`, so To do always
-  precedes In progress and Done; a control there would change nothing.
-- On the Board the headers are out of reach, and the Display panel's select is disabled there
-  anyway, because the board's order is the one someone arranged by dragging.
+  precedes the later stages; a control there would change nothing.
+- The headers exist only on the table. The board has no sort control at all, because its order is
+  the one someone arranged by dragging.
 
 #### A row's actions
 
@@ -193,7 +193,7 @@ two quietly come to disagree.
 | In review | In review | `bg-purple-100 text-purple-700` badge |
 | Completed | Done | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
 
-- The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today and Overdue, and the sidebar counts keep counting it.
+- The four read as stages, not states: a task is picked up, worked on, checked, finished. **Starting a task does not finish it**, so it stays in Today and Overdue, and the sidebar counts keep counting it.
 
 - Badges always include the text label. Never rely on color alone.
 
@@ -262,8 +262,8 @@ One button in the page header carries **everything that answers "what am I looki
 | Filter | Date, Priority |
 
 - **Group and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
-- **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The empty message says the same thing: "Nothing matches these display settings."
-- **Grouping works in both the list and the board.** One function builds the groups, so a board column and a list group always hold the same tasks under the same heading; the list draws each heading as a row of its own, and leaves out a group with nothing in it.
+- **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The chips are the only place the settings are named, since they apply to the board alone.
+- **The board and the table share one grouping function.** The board groups as the panel says. The table is always grouped by stage, so a board column and a table group hold the same tasks under the same heading; the table draws each heading as a row of its own, and leaves out a group with nothing in it.
 - **The stages always read To do, In progress, In review, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
 
@@ -275,7 +275,7 @@ Upcoming, Overdue and Completed have no Display panel, so they carry a filter ba
 - **Priority** and **Project** are selects. Project lists the projects that still have tasks, plus "No project".
 - **Clear filters** appears only while something is set, and returns focus to Search.
 - **A filter never follows the user into another view**: every view change resets the bar.
-- It narrows the calendar's month grid and its no-due-date tray alike, and an empty result says "Nothing matches these filters."
+- It narrows the calendar's month grid and its no-due-date tray alike. An empty result says "Nothing matches these filters." in the table, the agenda and the tray, instead of "Nothing scheduled this month." or "Every task has a date.", which would be untrue while a filter is on.
 
 ## 5b. The Board layout
 
@@ -303,7 +303,7 @@ Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the nam
 - **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
 - **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
 - The up and down arrows step through **the list the user is looking at**, so what they walk matches what is on the page behind the dialog.
-- **Status is a field here, not a button on the row.** It runs `start`, `complete` and `reopen`, the same three endpoints the board's drag runs, so a stage change has one path however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
+- **Status is a field here, not a button on the row.** It runs `start`, `review`, `complete` and `reopen`, the same four endpoints the board's drag runs, so a stage change has one path however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
 - **A sub-task is a checklist item, not a task.** It never appears in the list, the board or the calendar, and no stat tile counts it. That is what keeps `TaskSorter` and every graded figure exactly as the exam specifies.
 - **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. A control that cannot work does not go in.
 
@@ -377,7 +377,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Four actions in a row leave at most three toasts on screen, and the newest is one of them
 - [ ] Undo on the Complete and Delete toasts restores the task, and the stats and sidebar counts follow
 - [ ] Add, Complete, Delete, and every Display setting work without a page reload
-- [ ] Upcoming opens the calendar, and the Layout buttons are disabled while it is open
+- [ ] Upcoming opens the calendar, and the Display and New task buttons are absent while it is open
 - [ ] The sidebar holds the five smart views with their counts, and nothing about projects
 - [ ] Sidebar views filter the list, and the title names the current one
 - [ ] Typing a new name in the New task form's Project field creates the project; typing an existing one in any case reuses it
@@ -401,7 +401,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Pending tasks appear above completed ones in the All view
 - [ ] Ticking a row shows the toolbar, and the count matches what is ticked
 - [ ] The header checkbox selects every row shown, goes half-checked for a partial selection, and clears from Clear
-- [ ] A select-all with the Completed toggle off or a filter on never touches a row that is not on screen
+- [ ] A select-all with the filter bar narrowing the table never touches a row that is not on screen
 - [ ] Bulk Complete is disabled when every selected row is already finished
 - [ ] Bulk Complete and bulk Delete each run one request, and the toast's Undo puts the rows back
 - [ ] Undo after completing a mixed selection leaves the rows that were already done alone
@@ -413,9 +413,9 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching views moves nothing sideways
 - [ ] Grouping by status, priority and project regroups the board
-- [ ] To do comes before In progress before In review before Done, in the board's columns and in the list
-- [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
-- [ ] Turning Completed tasks off hides finished work in both the list and the board
+- [ ] To do comes before In progress before In review before Done, in the board's columns and in the table's groups
+- [ ] On the board, the Date and Priority filters narrow the columns, and the chips name every setting that is on
+- [ ] On the board, turning Completed tasks off hides finished work
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
 - [ ] A card dropped in the empty space below a column's last card still moves there
 - [ ] Dragging a card opens a gap where it will land, and the cards below it move down

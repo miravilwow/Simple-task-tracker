@@ -152,8 +152,10 @@ Content-Type: application/json
 }
 ```
 
-`title` is required and trimmed, so a title of only spaces is empty. `category_name` is the project, typed by name: an existing one is reused regardless of case, a new one is created, and `null` or an empty string means no project (up to 40 characters). The same field on `PATCH /api/tasks/{id}` is applied only when the key is sent. `priority` must be `low`,
-`medium` or `high`. `due_date` is `YYYY-MM-DD` and **cannot be in the past**: a due date is a promise
+`title` is required and trimmed, so a title of only spaces is empty. `category_name` is the project,
+typed by name: an existing one is reused regardless of case, a new one is created, and `null` or an
+empty string means no project (up to 40 characters). The same field on `PATCH /api/tasks/{id}` is
+applied only when the key is sent. `priority` must be `low`, `medium` or `high`. `due_date` is `YYYY-MM-DD` and **cannot be in the past**: a due date is a promise
 about work still ahead. A task becomes overdue the ordinary way, by the day arriving and passing.
 
 `status` is deliberately not accepted here — it changes only through the stage endpoints below.
@@ -176,8 +178,8 @@ GET /api/tasks?due=today&priority=high&sort=default&completed=0
 | `search` | part of a title, up to 100 characters |
 
 `sort=default` is `Src\TaskSorter`. `due`, `name` and `manual` replace it. All four then put To do
-before In progress before In review before Done, which is the order the board's columns read, so no sort can bury
-live work under finished work.
+before In progress before In review before Done, which is the order the board's columns read, so no
+sort can bury live work under finished work.
 
 `status` and `completed` cannot be sent together: "give me completed tasks, but hide completed
 tasks" can only ever answer nothing, and an empty list is a worse reply than an error.
@@ -265,11 +267,13 @@ overridden in one place, `bootstrap/app.php`, rather than per controller.
 
 **The status set is wider than the brief.** The brief pins `pending|completed`; this adds
 `in_progress` and `in_review`, so the board's middle columns have something to hold, and finished
-work can wait for a check before it counts as done. Both original values keep their meaning: `pending` is still what a task is created with, and `completed` is still the end.
+work can wait for a check before it counts as done. Both original values keep their meaning: `pending` is still what a task
+is created with, and `completed` is still the end.
 
 **Four endpoints became more.** `reopen` exists because completing a task by mistake would otherwise
 be a dead end, with deleting and retyping the only way back. `restore` is that argument carried to
-its end. `start`, `reorder` and `schedule` back the board and the calendar.
+its end. `start`, `review`, `reorder` and `schedule` back the board and the calendar; `review` moves
+finished work into a check before Done.
 
 **`TaskSorter` knows nothing about status.** It ranks by priority and then by age, exactly as the
 brief specifies, and nothing else. Splitting the sorted list into stages happens in the controller,
@@ -305,8 +309,8 @@ and the task list follows its Data Table — the checkbox column, the toolbar th
 selection, and the sortable headers. All three are rebuilt for Blade and vanilla JS rather than
 installed, since each ships as a React component; the Data Table is React over TanStack Table, which
 is a state machine for a table that renders its own rows, so none of it would have had anything to
-do here. Its column-visibility and faceted-filter parts were deliberately left out, because this app
-already has the Display panel and two controls for one setting is how they come to disagree.
+do here. Its column-visibility and faceted-filter parts were deliberately left out, because the filter
+bar already narrows the table and two controls for one setting is how they come to disagree.
 
 Every icon is Heroicons or hand-drawn to the same grid.
 
