@@ -43,12 +43,15 @@
             @if ($describedby) aria-describedby="{{ $describedby }}" @endif
             @class([
                 'date-input block min-h-11 w-full rounded-lg border border-gray-300 bg-white py-2 pl-3 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500',
-                'pr-12' => ! $inline,
-                'pr-3' => $inline,
+                'pr-12' => ! $inline && ! $collapsed,
+                'pr-3' => $inline || $collapsed,
             ])>
 
-        @unless ($inline)
-            {{-- Hidden until the script takes over, so it never sits beside the browser's own indicator. --}}
+        @unless ($inline || $collapsed)
+            {{-- Hidden until the script takes over, so it never sits beside the browser's own indicator.
+                 Collapsed already has its own trigger above; rendering this one too gave a field two
+                 `[data-date-trigger]` elements, and the enhanced-field CSS that reveals a field's trigger
+                 does not know which one is live, so it revealed both. --}}
             <button type="button" data-date-trigger aria-haspopup="dialog" aria-expanded="false"
                 class="absolute inset-y-1 right-1 hidden w-10 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                 <x-icon name="calendar" class="size-5" />
