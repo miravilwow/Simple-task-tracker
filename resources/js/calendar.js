@@ -7,7 +7,7 @@ export const PRIORITY_DOTS = {
 };
 
 const MAX_CHIPS = 3;
-const WARN_AT = 8;
+const WARN_AT = 6;
 const DANGER_AT = 10;
 
 export const dayLoad = (count) => (count >= DANGER_AT ? 'danger' : count >= WARN_AT ? 'warn' : null);
