@@ -61,7 +61,8 @@ const elements = {
     taskDialog: $('task-dialog'),
     newTaskTrigger: $('new-task-trigger'),
     taskCancel: $('task-cancel'),
-    categorySelect: $('category_id'),
+    categoryName: $('category_name'),
+    projectOptions: $('project-options'),
     listView: $('list-view'),
     boardView: $('board-view'),
     calendarView: $('calendar-view'),
@@ -103,7 +104,6 @@ const today = startOfToday();
 const state = {
     view: 'all',
     month: new Date(today.getFullYear(), today.getMonth(), 1),
-    categories: [],
 };
 
 let latestRequestId = 0;
@@ -524,25 +524,16 @@ function clearStats() {
 
 // ---------------------------------------------------------------- loading
 
-// The task form's picker, kept in step with the projects that exist and any choice already made.
-function renderCategoryOptions(categories) {
-    state.categories = categories;
-
-    const selected = elements.categorySelect.value;
-    const placeholder = createElement('option', '', 'No category');
-    // An <option> with no value attribute submits its own text, which would post "No category".
-    placeholder.value = '';
-
-    elements.categorySelect.replaceChildren(
-        placeholder,
+// Both dialogs type into the one list, so a project created a moment ago is offered next time.
+function renderProjectOptions(categories) {
+    elements.projectOptions.replaceChildren(
         ...categories.map((category) => {
-            const option = createElement('option', '', category.name);
-            option.value = String(category.id);
+            const option = createElement('option');
+            option.value = category.name;
 
             return option;
         }),
     );
-    elements.categorySelect.value = selected;
 }
 
 function currentParams() {
@@ -609,7 +600,7 @@ async function load() {
         elements.skeleton.classList.add('hidden');
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
-        renderCategoryOptions(categoriesResponse.data);
+        renderProjectOptions(categoriesResponse.data);
 
         // Set before anything draws: renderList syncs the selection toolbar, which has to read the
         // list it is about to show rather than the one it is replacing.
@@ -834,7 +825,7 @@ function showFieldErrors(errors, scope) {
     scope.querySelector('[aria-invalid="true"]')?.focus();
 }
 
-const TASK_FIELDS = ['title', 'description', 'priority', 'category_id', 'due_date'];
+const TASK_FIELDS = ['title', 'description', 'priority', 'category_name', 'due_date'];
 
 // The form sits in a dialog so the list keeps the full width. <dialog> traps focus and closes
 // on Escape by itself; what it does not do is clear a half-filled form, so closing does.
@@ -863,7 +854,7 @@ async function createTask(event) {
         title: elements.title.value.trim(),
         description: elements.description.value.trim() || null,
         priority: elements.form.querySelector('input[name="priority"]:checked')?.value,
-        category_id: elements.categorySelect.value || null,
+        category_name: elements.categoryName.value.trim() || null,
         due_date: elements.dueDate.value || null,
     };
 
@@ -1021,7 +1012,6 @@ function previousInColumn(task) {
 function showTaskDetail(id, trigger) {
     openTaskDetail(id, trigger, {
         onStage: moveTask,
-        categories: state.categories,
         order: () => latestTasks.map((task) => task.id),
         onChange: load,
         onDelete: (task) => deleteTask(task, null),

@@ -68,11 +68,22 @@ class TrackerPageTest extends TestCase
             'id="detail-description"',
             'id="subtask-list"',
             'id="subtask-form"',
-            'id="detail-project"',
+            'id="detail-category-name"',
             'id="detail-date"',
             'id="detail-status"',
             'id="detail-priority"',
         ], false);
+    }
+
+    public function test_the_project_field_is_a_typed_input_over_one_datalist(): void
+    {
+        $page = $this->get('/tasks')->assertOk();
+
+        $page->assertSee('id="category_name"', false)
+            ->assertSee('list="project-options"', false)
+            ->assertDontSee('id="category_id"', false);
+
+        $this->assertSame(1, substr_count($page->getContent(), '<datalist id="project-options">'));
     }
 
     public function test_the_dialog_is_the_way_to_a_stage_outside_the_board(): void

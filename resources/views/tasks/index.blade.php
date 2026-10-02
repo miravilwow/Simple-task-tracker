@@ -395,14 +395,16 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label for="category_id" class="block text-sm font-medium text-gray-700">
-                                Category <span class="font-normal text-gray-500">(optional)</span>
+                            <label for="category_name" class="block text-sm font-medium text-gray-700">
+                                Project <span class="font-normal text-gray-500">(optional)</span>
                             </label>
-                            <select id="category_id" name="category_id" aria-describedby="category_id-error"
-                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
-                                <option value="">No category</option>
-                            </select>
-                            <p id="category_id-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                            <input id="category_name" name="category_name" type="text" maxlength="40"
+                                autocomplete="off" list="project-options" placeholder="e.g. School, Work"
+                                aria-describedby="category_name-hint category_name-error"
+                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
+                            <datalist id="project-options"></datalist>
+                            <p id="category_name-hint" class="mt-1.5 text-xs text-gray-500">Type a new name to create a project.</p>
+                            <p id="category_name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                         </div>
 
                         <x-date-field id="due_date" name="due_date" label="Due date" :optional="true" :inline="true"
@@ -525,8 +527,9 @@
             <aside class="border-t border-gray-200 p-5 sm:p-6 lg:border-t-0 lg:border-l">
                 <div class="divide-y divide-gray-200">
                     <div class="pb-3">
-                        <label for="detail-project" class="detail-label">Project</label>
-                        <select id="detail-project" class="detail-field"></select>
+                        <label for="detail-category-name" class="detail-label">Project</label>
+                        <input id="detail-category-name" type="text" maxlength="40" autocomplete="off" list="project-options"
+                            placeholder="No project" class="detail-field">
                     </div>
 
                     <div class="py-3">

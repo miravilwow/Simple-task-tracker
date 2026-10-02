@@ -16,7 +16,7 @@ const elements = {
     tick: $('detail-tick'),
     title: $('detail-title'),
     description: $('detail-description'),
-    project: $('detail-project'),
+    project: $('detail-category-name'),
     date: $('detail-date'),
     priority: $('detail-priority'),
     status: $('detail-status'),
@@ -118,7 +118,7 @@ function fill() {
     );
     setValue(elements.title, task.title);
     setValue(elements.description, task.description ?? '');
-    setValue(elements.project, task.category ? String(task.category.id) : '');
+    setValue(elements.project, task.category?.name ?? '');
     setDate(task.due_date ?? '');
     setValue(elements.priority, task.priority);
     setValue(elements.status, task.status);
@@ -184,18 +184,11 @@ async function load(id) {
 }
 
 /**
- * @param {{categories: array, order: Function, onChange: Function, onDelete: Function}} context
+ * @param {{order: Function, onChange: Function, onDelete: Function}} context
  */
 export async function openTaskDetail(id, trigger, context) {
     handlers = context;
     opener = trigger ?? null;
-
-    elements.project.replaceChildren(
-        Object.assign(document.createElement('option'), { value: '', textContent: 'No project' }),
-        ...context.categories.map((category) =>
-            Object.assign(document.createElement('option'), { value: String(category.id), textContent: category.name }),
-        ),
-    );
 
     try {
         await load(id);
@@ -241,7 +234,7 @@ export function wireTaskDetail() {
         await load(task.id);
     });
     elements.project.addEventListener('change', () =>
-        patchTask({ category_id: elements.project.value ? Number(elements.project.value) : null }),
+        patchTask({ category_name: elements.project.value.trim() || null }),
     );
     elements.date.addEventListener('change', () => {
         if (syncing) {
