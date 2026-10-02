@@ -867,7 +867,12 @@ async function deleteTask(task, button) {
 async function scheduleTask(taskId, date) {
     try {
         await api(`/tasks/${taskId}/schedule`, { method: 'PATCH', body: { due_date: date } });
-        toast.success(date ? 'Task rescheduled' : 'Due date cleared');
+
+        // The date the task now carries, not the moment it was dragged: the new due date is the
+        // thing worth reading back, and it is what a reschedule was for.
+        toast.success(date ? 'Task rescheduled' : 'Due date cleared', {
+            at: date ? parseDate(date) : new Date(),
+        });
         await load();
     } catch (error) {
         toast.error(errorMessage(error));

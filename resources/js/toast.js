@@ -1,9 +1,9 @@
 /**
  * Toasts.
  *
- * The look and the call shape follow Sonner (MIT) as shadcn/ui wraps it — a card with an icon, a
- * title, a quieter description under it, and an action on the right — rebuilt here for vanilla JS,
- * the same way the sidebar follows shadcn's Sidebar. Sonner itself needs React, and its classes
+ * The look and the call shape follow Sonner (MIT) as shadcn/ui wraps it — a card with a title, a
+ * quieter line under it, and a dark action on the right — rebuilt here for vanilla JS, the same
+ * way the sidebar follows shadcn's Sidebar. Sonner itself needs React, and its classes
  * (`bg-background`, `text-muted-foreground`) need a token layer this project's Tailwind does not
  * have, so they would render as nothing.
  *
@@ -12,7 +12,7 @@
  * caller here: a request in flight is already shown on the button that started it, which is where
  * the person who pressed it is looking.
  */
-import { createElement, createIcon } from './dom.js';
+import { createElement } from './dom.js';
 
 const region = document.getElementById('toast-region');
 
@@ -24,18 +24,31 @@ const MAX_VISIBLE = 3;
 // nothing to click still goes at the usual pace.
 const LIFETIME = { plain: 3000, withAction: 8000 };
 
-const VARIANTS = {
-    default: { icon: null, tone: '' },
-    success: { icon: 'check-circle', tone: 'text-green-600' },
-    error: { icon: 'warning', tone: 'text-red-600' },
-};
+const dayFormat = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: '2-digit',
+    year: 'numeric',
+});
+
+const timeFormat = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+
+/**
+ * "Sunday, December 03, 2023 at 9:00 AM" for any other day, and "Today at 9:00 AM" for this one.
+ *
+ * Nearly every toast reports something that just happened, and spelling out today's weekday and
+ * year to say "a moment ago" is a line of noise that also pushes the detail beside it onto a
+ * second row. The long form is kept for the dates that are worth reading in full — a task's own
+ * due date, which is the case the design this follows was showing.
+ */
+export function stamp(date = new Date()) {
+    const isToday = date.toDateString() === new Date().toDateString();
+
+    return `${isToday ? 'Today' : dayFormat.format(date)} at ${timeFormat.format(date)}`;
+}
 
 function actionButton(action, toast) {
-    const button = createElement(
-        'button',
-        'btn-toast-action',
-        action.label,
-    );
+    const button = createElement('button', 'btn-toast-action', action.label);
 
     button.type = 'button';
     button.addEventListener('click', () => {
@@ -47,25 +60,26 @@ function actionButton(action, toast) {
 }
 
 /**
- * @param {string} message the one line that always shows
- * @param {{description?: string, variant?: string, action?: {label: string, onClick: Function}}} options
+ * @param {string} message the bold line that always shows
+ * @param {{description?: string, at?: Date|null, variant?: string, action?: object}} options
  */
-function show(message, { description = '', variant = 'default', action = null } = {}) {
-    const { icon, tone } = VARIANTS[variant] ?? VARIANTS.default;
+function show(message, { description = '', at = new Date(), variant = 'default', action = null } = {}) {
     const toast = createElement('div', 'toast-card toast-enter');
-
-    if (icon) {
-        toast.append(createIcon(icon, `size-5 shrink-0 ${tone}`));
-    }
-
     const text = createElement('div', 'min-w-0 flex-1');
 
-    text.append(createElement('p', 'text-sm font-medium text-gray-900', message));
+    // No icon, and the two lines carry the whole message. An error is told apart by its title
+    // rather than by a mark, and the title is the server's own words, so the meaning is never in
+    // the colour alone.
+    text.append(
+        createElement('p', `toast-title ${variant === 'error' ? 'text-red-600' : 'text-gray-900'}`, message),
+    );
 
     // Task and project names are user input, so every one of these is set as text and never as
     // markup. createElement does that for us.
-    if (description) {
-        text.append(createElement('p', 'mt-0.5 text-sm wrap-break-word text-gray-500', description));
+    const detail = [description, at ? stamp(at) : ''].filter(Boolean).join(' · ');
+
+    if (detail) {
+        text.append(createElement('p', 'toast-description', detail));
     }
 
     toast.append(text);
@@ -90,9 +104,9 @@ function show(message, { description = '', variant = 'default', action = null } 
 }
 
 /**
- * `toast(message, options)` for something that merely happened, with `.success` and `.error` for
- * the two that carry a mark. The shape is Sonner's, so a call reads the same here as it does in
- * the component this was ported from.
+ * `toast(message, options)` for something that merely happened, with `.success` and `.error`
+ * beside it. The shape is Sonner's, so a call reads the same here as in the component this was
+ * ported from.
  */
 export const toast = Object.assign(
     (message, options = {}) => show(message, options),

@@ -320,16 +320,28 @@
  * and the Display panel. The dark pill was the one surface that belonged to nothing else.
  */
 @utility toast-card {
-    @apply flex w-full max-w-md items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-lg;
+    /* items-center, so the action sits level with the two lines rather than with the first. */
+    @apply flex w-full max-w-md items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-lg;
+}
+
+@utility toast-title {
+    @apply text-sm font-semibold;
+}
+
+@utility toast-description {
+    @apply mt-1 text-sm wrap-break-word text-gray-500;
 }
 
 /*
- * The action on a toast. Solid indigo, like every other primary action, and min-h-8 because it is
- * a real target that has to be reachable by thumb and by keyboard.
+ * The action on a toast: near-black, not the app's indigo. Indigo is the primary action on the
+ * page, and a toast floats above the page — a second indigo button appearing over the first is two
+ * things competing to be the main one. Dark reads as "the action on this card" instead.
+ *
+ * min-h-8 because it is a real target that has to be reachable by thumb and by keyboard.
  */
 @utility btn-toast-action {
-    @apply inline-flex min-h-8 shrink-0 items-center rounded-md bg-indigo-600 px-2.5 text-sm font-medium
-        text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500
+    @apply inline-flex min-h-8 shrink-0 items-center rounded-md bg-gray-900 px-3 text-xs font-semibold
+        text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-gray-900
         focus-visible:ring-offset-2 focus-visible:outline-none;
 }
 
