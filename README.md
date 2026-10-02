@@ -311,10 +311,17 @@ docs/SPRINT.md              the plan that closed the architecture review
 
 ## Credits
 
-The sidebar's structure and behaviour follow [shadcn/ui](https://ui.shadcn.com)'s Sidebar (MIT), and
-the toasts follow its [Sonner](https://sonner.emilkowal.ski) wrapper (MIT) — both rebuilt for Blade
-and vanilla JS rather than installed, since each ships as a React component. Project icons come from Iconify's Fluent UI set (MIT) through
-`@iconify/tailwind4`. Everything else is Heroicons or hand-written.
+Three designs come from [shadcn/ui](https://ui.shadcn.com) (MIT): the sidebar's structure and
+behaviour follow its Sidebar, the toasts follow its [Sonner](https://sonner.emilkowal.ski) wrapper,
+and the task list follows its Data Table — the checkbox column, the toolbar that appears for a
+selection, and the sortable headers. All three are rebuilt for Blade and vanilla JS rather than
+installed, since each ships as a React component; the Data Table is React over TanStack Table, which
+is a state machine for a table that renders its own rows, so none of it would have had anything to
+do here. Its column-visibility and faceted-filter parts were deliberately left out, because this app
+already has the Display panel and two controls for one setting is how they come to disagree.
+
+Project icons come from Iconify's Fluent UI set (MIT) through `@iconify/tailwind4`. Everything else
+is Heroicons or hand-written.
 
 ## AI Disclosure
 

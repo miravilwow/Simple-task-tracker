@@ -14,9 +14,10 @@
 /* prettier-ignore */
 @source inline("icon-[fluent--{folder,folder-open,archive,briefcase,box,building,building-bank,building-home,building-shop,building-factory,building-retail,building-government,building-multiple,home,home-more,desktop,laptop,phone,tablet,device-meeting-room,document,document-text,document-pdf,notepad,note,book,book-open,bookmark,clipboard,clipboard-task,library,reading-list,text-paragraph,slide-text,form,table,grid,apps,board,board-split,folder-zip,calendar,calendar-day,calendar-week-start,calendar-month,clock,clock-alarm,timer,hourglass,history,mail,mail-inbox,send,chat,comment,person-chat,call,video,person,people,person-star,person-support,people-team,people-community,handshake,globe,location,map,earth,flag,compass-northwest,cart,shopping-bag,store-microsoft,receipt,money,money-hand,wallet,credit-card-person,payment,coin-multiple,savings,tag,ticket-diagonal,gift,gift-card,cube,heart,heart-pulse,pill,syringe,stethoscope,dumbbell,sport,sport-soccer,sport-basketball,sport-baseball,sport-american-football,sport-hockey,sport-cricket-ball,run,person-walking,bed,weather-moon,showerhead,food,food-apple,food-pizza,food-cake,food-egg,food-fish,food-chicken-leg,drink,drink-coffee,drink-beer,drink-wine,bowl-chopsticks,cookies,airplane,airplane-take-off,vehicle-car,vehicle-bus,vehicle-truck,vehicle-bicycle,vehicle-ship,vehicle-subway,vehicle-motorcycle,luggage,beach,mountain-trail,tent,city,animal-cat,animal-dog,animal-rabbit,animal-turtle,leaf,tree-deciduous,plant-grass,plant-ragweed,weather-sunny,weather-rain,weather-snowflake,water,drop,music-note-1,music-note-2,headphones,mic,speaker-2,play-circle,video-clip,movies-and-tv,camera,camera-dome,image,image-multiple,paint-brush,paint-bucket,color,pen,highlight,draw-shape,design-ideas,wand,code,code-block,branch,bug,database,server,cloud,wifi-2,bluetooth,plug-connected,battery-charge,lightbulb,flash,rocket,puzzle-piece,toolbox,wrench,wrench-screwdriver,settings,key,shield-task,lock-closed,fingerprint,hat-graduation,backpack,ribbon,trophy,star-emphasis,premium,certificate,broom,dust,couch,seat,lightbulb-filament,bin-recycle,target-arrow,chart-multiple,data-trending,data-pie,board-heart,accessibility,earth-leaf,emoji,emoji-laugh,emoji-sad,hand-wave,thumb-like,heart-circle,sparkle,glasses,scales,balloon,fireplace,games,xbox-console,puzzle-cube,wheelchair-access,walkie-talkie}-24-regular]");
 
-/* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task row. */
+/* Task table columns: select | Task | Priority | Status | Actions. Shared by the header row and
+   each task row, which is what keeps a heading over the column it names. */
 @utility task-columns {
-    grid-template-columns: minmax(0, 1fr) 5.5rem 6.5rem 13.5rem;
+    grid-template-columns: 1.75rem minmax(0, 1fr) 5.5rem 6.5rem 10.5rem;
 }
 
 /* Entrance animations, skipped entirely for anyone who asked for reduced motion. */
@@ -243,6 +244,72 @@
  */
 @utility btn-secondary {
     @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none;
+}
+
+/* The shape every row action and every selection-toolbar action shares. Blade and the rows
+   JavaScript builds both need it, so it lives here once instead of as a string in each. */
+@utility btn-action {
+    @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+/* The "…" that ends a table row. A 40px target, the same as the row's other actions. */
+@utility btn-row-menu {
+    @apply inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none;
+}
+
+/* Complete, wherever it appears. */
+@utility btn-complete {
+    @apply border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500;
+}
+
+/* Delete: quiet until reached for, which is what a destructive action should be. */
+@utility btn-destructive {
+    @apply text-red-600 hover:bg-red-50 focus-visible:ring-red-500;
+}
+
+/*
+ * The selection checkbox on a table row, and the one in the column header.
+ *
+ * A real `<input type="checkbox">`, not a button with `role="checkbox"`, because the header's
+ * half-checked state is `indeterminate` — a property the element already has, which the browser
+ * announces as "mixed" without us describing it by hand.
+ *
+ * The mark is a background image rather than a `::after`. An input is a replaced element, and
+ * pseudo-elements on one are not reliable across browsers.
+ */
+@utility row-check {
+    @apply size-4 shrink-0 cursor-pointer appearance-none rounded-sm border border-gray-300 bg-white transition-colors checked:border-gray-900 checked:bg-gray-900 indeterminate:border-gray-900 indeterminate:bg-gray-900 hover:border-gray-500 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-default disabled:opacity-40;
+
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.7rem;
+}
+
+.row-check:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+}
+
+.row-check:indeterminate {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+}
+
+/*
+ * A column header that sorts. It carries `aria-pressed`, not `aria-sort`: these sorts have no
+ * direction — the exam's sorter is priority then oldest, Name is A to Z, Due date is soonest first
+ * — so a header picks a sort rather than flipping one, and claiming ascending would promise
+ * something the API cannot do.
+ */
+@utility table-sort {
+    @apply -mx-1 inline-flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-pressed:text-gray-900;
+}
+
+/* Faint until this column is the one being sorted by, so the row reads as headings first. */
+.table-sort > svg {
+    opacity: 0.3;
+}
+
+.table-sort[aria-pressed='true'] > svg {
+    opacity: 1;
 }
 
 /* The Comments / Activity switch. Both Blade and the reaction rows need these strings, so they

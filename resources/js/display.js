@@ -227,5 +227,21 @@ export function createDisplay(onChange) {
         });
     }
 
-    return { state, renderSummary, apply, setLayoutLocked };
+    /**
+     * Sets the sort from outside the panel — the table's column headers are the only caller.
+     *
+     * It writes the same state the panel's own select holds rather than keeping a second copy, so
+     * the headers and the panel cannot end up naming different orders. The guard is the board,
+     * where the select is disabled because the arrangement is the order.
+     */
+    function setSorting(value) {
+        if (selects.sorting.disabled || state.sorting === value) {
+            return;
+        }
+
+        state.sorting = value;
+        apply();
+    }
+
+    return { state, renderSummary, apply, setLayoutLocked, setSorting };
 }

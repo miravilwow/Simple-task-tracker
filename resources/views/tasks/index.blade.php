@@ -190,14 +190,57 @@
                     {{-- tabindex allows focus to return here after a task row is removed. --}}
                     <h2 id="tasks-heading" tabindex="-1" class="font-medium focus:outline-none">Tasks</h2>
 
+                    {{-- The selection toolbar, shown only once something is ticked. It takes over the
+                         right of the panel header rather than appearing as a bar of its own, so the
+                         rows never move down the moment a checkbox is pressed. --}}
+                    <div id="selection-bar" class="hidden flex-wrap items-center gap-2" role="group"
+                        aria-label="Actions for the selected tasks">
+                        <p id="selection-count" aria-live="polite"
+                            class="mr-1 text-sm font-medium text-gray-700 tabular-nums"></p>
+                        <button id="selection-complete" type="button" class="btn-action btn-complete">
+                            <x-icon name="check" class="size-4" />
+                            <span data-label>Complete</span>
+                        </button>
+                        <button id="selection-delete" type="button" class="btn-action btn-destructive">
+                            <x-icon name="trash" class="size-4" />
+                            <span data-label>Delete</span>
+                        </button>
+                        <button id="selection-clear" type="button"
+                            class="btn-action text-gray-600 hover:bg-gray-100 focus-visible:ring-gray-400">
+                            Clear
+                        </button>
+                    </div>
                 </div>
 
-                <div id="column-headers" aria-hidden="true"
+                {{-- Not aria-hidden any more: it holds a real select-all checkbox and two real sort
+                     buttons, and hiding the row would hide them from a screen reader entirely. --}}
+                <div id="column-headers"
                     class="hidden gap-4 border-b border-gray-200 bg-gray-50 px-6 py-2 text-xs font-medium text-gray-500 md:task-columns">
-                    <span>Task</span>
-                    <span>Priority</span>
-                    <span>Status</span>
-                    <span class="text-right">Actions</span>
+                    <span class="flex items-center">
+                        <input id="select-all" type="checkbox" class="row-check"
+                            aria-label="Select every task shown">
+                    </span>
+                    <span class="flex items-center">
+                        <button type="button" class="table-sort" data-sort="name" aria-pressed="false"
+                            title="Sort by name">
+                            Task
+                            <x-icon name="chevron-down" class="size-3.5" />
+                        </button>
+                    </span>
+                    <span class="flex items-center">
+                        {{-- "default" is Src\TaskSorter, which is priority first. The header names what
+                             the user sees rather than what the enum calls it. --}}
+                        <button type="button" class="table-sort" data-sort="default" aria-pressed="false"
+                            title="Sort by priority">
+                            Priority
+                            <x-icon name="chevron-down" class="size-3.5" />
+                        </button>
+                    </span>
+                    {{-- Status does not sort. Every order runs through byStage() already, so To do
+                         always precedes In progress and Done; a sort button here would be a control
+                         that changes nothing. --}}
+                    <span class="flex items-center">Status</span>
+                    <span class="flex items-center justify-end">Actions</span>
                 </div>
 
                 {{-- Skeleton rows hold the layout steady on first load. --}}

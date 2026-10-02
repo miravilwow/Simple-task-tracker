@@ -151,10 +151,74 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **There is no progress meter.** It read the whole database however the page was filtered, so standing in Today with nothing due still showed a bar and a percentage of everything. A number that does not answer the screen it is on is worse than no number. The sidebar badges carry the counts instead, and they count every task rather than the filtered list.
 - **Main area:** the task panel, across the full width at every size. The New task form is not on the page at all.
 - **Task panel:** one white card. Its header row holds the "Tasks" heading and the filter. Task rows are separated by dividers, and each row carries a 4px priority accent bar down its left edge. The bar is decorative only, because the same priority is already spelled out in its badge.
-  - Below `md`, each row stacks: title / description / date, then the badges, then the action buttons at full width.
-  - From `md` up, rows line up as table columns: **Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
+  - Below `md`, each row stacks: the checkbox and the title on the first line, then description and date, then the badges, then the actions at full width.
+  - From `md` up, rows line up as table columns: **select | Task | Priority | Status | Actions**, under a column header row. The column header row is hidden while the list is loading or empty.
 - **Mobile-first:** design at 360px wide, then enhance at `sm` (640px), `md` (768px), and `lg` (1024px).
 - **No horizontal scroll** at any width. Long titles wrap (`break-words`) and never overflow.
+
+### 1a. The task table
+
+The list is a data table, following shadcn/ui's Data Table (MIT) the way the sidebar follows its
+Sidebar: a checkbox column, a toolbar that appears for a selection, and headers that sort. Its code
+is React over TanStack Table, which is a state machine for a table that renders its own rows, so
+what is ported is the shape and not a line of it. **Column visibility and faceted filters are left
+behind on purpose** — they are already the Display panel, and a second control for either is how the
+two quietly come to disagree.
+
+#### Selecting rows
+
+- Each row carries a checkbox, and the column header carries the one that selects every row shown.
+- **"Every row shown" means exactly that**, not every task in the database. The Display panel can be
+  hiding finished work or filtering by priority, and a select-all reaching past the screen would act
+  on rows the user has no way to check.
+- The header checkbox uses the element's own `indeterminate` property for the half-selected state,
+  so the browser announces "mixed" without the app describing it. That is the reason it is a real
+  `<input type="checkbox">` rather than a button with `role="checkbox"`.
+- **A selection never outlives the rows it named.** The list is rebuilt after every action, and
+  anything no longer drawn is dropped from the selection with it. Switching to the board or the
+  calendar clears it, because only the list has checkboxes.
+- The select-all sits in the column header row, which only appears from `md`. Below that, rows are
+  ticked one at a time.
+
+#### The selection toolbar
+
+- It takes over the right of the panel header rather than appearing as a bar of its own, so the rows
+  do not move down the moment a checkbox is pressed.
+- It reads **"3 selected"**, then Complete, Delete and Clear. The count is `aria-live="polite"`.
+- **Complete is disabled when every selected row is already finished.** The endpoint would answer
+  that nothing changed, and a button that says so first is better than a toast that says so after.
+- Delete asks for confirmation, exactly as a single row's does, and the toast that follows carries
+  **Undo**.
+- **One request, not one per row.** `POST /api/tasks/bulk` runs the whole selection in a transaction.
+  Five rows completed as five requests is five chances to stop half way, and it spends five of the
+  rate limiter's allowance on one click.
+- **Undo sends back what the server changed, not what was selected.** A row already in the state
+  asked for is skipped, so reversing the selection would reopen work nobody touched.
+
+#### Sorting from the headers
+
+- **Task** sorts by name and **Priority** sorts by `Src\TaskSorter`, the order the exam grades. They
+  set the same state the Display panel's Sorting select holds, so the two controls can never name
+  different orders.
+- **A header selects a sort; it does not flip one.** None of this app's sorts has a direction —
+  TaskSorter is priority then oldest, Name is A to Z, Due date is soonest first — so the buttons
+  carry `aria-pressed` rather than `aria-sort`. Claiming ascending would promise something the API
+  does not have.
+- **Status has no sort button.** Every order already runs through `byStage()`, so To do always
+  precedes In progress and Done; a control there would change nothing.
+- On the Board the headers are out of reach, and the Display panel's select is disabled there
+  anyway, because the board's order is the one someone arranged by dragging.
+
+#### A row's actions
+
+- **Complete stays a button.** It is the commonest thing anyone does on this page, and putting it
+  behind a menu would make one click into two.
+- **Everything else sits behind one "…"**, the same `role="menu"` the sidebar's rows use: Open,
+  Reschedule or Set a date, Reopen on a finished task, and Delete. Delete inside it is where the
+  rules already wanted it — never the most prominent thing on the row — and a table row is the one
+  place on the page where horizontal space is genuinely contested.
+- **The board card keeps both buttons.** A card has room. What a task *can* do is identical in the
+  two layouts; only how many of them are on show differs.
 
 ## 2. Visual design
 
@@ -206,7 +270,7 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - Every button has explicit `type="button"` or `type="submit"`.
 - Buttons that carry a row's main actions, and every control in a form, are at least 40px tall (`min-h-10`).
 - Inline controls sitting inside a line of metadata, such as the due-date button on a task row, are at least 32px (`min-h-8`). That stays clear of the 24px WCAG 2.2 AA minimum without making a metadata line as tall as a button bar. Nothing smaller than 32px is ever tappable.
-- **Complete is the only stage button, on rows and on cards alike.** Starting a task is the board's drag or the dialog's **Status** field. Reopening one is the Undo on its toast, those same two, or dragging the card back. A finished task has nothing left to press but Delete.
+- **Complete is the only stage button, on rows and on cards alike.** Starting a task is the board's drag or the dialog's **Status** field. A finished row keeps **Reopen inside its "…"**: a dead end that could only be left by catching a toast in time or opening the dialog was the one stage change with nowhere to go back to. It is a menu item, not a button, so the row still has exactly one stage button on it.
 - **Complete stays on a board card even though dragging also finishes a task.** Dragging a card the width of the board to say "done" is a lot of hand for the commonest action; the drag is there for the steps between.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it throws work away. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - Delete is recoverable, so the dialog must not claim otherwise. `DELETE` soft-deletes and the toast that follows offers **Undo**, which calls `PATCH /api/tasks/{id}/restore`. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
@@ -392,6 +456,16 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] A past day takes no chip and offers no button, in the calendar and in every date field
 - [ ] Month grid from md, agenda below it, with matching hint text
 - [ ] Pending tasks appear above completed ones in the All view
+- [ ] Ticking a row shows the toolbar, and the count matches what is ticked
+- [ ] The header checkbox selects every row shown, goes half-checked for a partial selection, and clears from Clear
+- [ ] A select-all with the Completed toggle off or a filter on never touches a row that is not on screen
+- [ ] Bulk Complete is disabled when every selected row is already finished
+- [ ] Bulk Complete and bulk Delete each run one request, and the toast's Undo puts the rows back
+- [ ] Undo after completing a mixed selection leaves the rows that were already done alone
+- [ ] A selection does not survive a reload, a filter change, or switching to the board
+- [ ] The Task and Priority headers sort, the Display panel's Sorting select follows them, and Status has no sort button
+- [ ] A row's "…" opens Open, Reschedule and Delete, with Reopen on a finished row, and focus returns to it
+- [ ] The board card still carries both Complete and Delete as buttons
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching moves nothing sideways
 - [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board

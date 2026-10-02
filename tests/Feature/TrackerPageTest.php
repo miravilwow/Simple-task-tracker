@@ -133,6 +133,52 @@ class TrackerPageTest extends TestCase
         $this->assertStringNotContainsString("actionLabel('Reopen')", file_get_contents(resource_path('js/app.js')));
     }
 
+    public function test_the_table_header_carries_the_select_all_and_the_sort_buttons(): void
+    {
+        $this->get('/tasks')->assertOk()->assertSeeInOrder([
+            'id="column-headers"',
+            'id="select-all"',
+            'data-sort="name"',
+            'data-sort="default"',
+        ], false);
+    }
+
+    public function test_the_column_header_row_is_not_hidden_from_a_screen_reader(): void
+    {
+        // It used to be aria-hidden, which was fair when it held four decorative words. It now
+        // holds the select-all checkbox and two real buttons, and hiding the row would hide them.
+        $html = $this->get('/tasks')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('id="column-headers" aria-hidden', $html);
+    }
+
+    public function test_status_offers_no_sort_button(): void
+    {
+        // Every order runs through byStage() already, so To do always precedes In progress and
+        // Done. A sort button there would be a control that changes nothing.
+        $html = $this->get('/tasks')->assertOk()->getContent();
+
+        $this->assertSame(2, substr_count($html, 'class="table-sort"'));
+        $this->assertStringNotContainsString('data-sort="status"', $html);
+    }
+
+    public function test_the_selection_toolbar_offers_complete_delete_and_clear(): void
+    {
+        $this->get('/tasks')->assertOk()->assertSeeInOrder([
+            'id="selection-bar"',
+            'id="selection-count"',
+            'id="selection-complete"',
+            'id="selection-delete"',
+            'id="selection-clear"',
+        ], false);
+    }
+
+    public function test_the_selection_count_is_announced(): void
+    {
+        // The count is the only thing that says how much the toolbar is about to act on.
+        $this->get('/tasks')->assertOk()->assertSee('id="selection-count" aria-live="polite"', false);
+    }
+
     public function test_the_display_chips_sit_outside_the_list_panel(): void
     {
         // Inside it they would vanish on the board, which is the one layout where nothing else

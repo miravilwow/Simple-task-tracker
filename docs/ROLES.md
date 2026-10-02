@@ -200,6 +200,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
   | `display.js` | the Display panel: layout, grouping, sorting, filters, and the chips that name them |
   | `board.js` | the board's columns, and dragging a card between them by pointer or keyboard |
+  | `table.js` | the list's row selection, its header checkbox and its sortable column headers |
   | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |
   | `toast.js` | the toast region, its three variants, and the action a toast can carry |
   | `app.js` | state, data loading, list rendering, wiring |

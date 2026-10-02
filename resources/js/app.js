@@ -6,6 +6,7 @@ import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnschedule
 import { enhanceDateFields } from './datepicker.js';
 import { confirmAction, openMoveDialog, openProjectPanel, openScheduleDialog } from './dialogs.js';
 import { openMenu } from './menu.js';
+import { createSelection, rowCheckbox, syncHeaderCheckbox, syncSortHeaders } from './table.js';
 import './shell.js';
 import { closeDrawer } from './sidebar.js';
 import {
@@ -73,8 +74,9 @@ const VIEWS = {
     completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
 };
 
-const BUTTON_BASE =
-    'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+// The string lives in app.css as @utility btn-action, because the selection toolbar in Blade needs
+// the same shape and a copy in each is how the two drift apart.
+const BUTTON_BASE = 'btn-action';
 
 const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
@@ -125,6 +127,12 @@ const elements = {
     taskList: $('task-list'),
     tasksHeading: $('tasks-heading'),
     columnHeaders: $('column-headers'),
+    selectAll: $('select-all'),
+    selectionBar: $('selection-bar'),
+    selectionCount: $('selection-count'),
+    selectionComplete: $('selection-complete'),
+    selectionDelete: $('selection-delete'),
+    selectionClear: $('selection-clear'),
     skeleton: $('skeleton'),
     listMessage: $('list-message'),
     listMessageText: $('list-message-text'),
@@ -140,6 +148,9 @@ const elements = {
 };
 
 const viewButtons = document.querySelectorAll('[data-view]');
+
+// The two column headers that sort. Status has none: every order already runs through byStage().
+const sortHeaders = document.querySelectorAll('#column-headers [data-sort]');
 
 const today = startOfToday();
 
@@ -163,6 +174,14 @@ let latestRequestId = 0;
 
 // The list as the page last drew it, so the board and the dialog can read what is on screen.
 let latestTasks = [];
+
+// The ids the list last drew, which is what "select every task shown" means and what a selection
+// is pruned against. Not the same as latestTasks: a grouping can leave an empty group out.
+let listedIds = [];
+
+// The rows the user has ticked. Only the list layout draws checkboxes, so the board and the
+// calendar leave it empty and the toolbar never appears over them.
+const selection = createSelection(() => syncSelection());
 
 // ---------------------------------------------------------------- formatting
 
@@ -240,32 +259,90 @@ function deleteButton(task, compact) {
  * is false on a draggable board, where the drag is the move and Start or Complete would be a
  * second way to do the one thing the columns already do.
  */
+// Complete is the only stage button anywhere. Starting a task is the board's drag or the dialog's
+// Status field; reopening one is the Undo on its toast, the same two, or dragging it back.
+function completeButton(task, compact) {
+    const button = createElement(
+        'button',
+        [BUTTON_BASE, 'btn-complete', compact ? '' : 'flex-1 md:flex-none'].filter(Boolean).join(' '),
+    );
+
+    button.type = 'button';
+    button.append(createIcon('check'), actionLabel('Complete'));
+    button.addEventListener('click', () => completeTask(task, button));
+
+    return button;
+}
+
+/** The board card's actions: both buttons, because a card has room to show them. */
 function taskActions(task, { compact = false } = {}) {
     const buttons = [];
 
-    // Complete is the only stage button anywhere. Starting a task is the board's drag or the
-    // dialog's Status field; reopening one is the Undo on its toast, the same two, or dragging
-    // it back. A finished task has nothing left to press but Delete.
     if (task.status !== 'completed') {
-        const completeButton = createElement(
-            'button',
-            [
-                BUTTON_BASE,
-                compact ? '' : 'flex-1 md:flex-none',
-                'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500',
-            ]
-                .filter(Boolean)
-                .join(' '),
-        );
-        completeButton.type = 'button';
-        completeButton.append(createIcon('check'), actionLabel('Complete'));
-        completeButton.addEventListener('click', () => completeTask(task, completeButton));
-        buttons.push(completeButton);
+        buttons.push(completeButton(task, compact));
     }
 
     buttons.push(deleteButton(task, compact));
 
     return buttons;
+}
+
+/**
+ * A table row's actions: Complete, then everything else behind the "…".
+ *
+ * Complete stays a button because it is the commonest thing anyone does on this page, and burying
+ * it would make one click into two. Delete goes inside, which is where the rules already wanted it
+ * — "never the most prominent button on the row" — and a row is the one place on the page where
+ * horizontal space is genuinely contested.
+ *
+ * What a task can do is the same in both layouts. Only how many of them are on show differs.
+ */
+function rowActions(task) {
+    const buttons = [];
+
+    if (task.status !== 'completed') {
+        buttons.push(completeButton(task, false));
+    }
+
+    buttons.push(rowMenu(task));
+
+    return buttons;
+}
+
+function rowMenu(task) {
+    const trigger = createElement('button', 'btn-row-menu');
+
+    trigger.type = 'button';
+    trigger.dataset.menuLabel = 'Task actions';
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', `Actions for ${task.title}`);
+    trigger.append(createIcon('ellipsis'));
+
+    // Built on open rather than up front, so the labels read from the task as it is now.
+    trigger.addEventListener('click', () => {
+        const entries = [
+            { icon: 'pencil', label: 'Open', onSelect: () => showTaskDetail(task.id, trigger) },
+            {
+                icon: 'calendar',
+                label: task.due_date ? 'Reschedule' : 'Set a date',
+                onSelect: () => rescheduleFromDialog(task),
+            },
+        ];
+
+        if (task.status === 'completed') {
+            entries.push({ icon: 'undo', label: 'Reopen', onSelect: () => reopenTask(task) });
+        }
+
+        entries.push(
+            { separator: true },
+            { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteTask(task) },
+        );
+
+        openMenu(trigger, entries);
+    });
+
+    return trigger;
 }
 
 function titleButton(task) {
@@ -294,7 +371,9 @@ function renderTask(task) {
     );
     item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`));
 
-    const content = createElement('div', 'w-full min-w-0 md:w-auto');
+    // flex-1 rather than w-full, so below md the checkbox and the title share the first line
+    // instead of the checkbox sitting alone above it.
+    const content = createElement('div', 'min-w-0 flex-1 md:w-auto');
     const heading = createElement('h3', `font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
     heading.append(titleButton(task));
     content.append(heading);
@@ -328,9 +407,13 @@ function renderTask(task) {
     const statusCell = createElement('div');
     statusCell.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
-    const actions = createElement('div', 'flex w-full gap-2 md:w-auto md:justify-end');
-    actions.append(...taskActions(task));
-    item.append(content, priorityCell, statusCell, actions);
+    const actions = createElement('div', 'flex w-full items-center gap-2 md:w-auto md:justify-end');
+    actions.append(...rowActions(task));
+
+    const select = createElement('div', 'flex items-center');
+    select.append(rowCheckbox(task, selection));
+
+    item.append(select, content, priorityCell, statusCell, actions);
 
     return item;
 }
@@ -419,6 +502,75 @@ function renderList(tasks, groups) {
     elements.listMessageText.textContent = emptyMessage();
     setVisible(elements.listMessage, !hasTasks);
     elements.columnHeaders.classList.toggle('md:grid', hasTasks);
+
+    // The rows have just been rebuilt, so anything ticked that is no longer drawn goes with them.
+    listedIds = tasks.map((task) => task.id);
+    selection.keepOnly(listedIds);
+    syncSelection();
+}
+
+/**
+ * Points the toolbar and the header checkbox at the rows on screen.
+ *
+ * Complete is disabled when every ticked row is already finished. The endpoint would answer that
+ * nothing changed, and a toast reporting nothing is worse than a button that says so first.
+ */
+function syncSelection() {
+    const ticked = selection.size;
+    const tasks = latestTasks.filter((task) => selection.has(task.id));
+
+    setVisible(elements.selectionBar, ticked > 0);
+    elements.selectionCount.textContent = ticked > 0 ? `${ticked} selected` : '';
+    elements.selectionComplete.disabled = ! tasks.some((task) => task.status !== 'completed');
+    syncHeaderCheckbox(elements.selectAll, listedIds, selection);
+}
+
+/**
+ * One action across the ticked rows.
+ *
+ * The response, not the selection, is what Undo sends back: a task already in the state asked for
+ * is skipped by the server, so the two lists are not always the same and reversing the selection
+ * would reopen work nobody touched.
+ */
+function runBulk(button, { action, busyLabel, doneLabel, successMessage, undoMessage }) {
+    const ids = selection.ids();
+    let result = null;
+
+    return runAction(button, {
+        busyLabel,
+        doneLabel,
+        request: async () => {
+            result = await api('/tasks/bulk', { method: 'POST', body: { action, ids } });
+        },
+        successMessage,
+        description: () => countLabel(result.count),
+        undo: () => api('/tasks/bulk', { method: 'POST', body: { action: result.undo, ids: result.ids } }),
+        undoMessage,
+    });
+}
+
+const countLabel = (count) => `${count} ${count === 1 ? 'task' : 'tasks'}`;
+
+async function deleteSelection(button) {
+    const count = selection.size;
+    const confirmed = await confirmAction({
+        title: 'Delete tasks',
+        message: `Delete ${countLabel(count)}? You can undo this from the toast straight after.`,
+    });
+
+    if (! confirmed) {
+        button.focus();
+
+        return;
+    }
+
+    await runBulk(button, {
+        action: 'delete',
+        busyLabel: 'Deleting…',
+        doneLabel: 'Deleted',
+        successMessage: 'Tasks deleted',
+        undoMessage: 'Tasks restored',
+    });
 }
 
 // ---------------------------------------------------------------- stats & sidebar
@@ -730,6 +882,10 @@ async function load() {
         renderStats(statsResponse.data);
         renderCategories(categoriesResponse.data, deletedResponse.data);
 
+        // Set before anything draws: renderList syncs the selection toolbar, which has to read the
+        // list it is about to show rather than the one it is replacing.
+        latestTasks = tasksResponse.data;
+
         if (currentLayout() === 'calendar') {
             elements.calendarMonth.textContent = monthLabel(state.month);
             renderMonthGrid(elements.calendarGrid, {
@@ -765,7 +921,6 @@ async function load() {
         }
 
         display.renderSummary(tasksResponse.data.length);
-        latestTasks = tasksResponse.data;
     } catch (error) {
         if (requestId === latestRequestId) {
             showLoadError(error);
@@ -795,10 +950,15 @@ async function runAction(button, { busyLabel, doneLabel, request, successMessage
         if (button && doneLabel) {
             setDone(button, doneLabel);
         }
+
+        // A bulk action only knows what it changed once the server has answered, so a description
+        // may be a function rather than a string. It is read here, after the request.
+        const detail = typeof description === 'function' ? description() : description;
+
         toast.success(successMessage, {
-            description,
+            description: detail,
             action: undo
-                ? { label: 'Undo', onClick: () => runAndReload(undo, { message: undoMessage, description }) }
+                ? { label: 'Undo', onClick: () => runAndReload(undo, { message: undoMessage, description: detail }) }
                 : null,
         });
 
@@ -851,6 +1011,16 @@ const completeTask = (task, button) =>
         description: task.title,
         undo: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
         undoMessage: 'Task reopened',
+    });
+
+// Reopening from the row's menu. The same endpoint the dialog's Status field and a board drag use.
+const reopenTask = (task) =>
+    runAction(null, {
+        request: () => api(`/tasks/${task.id}/reopen`, { method: 'PATCH' }),
+        successMessage: 'Task reopened',
+        description: task.title,
+        undo: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
+        undoMessage: 'Task completed',
     });
 
 async function deleteTask(task, button) {
@@ -1452,6 +1622,12 @@ const currentLayout = () => (state.view === 'upcoming' ? 'calendar' : display.st
 function applyLayout() {
     const layout = currentLayout();
 
+    // Only the list has checkboxes. Leaving it with a selection still held would bring the toolbar
+    // back on return, counting rows the user ticked before they went somewhere else.
+    if (layout !== 'list') {
+        selection.clear();
+    }
+
     display.setLayoutLocked(layout === 'calendar');
     elements.listView.classList.toggle('hidden', layout !== 'list');
     elements.boardView.classList.toggle('hidden', layout !== 'board');
@@ -1470,6 +1646,7 @@ function applyDisplay({ date }) {
     }
 
     applyLayout();
+    syncSortHeaders(sortHeaders, display.state.sorting);
     load();
 }
 
@@ -1598,6 +1775,31 @@ elements.taskDialog.addEventListener('click', (event) => {
     }
 });
 elements.retry.addEventListener('click', load);
+
+elements.selectAll.addEventListener('change', () =>
+    selection.setMany(listedIds, elements.selectAll.checked),
+);
+elements.selectionClear.addEventListener('click', () => {
+    selection.clear();
+    elements.selectAll.focus();
+});
+elements.selectionComplete.addEventListener('click', () =>
+    runBulk(elements.selectionComplete, {
+        action: 'complete',
+        busyLabel: 'Completing…',
+        doneLabel: 'Completed',
+        successMessage: 'Tasks completed',
+        undoMessage: 'Tasks reopened',
+    }),
+);
+elements.selectionDelete.addEventListener('click', () => deleteSelection(elements.selectionDelete));
+
+// The headers set the same sorting the Display panel holds, rather than keeping a second copy of
+// it. One state means the panel and the headers cannot end up disagreeing about what the list is
+// sorted by, which is the whole reason the Display panel exists.
+sortHeaders.forEach((button) =>
+    button.addEventListener('click', () => display.setSorting(button.dataset.sort)),
+);
 
 viewButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
 
