@@ -1,26 +1,22 @@
 /**
- * The Display panel: layout, completed tasks, grouping, sorting and the two filters.
+ * The Display panel on All tasks and Today: completed tasks, grouping and the two filters.
  *
  * It owns the settings and nothing else. Every change calls back with the new state, and the
  * page decides what to re-render.
  */
 const DEFAULTS = {
-    mode: 'list',
     showCompleted: true,
     grouping: 'status',
-    sorting: 'default',
     date: '',
     priority: '',
 };
 
-// To do, In progress, In review, then Done. The four read left to right as the work moves: a task is
-// picked up, worked on, checked, finished. Every layout orders them this way, so the board's columns
-// and the list's groups cannot tell different stories about the same four stages.
+// To do, In progress, In review, Done: the order the work moves in, and the order the board's
+// columns and the list's groups both read.
 export const GROUPINGS = {
     status: { label: 'Status', keys: ['pending', 'in_progress', 'in_review', 'completed'] },
     priority: { label: 'Priority', keys: ['high', 'medium', 'low'] },
     project: { label: 'Project', keys: null },
-    none: { label: 'None', keys: null },
 };
 
 const LABELS = {
@@ -29,7 +25,7 @@ const LABELS = {
 };
 
 /**
- * Splits a list into the groups the panel asks for. One function for both layouts, so a board
+ * Splits a list into the groups asked for. One function for the board and the list, so a board
  * column and a list group always hold the same tasks under the same heading.
  *
  * @param {{tasks: array, grouping: string, categories: array}} options
@@ -46,10 +42,6 @@ export function groupTasks({ tasks, grouping, categories }) {
         ];
     }
 
-    if (grouping === 'none') {
-        return [{ key: 'all', label: 'All tasks', tasks }];
-    }
-
     return GROUPINGS[grouping].keys.map((key) => ({
         key,
         label: LABELS[grouping][key],
@@ -57,31 +49,19 @@ export function groupTasks({ tasks, grouping, categories }) {
     }));
 }
 
-const SORTINGS = { default: 'Default', due: 'Due date', name: 'Name', manual: 'Manual' };
 const DATES = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', none: 'No date' };
 const PRIORITIES = { high: 'High', medium: 'Medium', low: 'Low' };
-
-const FORCED_TITLES = {
-    calendar: 'Upcoming always shows the calendar',
-    board: 'All tasks and Today show the board',
-};
 
 const $ = (id) => document.getElementById(id);
 
 export function createDisplay(onChange) {
     const state = { ...DEFAULTS };
 
-    // What the Sort select said before the board took it over, so leaving the board gives it back.
-    let sortingOffBoard = DEFAULTS.sorting;
-    let forcedLayout = null;
-
     const trigger = $('display-trigger');
     const panel = $('display-panel');
     const summary = $('display-summary');
-    const grouping = $('grouping');
     const completed = $('show-completed');
-    const modeButtons = document.querySelectorAll('[data-mode]');
-    const selects = { grouping, sorting: $('sorting'), date: $('filter-date'), priority: $('filter-priority') };
+    const selects = { grouping: $('grouping'), date: $('filter-date'), priority: $('filter-priority') };
 
     const setOpen = (open) => {
         panel.hidden = !open;
@@ -97,17 +77,9 @@ export function createDisplay(onChange) {
         return element;
     }
 
-    // A panel that hides its own settings is how someone ends up staring at an empty list.
-    function renderSummary(count) {
-        const chips = [chip('Showing ', String(count))];
-
-        if (state.grouping !== 'none') {
-            chips.push(chip('Grouped by ', GROUPINGS[state.grouping].label));
-        }
-
-        if (state.sorting !== 'default') {
-            chips.push(chip('Sorted by ', SORTINGS[state.sorting]));
-        }
+    // A panel that hides its own settings is how someone ends up staring at an empty board.
+    function renderSummary(count, extra = []) {
+        const chips = [chip('Showing ', String(count)), chip('Grouped by ', GROUPINGS[state.grouping].label)];
 
         if (state.date) {
             chips.push(chip('Date: ', DATES[state.date]));
@@ -121,57 +93,11 @@ export function createDisplay(onChange) {
             chips.push(chip('Completed ', 'hidden'));
         }
 
+        extra.forEach(([text, value]) => chips.push(chip(text, value)));
         summary.replaceChildren(...chips);
     }
 
-    // The board is shown when the user chose it or when the view forces it.
-    const boardShown = () => (forcedLayout ?? state.mode) === 'board';
-
-    // A board with nothing to group by is a list, so None is withdrawn rather than ignored.
-    function syncGrouping() {
-        grouping.querySelector('option[value="none"]').disabled = boardShown();
-
-        if (boardShown() && state.grouping === 'none') {
-            state.grouping = 'status';
-            grouping.value = 'status';
-        }
-    }
-
-    /**
-     * The board's order is the one someone arranged by dragging, so a sort there would have to
-     * throw that arrangement away to mean anything. Sorting is withdrawn rather than ignored, the
-     * same way None is withdrawn from Grouping, and Manual is offered nowhere else because nothing
-     * else lets you arrange anything.
-     */
-    function syncSorting() {
-        const onBoard = boardShown();
-        const select = selects.sorting;
-
-        if (! onBoard) {
-            sortingOffBoard = state.sorting === 'manual' ? sortingOffBoard : state.sorting;
-        }
-
-        state.sorting = onBoard ? 'manual' : sortingOffBoard;
-        select.value = state.sorting;
-        select.disabled = onBoard;
-        select.title = onBoard ? 'The board keeps the order you arrange by dragging' : '';
-        select.querySelector('option[value="manual"]').disabled = ! onBoard;
-    }
-
-    function syncModeButtons() {
-        const shown = forcedLayout === 'board' ? 'board' : state.mode;
-
-        modeButtons.forEach((button) => {
-            button.setAttribute('aria-pressed', String(button.dataset.mode === shown));
-            button.disabled = forcedLayout !== null;
-            button.title = FORCED_TITLES[forcedLayout] ?? '';
-        });
-    }
-
     function apply() {
-        syncGrouping();
-        syncSorting();
-        syncModeButtons();
         completed.setAttribute('aria-checked', String(state.showCompleted));
         onChange(state);
     }
@@ -200,13 +126,6 @@ export function createDisplay(onChange) {
         });
     });
 
-    modeButtons.forEach((button) =>
-        button.addEventListener('click', () => {
-            state.mode = button.dataset.mode;
-            apply();
-        }),
-    );
-
     completed.addEventListener('click', () => {
         state.showCompleted = !state.showCompleted;
         apply();
@@ -221,43 +140,11 @@ export function createDisplay(onChange) {
 
     $('display-reset').addEventListener('click', () => {
         Object.assign(state, DEFAULTS);
-        sortingOffBoard = DEFAULTS.sorting;
         Object.entries(selects).forEach(([key, select]) => {
             select.value = DEFAULTS[key];
         });
         apply();
     });
 
-    /**
-     * A view can force the layout: Upcoming is the calendar, All tasks and Today are the board.
-     * The buttons are disabled rather than hidden, because a control that vanishes leaves the user
-     * guessing where it went. The forced layout is never written to `state.mode`, so the user's own
-     * choice comes back on the next view that leaves the layout open.
-     */
-    function setForcedLayout(layout) {
-        forcedLayout = layout;
-
-        // The caller changes the layout before it loads, so grouping and sorting settle here.
-        syncGrouping();
-        syncSorting();
-        syncModeButtons();
-    }
-
-    /**
-     * Sets the sort from outside the panel — the table's column headers are the only caller.
-     *
-     * It writes the same state the panel's own select holds rather than keeping a second copy, so
-     * the headers and the panel cannot end up naming different orders. The guard is the board,
-     * where the select is disabled because the arrangement is the order.
-     */
-    function setSorting(value) {
-        if (selects.sorting.disabled || state.sorting === value) {
-            return;
-        }
-
-        state.sorting = value;
-        apply();
-    }
-
-    return { state, renderSummary, apply, setForcedLayout, setSorting };
+    return { state, renderSummary, apply };
 }

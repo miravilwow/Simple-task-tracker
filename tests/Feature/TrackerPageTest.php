@@ -14,22 +14,32 @@ class TrackerPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_tracker_renders_the_display_panel_and_every_layout(): void
+    public function test_the_display_panel_holds_only_what_the_board_uses(): void
     {
         $response = $this->get('/tasks');
 
         $response->assertOk()->assertSeeInOrder([
+            'id="board-controls"',
             'id="display-trigger"',
             'id="display-panel"',
-            'data-mode="list"',
-            'data-mode="board"',
             'id="show-completed"',
             'id="grouping"',
-            'id="sorting"',
             'id="filter-date"',
             'id="filter-priority"',
             'id="display-reset"',
+            'id="new-task-trigger"',
         ], false);
+    }
+
+    public function test_the_display_panel_offers_no_layout_sorting_or_none_grouping(): void
+    {
+        // Every view decides its own layout and the board's order is the one you drag, so none of
+        // these could ever change anything.
+        $html = $this->get('/tasks')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('data-mode=', $html);
+        $this->assertStringNotContainsString('id="sorting"', $html);
+        $this->assertStringNotContainsString('<option value="none">None</option>', $html);
     }
 
     public function test_the_sidebar_has_no_project_tree_favorites_or_project_dialogs(): void
@@ -150,12 +160,6 @@ class TrackerPageTest extends TestCase
         $this->assertSame(1, $stats['completed']);
         $this->assertSame(1, $stats['due_today']);
         $this->assertSame(1, $stats['overdue']);
-    }
-
-    public function test_the_layout_choice_offers_no_calendar(): void
-    {
-        // Upcoming is the calendar, so there is nothing left for the panel to choose.
-        $this->get('/tasks')->assertOk()->assertDontSee('data-mode="calendar"', false);
     }
 
     public function test_no_row_offers_reopen(): void

@@ -70,7 +70,7 @@ The sidebar, the page and the calendar's no-due-date tray scroll without drawing
 
 A dashboard in the `app-container`, beside the fixed sidebar.
 
-**The view decides the layout.** All tasks and Today are the **Board only**: a work queue is read as columns of stages, and the list had nothing to add to it. Upcoming is the calendar. Overdue and Completed keep the user's List or Board choice from the Display panel. While a view forces its layout, both Display mode buttons are disabled rather than accepted and ignored, the same way None is withdrawn from Grouping on the board. Because the list is the only layout with checkboxes, **the data table below lives on Overdue and Completed**.
+**The view decides the layout.** All tasks and Today are the **Board**: a work queue is read as columns of stages, and the list had nothing to add to it. Upcoming is the calendar. Overdue and Completed are the list. Display and New task appear only on the board views. Because the list is the only layout with checkboxes, **the data table below lives on Overdue and Completed**.
 
 ### Grid alignment
 
@@ -139,8 +139,7 @@ two quietly come to disagree.
 #### Sorting from the headers
 
 - **Task** sorts by name and **Priority** sorts by `Src\TaskSorter`, the order the exam grades. They
-  set the same state the Display panel's Sorting select holds, so the two controls can never name
-  different orders.
+  are the table's only sort control: the board's order is the manual one you drag.
 - **A header selects a sort; it does not flip one.** None of this app's sorts has a direction —
   TaskSorter is priority then oldest, Name is A to Z, Due date is soonest first — so the buttons
   carry `aria-pressed` rather than `aria-sort`. Claiming ascending would promise something the API
@@ -254,21 +253,18 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 
 ## 5. The Display panel
 
-One button in the page header carries **everything that answers "what am I looking at"**: the layout, whether finished work shows, the grouping, the sorting and two filters. They were a segmented layout switch in the header and a segmented status filter inside the task panel; one control is what stops the two disagreeing.
+One button in the page header carries **everything that answers "what am I looking at"**: whether finished work shows, the grouping and two filters. It appears on All tasks and Today only, the views that are the board. The board's order is always the manual one you drag; the table's order is set from its own column headers.
 
 | Group | Items |
 |---|---|
-| Layout | List, Board, Calendar |
 | | Completed tasks (a `role="switch"` toggle) |
-| Sort | Grouping, Sorting |
+| Group | Grouping |
 | Filter | Date, Priority |
 
-- **Sort and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
+- **Group and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
 - **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The empty message says the same thing: "Nothing matches these display settings."
 - **Grouping works in both the list and the board.** One function builds the groups, so a board column and a list group always hold the same tasks under the same heading; the list draws each heading as a row of its own, and leaves out a group with nothing in it.
 - **The stages always read To do, In progress, In review, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
-- **Grouping has no "None" on the Board**, because a board with nothing to group by is a list. The option is disabled there rather than accepted and quietly ignored.
-- **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date, Name and Manual replace it, and all four keep unfinished work above finished work. **Manual belongs to the Board**, which selects it and disables the control, because the board's order is the one someone arranged by dragging.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
 
 ## 5b. The Board layout
@@ -284,7 +280,7 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 - **A drop does not make the board blink.** The gap stays where the card was let go until the server answers, rather than the card flashing back to its old column first, and only a task that was not on screen before plays the entrance animation. Replaying it on every card after each reload is what made the whole board flicker.
 - **A card can be dropped at any height in a column**, not only at its end. The cards part around a gap that shows where it will land: above the first card, between any two, or below the last. The gap is a real element in the list, so the cards are moved by the layout rather than by a measurement, and the column cannot disagree with itself about where the card is going.
 - **The drop names the card it landed under, not a position number.** The Display panel can be hiding cards, so counting the ones on screen would land the task somewhere else in the real column.
-- **The board's order is the one you arrange**, which is why Sorting reads Manual there and is disabled. A sort would have to throw that arrangement away to mean anything, so it is withdrawn rather than ignored, the same way None is withdrawn from Grouping. Manual is offered nowhere else, because nothing else lets you arrange anything.
+- **The board's order is the one you arrange.** A sort would have to throw that arrangement away to mean anything, so the board offers none.
 - **A drop is accepted anywhere in a column**, not only on the strip its cards happen to cover. The columns stretch to one height and the list inside fills its column, so letting a card go in the empty space under the last one still moves it. Sizing each column to its own cards left that space outside the column, where a drop was refused with nothing on screen to explain why.
 - Below `md` the columns stack into one running list rather than scrolling sideways.
 
@@ -374,8 +370,8 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Sidebar views filter the list, and the title names the current one
 - [ ] Typing a new name in the New task form's Project field creates the project; typing an existing one in any case reuses it
 - [ ] The task dialog's Project field saves on change, and clearing it removes the project
-- [ ] All tasks and Today show the Board only, with both Display mode buttons disabled
-- [ ] Overdue and Completed keep the List and Board choice, and the data table appears there
+- [ ] All tasks and Today show the Board, and Display and New task appear on them only
+- [ ] Overdue and Completed show the table, and its Task and Priority headers sort it
 - [ ] A board card's "…" opens Edit and Delete, arrows and Escape work, and focus returns to it
 - [ ] Deleting from the card's "…" asks first, and the toast's Undo brings the task back
 - [ ] The sidebar, the page and the calendar tray scroll with the wheel and the keyboard, and draw no scrollbar
@@ -398,14 +394,13 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Bulk Complete and bulk Delete each run one request, and the toast's Undo puts the rows back
 - [ ] Undo after completing a mixed selection leaves the rows that were already done alone
 - [ ] A selection does not survive a reload, a filter change, or switching to the board
-- [ ] The Task and Priority headers sort, the Display panel's Sorting select follows them, and Status has no sort button
+- [ ] The Task and Priority headers sort, and Status has no sort button
 - [ ] A row's "…" opens Open, Reschedule and Delete, with Reopen on a finished row, and focus returns to it
 - [ ] An unfinished board card still carries Complete as a button
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
-- [ ] Each layout shows only itself, and switching moves nothing sideways
-- [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board
+- [ ] Each layout shows only itself, and switching views moves nothing sideways
+- [ ] Grouping by status, priority and project regroups the board
 - [ ] To do comes before In progress before In review before Done, in the board's columns and in the list
-- [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all four
 - [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
 - [ ] Dragging a card to another column moves the task, the toast offers Undo, and the stats follow
@@ -414,7 +409,6 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] A card can be dropped above the first card, between two cards, and below the last, and stays where it was put after the reload
 - [ ] A drop lands in the right place while the Completed toggle or a filter is hiding cards
 - [ ] The up and down arrows move a held card within its column, and Undo on the toast puts it back exactly where it was
-- [ ] Sorting reads Manual and is disabled on the Board, and the chip row says so
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
 - [ ] Grouped by priority or project, the cards are not draggable
 - [ ] The dialog's Status field moves a task through all four stages, and the board and the counts follow

@@ -52,10 +52,9 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                {{-- One control for the layout, the grouping, the sorting and the filters. They
-                     all answer "what am I looking at", so they belong behind one button rather
-                     than spread across the header and the task panel. --}}
+            <div id="board-controls" class="flex items-center gap-3">
+                {{-- Grouping and the filters for the board. The other views decide their own layout and
+                     carry their own filter bar. --}}
                 <div class="relative">
                     <button type="button" id="display-trigger" class="btn-secondary" aria-expanded="false"
                         aria-controls="display-panel" aria-haspopup="true">
@@ -66,19 +65,7 @@
                     <div id="display-panel" role="group" aria-label="Display options" hidden
                         class="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-lg">
                         <div class="p-4">
-                            <h2 id="layout-label" class="mb-2.5 font-medium">Layout</h2>
-                            <div role="group" aria-labelledby="layout-label" class="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
-                                @foreach ([['list', 'List', 'list'], ['board', 'Board', 'board']] as [$mode, $label, $icon])
-                                    <button type="button" data-mode="{{ $mode }}"
-                                        aria-pressed="{{ $mode === 'list' ? 'true' : 'false' }}"
-                                        class="layout-choice disabled:cursor-not-allowed disabled:opacity-40">
-                                        <x-icon :name="$icon" class="size-5" />
-                                        {{ $label }}
-                                    </button>
-                                @endforeach
-                            </div>
-
-                            <div class="mt-1 flex min-h-11 items-center justify-between gap-3">
+                            <div class="flex min-h-11 items-center justify-between gap-3">
                                 <span id="completed-label">Completed tasks</span>
                                 <button type="button" id="show-completed" role="switch" aria-checked="true"
                                     aria-labelledby="completed-label" class="switch"></button>
@@ -86,9 +73,8 @@
                         </div>
 
                         @foreach ([
-                            ['sort', 'Sort', [
-                                ['grouping', 'Grouping', ['status' => 'Status', 'priority' => 'Priority', 'project' => 'Project', 'none' => 'None']],
-                                ['sorting', 'Sorting', ['default' => 'Default', 'due' => 'Due date', 'name' => 'Name', 'manual' => 'Manual']],
+                            ['sort', 'Group', [
+                                ['grouping', 'Grouping', ['status' => 'Status', 'priority' => 'Priority', 'project' => 'Project']],
                             ]],
                             ['filter', 'Filter', [
                                 ['filter-date', 'Date', ['' => 'All', 'overdue' => 'Overdue', 'today' => 'Today', 'upcoming' => 'Upcoming', 'none' => 'No date']],

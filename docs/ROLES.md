@@ -168,7 +168,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `sidebar.js` | drawer, icon rail, Ctrl/Cmd+B, cookie persistence for the five smart views |
   | `menu.js` | the overflow menu behind a row's or a board card's "…" |
   | `calendar.js` | month grid, agenda, chips, drag-and-drop |
-  | `display.js` | the Display panel: layout, grouping, sorting, filters, the chips that name them, and the layouts a view forces |
+  | `display.js` | the Display panel on the board views: completed tasks, grouping, date and priority filters, and the chips that name them |
   | `board.js` | the board's columns, and dragging a card between columns by pointer or keyboard |
   | `table.js` | the list's row selection, its header checkbox and its sortable column headers (Overdue and Completed) |
   | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |

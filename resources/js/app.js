@@ -57,6 +57,8 @@ const createdFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' 
 const $ = (id) => document.getElementById(id);
 
 const elements = {
+    boardControls: $('board-controls'),
+    displaySummary: $('display-summary'),
     viewTitle: $('view-title'),
     viewSubtitle: $('view-subtitle'),
     taskDialog: $('task-dialog'),
@@ -105,6 +107,8 @@ const today = startOfToday();
 
 const state = {
     view: 'all',
+    // The table's sort, set by its column headers. The board always asks for its manual order.
+    listSort: 'default',
     month: new Date(today.getFullYear(), today.getMonth(), 1),
 };
 
@@ -144,7 +148,7 @@ function dueLabel(task) {
 
 function emptyMessage() {
     // The Display panel can narrow the list to nothing, and "No tasks yet" would then be a lie.
-    if (display.state.date || display.state.priority || !display.state.showCompleted) {
+    if (currentLayout() === 'board' && (display.state.date || display.state.priority || !display.state.showCompleted)) {
         return 'Nothing matches these display settings.';
     }
 
@@ -527,20 +531,23 @@ function renderProjectOptions(categories) {
 }
 
 function currentParams() {
-    const params = { ...VIEWS[state.view].params, sort: display.state.sorting, priority: display.state.priority };
+    const params = {
+        ...VIEWS[state.view].params,
+        sort: currentLayout() === 'board' ? 'manual' : state.listSort,
+    };
 
-    // The Completed toggle and the Date filter both narrow the same list, and a sidebar view
-    // that already names one of them wins: Completed means completed.
     if (state.view === 'completed') {
         params.status = 'completed';
-    } else if (!display.state.showCompleted) {
-        params.completed = 0;
     }
 
-    // The calendar is already a date view: a `due` beside its month window would fight it and
-    // leave a grid that is empty for no visible reason.
-    if (display.state.date && currentLayout() !== 'calendar') {
-        params.due = display.state.date;
+    // The Display panel's settings belong to the board views, the only ones that show it.
+    if (currentLayout() === 'board') {
+        params.priority = display.state.priority;
+        params.due = display.state.date || params.due;
+
+        if (!display.state.showCompleted) {
+            params.completed = 0;
+        }
     }
 
     return params;
@@ -629,7 +636,7 @@ async function load() {
                 tasksResponse.data,
                 groupTasks({
                     tasks: tasksResponse.data,
-                    grouping: display.state.grouping,
+                    grouping: 'status',
                     categories: categoriesResponse.data,
                 }),
             );
@@ -899,24 +906,31 @@ function applyView() {
     viewButtons.forEach((button) => {
         button.setAttribute('aria-pressed', String(button.dataset.view === state.view));
     });
+
+    // Display and New task belong to the board. The other views have nothing to add a task to
+    // and carry their own filter bar.
+    const onBoard = currentLayout() === 'board';
+
+    elements.boardControls.hidden = !onBoard;
+    elements.displaySummary.hidden = !onBoard;
 }
 
 function setView(key) {
     state.view = key;
     applyView();
     applyLayout();
-    syncSortHeaders(sortHeaders, display.state.sorting);
+    syncSortHeaders(sortHeaders, state.listSort);
     closeDrawer();
     load();
 }
 
 /**
- * Upcoming is the calendar, and All tasks and Today are the board. Overdue and Completed take the
- * Display panel's choice.
+ * Every view decides its own layout: All tasks and Today are the board, Upcoming is the calendar,
+ * and Overdue and Completed are the table, the one layout with checkboxes.
  */
-const FORCED_LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar' };
+const LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar', overdue: 'list', completed: 'list' };
 
-const currentLayout = () => FORCED_LAYOUTS[state.view] ?? display.state.mode;
+const currentLayout = () => LAYOUTS[state.view];
 
 // `md:grid` and `xl:grid` sit in media queries and would win over `hidden`, so each layout's
 // grid class is added only while that layout is open.
@@ -929,7 +943,6 @@ function applyLayout() {
         selection.clear();
     }
 
-    display.setForcedLayout(FORCED_LAYOUTS[state.view] ?? null);
     elements.listView.classList.toggle('hidden', layout !== 'list');
     elements.boardView.classList.toggle('hidden', layout !== 'board');
     elements.boardView.classList.toggle('md:grid', layout === 'board');
@@ -947,7 +960,7 @@ function applyDisplay({ date }) {
     }
 
     applyLayout();
-    syncSortHeaders(sortHeaders, display.state.sorting);
+    syncSortHeaders(sortHeaders, state.listSort);
     load();
 }
 
@@ -1062,11 +1075,18 @@ elements.selectionComplete.addEventListener('click', () =>
 );
 elements.selectionDelete.addEventListener('click', () => deleteSelection(elements.selectionDelete));
 
-// The headers set the same sorting the Display panel holds, rather than keeping a second copy of
-// it. One state means the panel and the headers cannot end up disagreeing about what the list is
-// sorted by, which is the whole reason the Display panel exists.
+// The table's own headers are its only sort control. A header selects an order rather than
+// flipping one, so pressing the active one again does nothing.
 sortHeaders.forEach((button) =>
-    button.addEventListener('click', () => display.setSorting(button.dataset.sort)),
+    button.addEventListener('click', () => {
+        if (state.listSort === button.dataset.sort) {
+            return;
+        }
+
+        state.listSort = button.dataset.sort;
+        syncSortHeaders(sortHeaders, state.listSort);
+        load();
+    }),
 );
 
 viewButtons.forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
