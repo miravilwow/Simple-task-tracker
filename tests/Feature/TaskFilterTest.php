@@ -59,6 +59,14 @@ class TaskFilterTest extends TestCase
         $this->assertSame(['Write the Report'], $this->titles('search=report'));
     }
 
+    public function test_a_search_for_zero_still_narrows_the_list(): void
+    {
+        Task::factory()->create(['title' => 'Room 101']);
+        Task::factory()->create(['title' => 'Lunch']);
+
+        $this->assertSame(['Room 101'], $this->titles('search=0'));
+    }
+
     public function test_search_treats_percent_and_underscore_literally(): void
     {
         Task::factory()->create(['title' => 'Raise to 5%d done']);

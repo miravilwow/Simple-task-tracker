@@ -53,9 +53,9 @@ class TaskController extends Controller
                 ? $query->whereNull('category_id')
                 : $query->where('category_id', $project))
             // "!" escapes, because it is the one escape character MySQL and SQLite both accept.
-            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->whereRaw(
+            ->when(isset($filters['search']), fn (Builder $query) => $query->whereRaw(
                 "title LIKE ? ESCAPE '!'",
-                ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%'],
+                ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $filters['search']).'%'],
             ))
             // The Display panel's "Completed tasks" toggle. Only the off position narrows anything.
             ->when(

@@ -77,4 +77,14 @@ class TaskReviewTest extends TestCase
 
         $this->assertSame(['Review'], $titles);
     }
+
+    public function test_hiding_completed_tasks_keeps_work_in_review(): void
+    {
+        Task::factory()->create(['title' => 'Review', 'status' => 'in_review']);
+        Task::factory()->create(['title' => 'Done', 'status' => 'completed']);
+
+        $titles = array_column($this->getJson('/api/tasks?completed=0')->json('data'), 'title');
+
+        $this->assertSame(['Review'], $titles);
+    }
 }
