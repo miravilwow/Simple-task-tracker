@@ -903,15 +903,18 @@ function setView(key) {
     state.view = key;
     applyView();
     applyLayout();
+    syncSortHeaders(sortHeaders, display.state.sorting);
     closeDrawer();
     load();
 }
 
 /**
- * Upcoming is the calendar: a month grid is what "what is coming up" looks like, and there is
- * nothing there to lay out two ways. Every other view takes the Display panel's choice.
+ * Upcoming is the calendar, and All tasks and Today are the board. Overdue and Completed take the
+ * Display panel's choice.
  */
-const currentLayout = () => (state.view === 'upcoming' ? 'calendar' : display.state.mode);
+const FORCED_LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar' };
+
+const currentLayout = () => FORCED_LAYOUTS[state.view] ?? display.state.mode;
 
 // `md:grid` and `xl:grid` sit in media queries and would win over `hidden`, so each layout's
 // grid class is added only while that layout is open.
@@ -924,7 +927,7 @@ function applyLayout() {
         selection.clear();
     }
 
-    display.setLayoutLocked(layout === 'calendar');
+    display.setForcedLayout(FORCED_LAYOUTS[state.view] ?? null);
     elements.listView.classList.toggle('hidden', layout !== 'list');
     elements.boardView.classList.toggle('hidden', layout !== 'board');
     elements.boardView.classList.toggle('md:grid', layout === 'board');

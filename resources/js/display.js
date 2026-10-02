@@ -61,6 +61,11 @@ const SORTINGS = { default: 'Default', due: 'Due date', name: 'Name', manual: 'M
 const DATES = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', none: 'No date' };
 const PRIORITIES = { high: 'High', medium: 'Medium', low: 'Low' };
 
+const FORCED_TITLES = {
+    calendar: 'Upcoming always shows the calendar',
+    board: 'All tasks and Today show the board',
+};
+
 const $ = (id) => document.getElementById(id);
 
 export function createDisplay(onChange) {
@@ -68,7 +73,7 @@ export function createDisplay(onChange) {
 
     // What the Sort select said before the board took it over, so leaving the board gives it back.
     let sortingOffBoard = DEFAULTS.sorting;
-    let layoutLocked = false;
+    let forcedLayout = null;
 
     const trigger = $('display-trigger');
     const panel = $('display-panel');
@@ -119,11 +124,14 @@ export function createDisplay(onChange) {
         summary.replaceChildren(...chips);
     }
 
+    // The board is shown when the user chose it or when the view forces it.
+    const boardShown = () => (forcedLayout ?? state.mode) === 'board';
+
     // A board with nothing to group by is a list, so None is withdrawn rather than ignored.
     function syncGrouping() {
-        grouping.querySelector('option[value="none"]').disabled = state.mode === 'board';
+        grouping.querySelector('option[value="none"]').disabled = boardShown();
 
-        if (state.mode === 'board' && state.grouping === 'none') {
+        if (boardShown() && state.grouping === 'none') {
             state.grouping = 'status';
             grouping.value = 'status';
         }
@@ -136,7 +144,7 @@ export function createDisplay(onChange) {
      * else lets you arrange anything.
      */
     function syncSorting() {
-        const onBoard = state.mode === 'board' && ! layoutLocked;
+        const onBoard = boardShown();
         const select = selects.sorting;
 
         if (! onBoard) {
@@ -150,10 +158,20 @@ export function createDisplay(onChange) {
         select.querySelector('option[value="manual"]').disabled = ! onBoard;
     }
 
+    function syncModeButtons() {
+        const shown = forcedLayout === 'board' ? 'board' : state.mode;
+
+        modeButtons.forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.mode === shown));
+            button.disabled = forcedLayout !== null;
+            button.title = FORCED_TITLES[forcedLayout] ?? '';
+        });
+    }
+
     function apply() {
         syncGrouping();
         syncSorting();
-        modeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode)));
+        syncModeButtons();
         completed.setAttribute('aria-checked', String(state.showCompleted));
         onChange(state);
     }
@@ -210,21 +228,18 @@ export function createDisplay(onChange) {
     });
 
     /**
-     * The Upcoming view is the calendar, so the layout choice has nothing to act on there. The
-     * buttons are disabled rather than hidden: a control that vanishes leaves the user guessing
-     * where it went, and the stored choice comes back on the next view.
+     * A view can force the layout: Upcoming is the calendar, All tasks and Today are the board.
+     * The buttons are disabled rather than hidden, because a control that vanishes leaves the user
+     * guessing where it went. The forced layout is never written to `state.mode`, so the user's own
+     * choice comes back on the next view that leaves the layout open.
      */
-    function setLayoutLocked(locked) {
-        layoutLocked = locked;
+    function setForcedLayout(layout) {
+        forcedLayout = layout;
 
-        // The caller changes the layout before it loads, so the sort has to settle here: Upcoming
-        // draws a calendar whatever the stored mode says, and a calendar arranges itself by date.
+        // The caller changes the layout before it loads, so grouping and sorting settle here.
+        syncGrouping();
         syncSorting();
-
-        modeButtons.forEach((button) => {
-            button.disabled = locked;
-            button.title = locked ? 'Upcoming always shows the calendar' : '';
-        });
+        syncModeButtons();
     }
 
     /**
@@ -243,5 +258,5 @@ export function createDisplay(onChange) {
         apply();
     }
 
-    return { state, renderSummary, apply, setLayoutLocked, setSorting };
+    return { state, renderSummary, apply, setForcedLayout, setSorting };
 }
