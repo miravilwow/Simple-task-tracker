@@ -103,6 +103,7 @@ class TrackerPageTest extends TestCase
 
         $this->assertStringContainsString('id="detail-status"', $html);
         $this->assertStringContainsString('<option value="in_progress">In progress</option>', $html);
+        $this->assertStringContainsString('<option value="in_review">In review</option>', $html);
     }
 
     public function test_the_old_status_filter_is_gone(): void

@@ -191,6 +191,7 @@ two quietly come to disagree.
 |---|---|---|
 | Pending | To do | `bg-blue-100 text-blue-700` badge |
 | In progress | In progress | `bg-amber-100 text-amber-800` badge |
+| In review | In review | `bg-purple-100 text-purple-700` badge |
 | Completed | Done | `bg-green-100 text-green-700` badge; title gets `line-through text-gray-400` |
 
 - The three read as stages, not states: a task is picked up, worked on, finished. **Starting a task does not finish it**, so it stays in Today and Overdue, and the sidebar counts keep counting it.
@@ -265,14 +266,14 @@ One button in the page header carries **everything that answers "what am I looki
 - **Sort and Filter fold away** behind their headings, with `aria-expanded` on the button and the chevron rotated from it, so the state is never in the icon alone.
 - **A row of chips under the page heading names every active setting.** A panel that hides its own settings is how someone ends up staring at an empty list wondering where their tasks went. The empty message says the same thing: "Nothing matches these display settings."
 - **Grouping works in both the list and the board.** One function builds the groups, so a board column and a list group always hold the same tasks under the same heading; the list draws each heading as a row of its own, and leaves out a group with nothing in it.
-- **The stages always read To do, In progress, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
+- **The stages always read To do, In progress, In review, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
 - **Grouping has no "None" on the Board**, because a board with nothing to group by is a list. The option is disabled there rather than accepted and quietly ignored.
 - **Sorting's "Default" is `Src\TaskSorter`**, the order the exam grades. Due date, Name and Manual replace it, and all four keep unfinished work above finished work. **Manual belongs to the Board**, which selects it and disables the control, because the board's order is the one someone arranged by dragging.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
 
 ## 5b. The Board layout
 
-The board's columns **are the grouping**: by status it is To do / In progress / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
+The board's columns **are the grouping**: by status it is To do / In progress / In review / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
 - **A card's "…" holds Edit and Delete.** A card has room for one button and not for a row of them, so Delete moved into a 32px "…" at the card's top-right, with Edit (it opens the task dialog) beside it. Delete still asks for confirmation and still offers Undo. It is the same `role="menu"` the table row uses, so arrows, Home/End and Escape behave as they do there, and focus returns to the "…".
@@ -403,7 +404,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching moves nothing sideways
 - [ ] Grouping by status, priority and project regroups both the board and the list, and None is disabled on the board
-- [ ] To do comes before In progress before Done, in the board's columns and in the list
+- [ ] To do comes before In progress before In review before Done, in the board's columns and in the list
 - [ ] Each Sorting option reorders the list, and unfinished work stays above finished work in all four
 - [ ] The Date and Priority filters narrow the list, and the chips name every setting that is on
 - [ ] Turning Completed tasks off hides finished work in both the list and the board
@@ -416,7 +417,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Sorting reads Manual and is disabled on the Board, and the chip row says so
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
 - [ ] Grouped by priority or project, the cards are not draggable
-- [ ] The dialog's Status field moves a task through all three stages, and the board and the counts follow
+- [ ] The dialog's Status field moves a task through all four stages, and the board and the counts follow
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows
 - [ ] The dialog's up and down arrows step through the list that is on the page

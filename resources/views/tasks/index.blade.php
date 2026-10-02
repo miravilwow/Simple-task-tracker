@@ -557,7 +557,7 @@
                              In progress from the list, the calendar, or a keyboard. --}}
                         <label for="detail-status" class="detail-label">Status</label>
                         <select id="detail-status" class="detail-field">
-                            @foreach (['pending' => 'To do', 'in_progress' => 'In progress', 'completed' => 'Done'] as $value => $label)
+                            @foreach (['pending' => 'To do', 'in_progress' => 'In progress', 'in_review' => 'In review', 'completed' => 'Done'] as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>

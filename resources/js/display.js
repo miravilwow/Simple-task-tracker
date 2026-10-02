@@ -13,18 +13,18 @@ const DEFAULTS = {
     priority: '',
 };
 
-// To do, then In progress, then Done. The three read left to right as the work moves: a task is
-// picked up, worked on, finished. Every layout orders them this way, so the board's columns and
-// the list's groups cannot tell different stories about the same three stages.
+// To do, In progress, In review, then Done. The four read left to right as the work moves: a task is
+// picked up, worked on, checked, finished. Every layout orders them this way, so the board's columns
+// and the list's groups cannot tell different stories about the same four stages.
 export const GROUPINGS = {
-    status: { label: 'Status', keys: ['pending', 'in_progress', 'completed'] },
+    status: { label: 'Status', keys: ['pending', 'in_progress', 'in_review', 'completed'] },
     priority: { label: 'Priority', keys: ['high', 'medium', 'low'] },
     project: { label: 'Project', keys: null },
     none: { label: 'None', keys: null },
 };
 
 const LABELS = {
-    status: { pending: 'To do', in_progress: 'In progress', completed: 'Done' },
+    status: { pending: 'To do', in_progress: 'In progress', in_review: 'In review', completed: 'Done' },
     priority: { high: 'High', medium: 'Medium', low: 'Low' },
 };
 

@@ -34,6 +34,7 @@ const PRIORITY_BADGES = {
 const STATUS_BADGES = {
     pending: { label: 'To do', classes: 'bg-blue-100 text-blue-700' },
     in_progress: { label: 'In progress', classes: 'bg-amber-100 text-amber-800' },
+    in_review: { label: 'In review', classes: 'bg-purple-100 text-purple-700' },
     completed: { label: 'Done', classes: 'bg-green-100 text-green-700' },
 };
 
@@ -955,7 +956,7 @@ function shiftMonth(offset) {
     load();
 }
 
-const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', completed: 'complete' };
+const STAGE_ENDPOINTS = { pending: 'reopen', in_progress: 'start', in_review: 'review', completed: 'complete' };
 
 /**
  * The task dialog's Status field. It knows the task's stage first-hand, and it has no column to
