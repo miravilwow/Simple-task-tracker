@@ -16,6 +16,15 @@ export const dayLoad = (count) => (count >= DANGER_AT ? 'danger' : count >= WARN
 const LOAD_CELL = { warn: 'bg-amber-50', danger: 'bg-red-50' };
 const LOAD_BADGE = { warn: 'bg-amber-100 text-amber-800', danger: 'bg-red-100 text-red-700' };
 
+// A past day keeps its grey however busy it was; the badge still names the count.
+const cellBackground = (isPast, inMonth, load) => {
+    if (isPast) {
+        return 'bg-gray-50';
+    }
+
+    return load ? LOAD_CELL[load] : inMonth ? '' : 'bg-gray-50';
+};
+
 const dayFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' });
 
 const createLoadBadge = (count, load) =>
@@ -24,7 +33,8 @@ const createLoadBadge = (count, load) =>
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const agendaFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-const DROP_ACTIVE = ['bg-red-50', 'ring-2', 'ring-red-400', 'ring-inset'];
+// Ring only: a background here would fight the busy-day tint, and removing it would strip that tint.
+const DROP_ACTIVE = ['ring-2', 'ring-red-400', 'ring-inset'];
 
 /** The grid always starts on a Monday, so it usually reaches into the neighbouring months. */
 export function gridStart(month) {
@@ -159,7 +169,7 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         const cell = createElement(
             'div',
             `min-h-28 space-y-1 border-r border-b border-gray-200 p-1.5 transition-colors last:border-r-0 ${
-                load ? LOAD_CELL[load] : inMonth && !isPast ? '' : 'bg-gray-50'
+                cellBackground(isPast, inMonth, load)
             }`,
         );
 
