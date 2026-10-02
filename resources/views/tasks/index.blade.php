@@ -575,8 +575,10 @@
         <div class="grid max-h-[calc(100dvh-6rem)] overflow-auto lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div class="p-5 sm:p-6">
                 <div class="flex items-start gap-3">
-                    <button type="button" id="detail-tick" role="checkbox" aria-checked="false"
-                        aria-label="Mark as done" class="tick mt-1.5"></button>
+                    <button type="button" id="detail-tick" class="btn-action btn-complete mt-1.5 shrink-0">
+                        <x-icon name="check" class="size-4" />
+                        <span data-label>Done</span>
+                    </button>
 
                     <div class="min-w-0 flex-1">
                         <label for="detail-title" class="sr-only">Task name</label>

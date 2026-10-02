@@ -307,12 +307,12 @@ The board's columns **are the grouping**: by status it is To do / In progress / 
 
 ## 5c. The task dialog
 
-Clicking a task's name opens `<dialog id="task-detail">`: a checkbox and the name on the left with the description and the sub-task checklist under it, and Project, Date, Priority and Color down the right.
+Clicking a task's name opens `<dialog id="task-detail">`: a **Done**/**Reopen** button and the name on the left with the description and the sub-task checklist under it, and Project, Date, Priority and Color down the right.
 
 - **The name is a real `<button>`** in both layouts, so a task opens from the keyboard and not only under a pointer.
 - **Every field saves on its own request. There is no Save button**, so nothing is lost by closing and nobody has to wonder whether an edit took. Fields save on `change`, not `input`: one request per edit rather than one per keystroke.
 - The up and down arrows step through **the list the user is looking at**, so what they walk matches what is on the page behind the dialog.
-- **Status is a field here, not a button on the row.** It runs `start`, `review`, `complete` and `reopen`, the same four endpoints the board's drag runs, so a stage change has one path however it was made. The circle beside the name stays as the one-click way to finish something, which is the action people take most.
+- **Status is a field here, not a button on the row.** It runs `start`, `review`, `complete` and `reopen`, the same four endpoints the board's drag runs, so a stage change has one path however it was made. **The button beside the name stays as the one-click way to finish something**, which is the action people take most — the same `btn-complete` style as the row and board card Complete buttons, through the same three states (`Done` → `Completing…` → `Completed`). It doubles as the way back: once the task is done, the label reads `Reopen`, and a second click calls the `reopen` endpoint.
 - **A sub-task is a checklist item, not a task.** It never appears in the list, the board or the calendar, and no stat tile counts it. That is what keeps `TaskSorter` and every graded figure exactly as the exam specifies.
 - **There is no Reminders, Labels or Location.** The app has no accounts and no mail, so a reminder would be a control that never fires, and a location would mean nothing. A control that cannot work does not go in.
 

@@ -5,8 +5,13 @@
  * closing. A native <dialog> traps focus and closes on Escape for free.
  */
 import { api } from './api.js';
-import { createElement, createIcon } from './dom.js';
+import { clearBusy, createElement, createIcon, setBusy, setDone } from './dom.js';
 import { toast } from './toast.js';
+
+// The same floor the row and board card Complete buttons hold their "Completed" state for, so a
+// server that answers instantly does not make the tick flash past a state nobody had time to read.
+const DONE_HOLD = 700;
+const hold = () => new Promise((resolve) => setTimeout(resolve, DONE_HOLD));
 
 const $ = (id) => document.getElementById(id);
 
@@ -144,8 +149,7 @@ function fill() {
     setValue(elements.priority, task.priority);
     setValue(elements.status, task.status);
     markSwatch(task.color ?? '');
-    elements.tick.setAttribute('aria-checked', String(isDone));
-    elements.tick.setAttribute('aria-label', isDone ? 'Mark as not done' : 'Mark as done');
+    elements.tick.querySelector('[data-label]').textContent = isDone ? 'Reopen' : 'Done';
 
     const ids = order();
     const index = ids.indexOf(task.id);
@@ -240,9 +244,31 @@ export function wireTaskDetail() {
         await handlers.onDelete(removed);
     });
 
-    elements.tick.addEventListener('click', () =>
-        save(() => api(`/tasks/${task.id}/${task.status === 'completed' ? 'reopen' : 'complete'}`, { method: 'PATCH' })),
-    );
+    elements.tick.addEventListener('click', async () => {
+        const completing = task.status !== 'completed';
+        const button = elements.tick;
+
+        setBusy(button, completing ? 'Completing…' : 'Reopening…');
+
+        try {
+            const response = await api(`/tasks/${task.id}/${completing ? 'complete' : 'reopen'}`, { method: 'PATCH' });
+
+            if (completing) {
+                setDone(button, 'Completed');
+                await hold();
+            }
+
+            // Restore the resting icon and label before fill() writes the label that matches the
+            // task's new status — clearBusy alone would leave the stale pre-click text in place.
+            clearBusy(button);
+            task = response.data;
+            fill();
+            await handlers.onChange();
+        } catch (error) {
+            clearBusy(button);
+            toast.error(errorMessage(error));
+        }
+    });
 
     // change, not input: one request per edit rather than one per keystroke.
     elements.title.addEventListener('change', () => patchTask({ title: elements.title.value.trim() }));
