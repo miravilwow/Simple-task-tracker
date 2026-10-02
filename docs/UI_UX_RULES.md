@@ -198,7 +198,10 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **Complete stays on a board card even though dragging also finishes a task.** Dragging a card the width of the board to say "done" is a lot of hand for the commonest action; the drag is there for the steps between.
 - Delete asks for confirmation in the `<dialog id="confirm-dialog">` modal, because it throws work away. A native `<dialog>` with `showModal()` traps focus and closes on Escape for free, and unlike `window.confirm` it can be styled and does not freeze the page. Cancelling returns focus to the Delete button that opened it.
 - Delete is recoverable, so the dialog must not claim otherwise. `DELETE` soft-deletes and the toast that follows offers **Undo**, which calls `PATCH /api/tasks/{id}/restore`. The confirmation stays in front of it as the cheaper stop: undo asks the user to notice a toast in time, the dialog does not.
-- While a request is in flight, disable the button that started it and change its label (`Saving…`, `Deleting…`) to prevent double submits.
+- **A button that starts a request goes through three states**: what it does, that it is doing it, and that it is done. `Complete` → a spinner and `Completing…` → a green tick and `Completed`. It stays disabled through all three: it is reporting what happened, not offering to do it again, and most of these buttons are about to be removed by the re-render anyway.
+- **The finished state covers work that is happening, not a pause invented to show it.** The reload behind it is several requests; the 700ms floor is only there for when the server answers too quickly for the state to be read.
+- **The width is pinned when the first label changes.** `Complete`, `Completing…` and `Completed` are three different widths, and a row of buttons would shuffle under the cursor at each step.
+- With motion turned off the spinner is a still arc, which still reads as waiting beside a label ending in three dots.
 
 ## 4. Form
 
@@ -336,7 +339,8 @@ Build only what the exam asks for, plus what the user has since asked for: the p
 - [ ] New task opens the dialog, Escape and the backdrop close it, and a half-typed task is gone the next time it opens
 - [ ] The due date inside the New task dialog is the inline grid and is not clipped
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains
-- [ ] Buttons disable while loading; Delete asks for confirmation
+- [ ] Buttons disable while loading, show a spinner, then a green tick and the past tense; Delete asks for confirmation
+- [ ] The button does not change width through any of its three states
 - [ ] A toast reads as a card with a bold title and a grey line naming the task or project and the time
 - [ ] The toast action is the dark button, is at least 32px, and works from the keyboard
 - [ ] Rescheduling a task shows the new due date in full, not the moment it was dragged

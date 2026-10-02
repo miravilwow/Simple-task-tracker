@@ -21,6 +21,18 @@
 
 /* Entrance animations, skipped entirely for anyone who asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
+    /* The spinner on a button that is working. With motion turned off it stays a still arc,
+       which still reads as waiting beside a label that ends in three dots. */
+    .btn-spinner {
+        animation: btn-spin 700ms linear infinite;
+    }
+
+    @keyframes btn-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
     /* The cards slide apart around the gap rather than jumping, so it reads as the row
        opening up. Motion is decoration, so it sits in here with the rest of it. */
     .board-card {
@@ -319,6 +331,15 @@
  * and shadow-lg is what every other floating panel here already uses — the menu, the date grid
  * and the Display panel. The dark pill was the one surface that belonged to nothing else.
  */
+/*
+ * A button that has just succeeded: a tick and the past tense in green, held for a moment while
+ * the list behind it catches up. Green is the only place the app uses it for anything but a Done
+ * badge, and it means the same thing in both.
+ */
+@utility btn-done {
+    @apply border-green-200 bg-green-50 text-green-700;
+}
+
 @utility toast-card {
     /* items-center, so the action sits level with the two lines rather than with the first. */
     @apply flex w-full max-w-md items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-lg;

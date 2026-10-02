@@ -1,6 +1,7 @@
 // Heroicons v2 (MIT) outline paths, matching resources/views/components/icon.blade.php.
 const ICONS = {
     check: 'm4.5 12.75 6 6 9-13.5',
+    spinner: 'M12 3a9 9 0 1 0 9 9',
     undo: 'M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3',
     trash: 'm14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',
     calendar:
@@ -79,19 +80,73 @@ export function createBadge(label, classes) {
 // Buttons wrap their text in a span so an icon beside it survives a label swap.
 const labelOf = (button) => button.querySelector('[data-label]') ?? button;
 
+// The icon a button started with, so the spinner and the tick can be swapped in and out without
+// the button having to remember what it was. A WeakMap rather than markup stashed in an attribute:
+// the node goes back exactly as it was, and nothing is rebuilt from a string.
+const restingIcons = new WeakMap();
+
+/**
+ * Swaps a button's icon, keeping whatever size and colour classes it was already wearing.
+ */
+function swapIcon(button, name, extra = '') {
+    const current = button.querySelector('svg');
+
+    if (! current) {
+        return;
+    }
+
+    if (! restingIcons.has(button)) {
+        restingIcons.set(button, current);
+    }
+
+    current.replaceWith(createIcon(name, `${current.getAttribute('class')} ${extra}`.trim()));
+}
+
+/**
+ * A button goes through three states: what it does, that it is doing it, and that it is done.
+ *
+ * `setBusy` is the middle one. The label changes to the -ing form and the icon becomes a spinner,
+ * so the button says the same thing twice over, for anyone reading it and anyone glancing at it.
+ */
 export function setBusy(button, label) {
     const target = labelOf(button);
+
+    // Pin the width before the label grows. "Complete" becomes "Completing…" and then
+    // "Completed", three different widths, and a row of buttons would shuffle under the cursor
+    // at each step. min-width rather than width, so a button that stretches to its row still can.
+    button.style.minWidth = `${button.offsetWidth}px`;
 
     target.dataset.previous = target.textContent;
     target.textContent = label;
     button.disabled = true;
+    swapIcon(button, 'spinner', 'btn-spinner');
+}
+
+/**
+ * The last state: a tick and the past tense, in green, while the list behind it catches up.
+ *
+ * The button stays disabled through it. It is reporting what happened, not offering to do it
+ * again, and several of these buttons are about to be removed by the re-render anyway.
+ */
+export function setDone(button, label) {
+    labelOf(button).textContent = label;
+    button.classList.add('btn-done');
+    swapIcon(button, 'check');
 }
 
 export function clearBusy(button) {
     const target = labelOf(button);
+    const resting = restingIcons.get(button);
 
     target.textContent = target.dataset.previous;
     button.disabled = false;
+    button.classList.remove('btn-done');
+    button.style.minWidth = '';
+
+    if (resting) {
+        button.querySelector('svg')?.replaceWith(resting);
+        restingIcons.delete(button);
+    }
 }
 
 

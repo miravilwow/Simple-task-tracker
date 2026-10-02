@@ -1,4 +1,4 @@
-import { clearBusy, createElement, createIcon, setBusy, setVisible, shortDate } from './dom.js';
+import { clearBusy, createElement, createIcon, setBusy, setDone, setVisible, shortDate } from './dom.js';
 import { openMenu } from './menu.js';
 
 const confirmDialog = document.getElementById('confirm-dialog');
@@ -415,8 +415,12 @@ export function openProjectPanel(project, tab, actions) {
 
             try {
                 await actions.addComment(commentBody.value);
+                setDone(commentSubmit, 'Posted');
                 commentForm.reset();
-                await refreshComments();
+
+                // This button survives the refresh, unlike a row's, so the finished state is
+                // the only confirmation the thread gives.
+                await Promise.all([refreshComments(), new Promise((done) => setTimeout(done, 700))]);
                 commentBody.focus();
             } catch (failure) {
                 commentError.textContent =

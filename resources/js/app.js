@@ -15,6 +15,7 @@ import {
     createIcon,
     parseDate,
     setBusy,
+    setDone,
     setVisible,
     shortDate,
     startOfToday,
@@ -774,8 +775,14 @@ async function load() {
 
 // ---------------------------------------------------------------- task actions
 
+// How long a finished button stays on screen before the list replaces it. Short enough not to
+// be in the way, long enough to read.
+const DONE_HOLD = 700;
+
+const hold = () => new Promise((resolve) => setTimeout(resolve, DONE_HOLD));
+
 // Re-rendering destroys the button that was clicked, so focus has to be parked somewhere.
-async function runAction(button, { busyLabel, request, successMessage, description, restoreFocus, undo, undoMessage }) {
+async function runAction(button, { busyLabel, doneLabel, request, successMessage, description, restoreFocus, undo, undoMessage }) {
     const hadFocus = restoreFocus ?? document.activeElement === button;
 
     if (button) {
@@ -784,13 +791,21 @@ async function runAction(button, { busyLabel, request, successMessage, descripti
 
     try {
         await request();
+
+        if (button && doneLabel) {
+            setDone(button, doneLabel);
+        }
         toast.success(successMessage, {
             description,
             action: undo
                 ? { label: 'Undo', onClick: () => runAndReload(undo, { message: undoMessage, description }) }
                 : null,
         });
-        await load();
+
+        // The reload is real work — several requests — so the finished state covers time that
+        // was being spent anyway. The floor is there for when the server answers too quickly to
+        // read it, not to make the app feel slower than it is.
+        await Promise.all([load(), button && doneLabel ? hold() : null]);
 
         if (hadFocus) {
             // The Tasks heading lives inside the list panel, which is hidden in the other two
@@ -830,6 +845,7 @@ async function runAndReload(request, { message, description = '', undo = null } 
 const completeTask = (task, button) =>
     runAction(button, {
         busyLabel: 'Completing…',
+        doneLabel: 'Completed',
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
         successMessage: 'Task completed',
         description: task.title,
@@ -854,6 +870,7 @@ async function deleteTask(task, button) {
 
     await runAction(button, {
         busyLabel: 'Deleting…',
+        doneLabel: 'Deleted',
         request: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
         successMessage: 'Task deleted',
         description: task.title,
@@ -965,6 +982,10 @@ async function createTask(event) {
 
     try {
         await api('/tasks', { method: 'POST', body: payload });
+
+        // The dialog waits for the button to finish saying so, then closes.
+        setDone(elements.submit, 'Added');
+        await hold();
         closeTaskDialog();
         toast.success('Task added', { description: payload.title });
         await load();
@@ -1215,6 +1236,8 @@ async function submitProjectForm(event) {
             body: payload,
         });
 
+        setDone(elements.projectSubmit, editing ? 'Saved' : 'Added');
+        await hold();
         closeProjectDialog();
         toast.success(editing ? 'Project updated' : 'Project added', { description: payload.name });
         await load();
