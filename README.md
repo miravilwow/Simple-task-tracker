@@ -131,7 +131,7 @@ cannot outlive the endpoint it describes.
 POST /api/tasks
 Content-Type: application/json
 
-{ "title": "Book dentist appointment", "description": null, "priority": "medium", "due_date": "2026-10-08", "category_name": "Basketball" }
+{ "title": "Book dentist appointment", "description": null, "priority": "medium", "due_date": "2026-10-08", "due_time": "09:30", "category_name": "Basketball" }
 ```
 
 ```json
@@ -144,6 +144,7 @@ Content-Type: application/json
     "status": "pending",
     "position": 3,
     "due_date": "2026-10-08",
+    "due_time": "09:30",
     "is_overdue": false,
     "category": { "id": 10, "name": "Basketball" },
     "created_at": "2026-09-29T21:19:16+00:00",
@@ -160,6 +161,13 @@ applied only when the key is sent. `color` on that endpoint is `red`, `orange`, 
 day to is one the calendar, Today, Upcoming and Overdue all have nothing to say about. A task becomes
 overdue the ordinary way, by the day arriving and passing. `PATCH /api/tasks/{id}/schedule` still accepts
 `null`, because clearing a date is how a task is dragged back to the calendar's "No due date" tray.
+
+`due_time` is `HH:MM` or `null`, and optional: plenty of work is due on a day without being due at an hour.
+It is its own column rather than `due_date` becoming a datetime, because **the day is what decides
+everything else** — Overdue, Today, Upcoming, the stats and the calendar all compare days, and a task due
+at 10:30 is not late at 3 PM on the same day. Clearing the date clears the time with it, since a time with
+no day to sit on means nothing. It is changed through `PATCH /api/tasks/{id}`, not `schedule`: the date has
+the calendar's drag, and a time has no gesture of its own. Sending one for a task with no date is a 400.
 
 `status` is deliberately not accepted here — it changes only through the stage endpoints below.
 

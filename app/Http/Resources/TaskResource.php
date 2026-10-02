@@ -27,6 +27,9 @@ class TaskResource extends JsonResource
             // dropped between two others.
             'position' => $this->position,
             'due_date' => $this->due_date?->toDateString(),
+            // `H:i`, or null. The day is what decides lateness, so this is detail and never a
+            // reason a task counts as overdue.
+            'due_time' => $this->due_time,
             'is_overdue' => $this->isOverdue(),
             'category' => CategoryResource::make($this->whenLoaded('category')),
             // Only the task dialog loads these; the list and the board never ask for them.

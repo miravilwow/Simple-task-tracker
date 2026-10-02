@@ -30,6 +30,9 @@ class StoreTaskRequest extends FormRequest
             // Today, Upcoming and Overdue all have nothing to say about. `schedule` still takes
             // null, because clearing a date is how a task is dragged back to the calendar's tray.
             'due_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            // The time of day, beside the day. Optional, because plenty of work is due on a day
+            // without being due at an hour. `H:i` is what <input type="time"> sends.
+            'due_time' => ['nullable', 'date_format:H:i'],
         ];
     }
 }

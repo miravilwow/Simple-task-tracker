@@ -478,12 +478,30 @@
                             <p id="category_name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                         </div>
 
-                        {{-- Required: a task nobody has given a day to is one the calendar, Today,
-                             Upcoming and Overdue all have nothing to say about. --}}
-                        <x-date-field id="due_date" name="due_date" label="Due date" :required="true" :inline="true"
-                            describedby="due_date-error">
-                            <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                        </x-date-field>
+                        {{-- Side by side from sm, stacked below it: a month grid needs about 250px
+                             of its own, which two columns of a phone-width dialog do not have. --}}
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            {{-- Required: a task nobody has given a day to is one the calendar, Today,
+                                 Upcoming and Overdue all have nothing to say about. Collapsed, because
+                                 the open grid is the tallest thing on this form by some way. --}}
+                            <div class="sm:col-span-2">
+                                <x-date-field id="due_date" name="due_date" label="Due date" :required="true"
+                                    :collapsed="true" describedby="due_date-error">
+                                    <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                                </x-date-field>
+                            </div>
+
+                            <div>
+                                {{-- The browser's own time control: unlike type="date" the three
+                                     browsers draw it much the same, so there is nothing to replace. --}}
+                                <label for="due_time" class="block text-sm font-medium text-gray-700">
+                                    Time <span class="font-normal text-gray-500">(optional)</span>
+                                </label>
+                                <input id="due_time" name="due_time" type="time" aria-describedby="due_time-error"
+                                    class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
+                                <p id="due_time-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -620,6 +638,13 @@
                     <div class="py-3">
                         {{-- Inline, because a <dialog> clips a floating panel. --}}
                         <x-date-field id="detail-date" label="Date" :inline="true" />
+                    </div>
+
+                    <div class="py-3">
+                        {{-- Disabled while the task has no day: a time with nothing to sit on is
+                             what the API refuses, so the field must not offer it either. --}}
+                        <label for="detail-time" class="detail-label">Time</label>
+                        <input id="detail-time" type="time" class="detail-field disabled:bg-gray-50 disabled:text-gray-400">
                     </div>
 
                     <div class="py-3">

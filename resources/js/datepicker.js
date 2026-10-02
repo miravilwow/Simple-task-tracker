@@ -21,6 +21,9 @@ const dayFormatter = new Intl.DateTimeFormat('en-US', {
     day: 'numeric',
     year: 'numeric',
 });
+// What a collapsed field's trigger reads once a day is chosen. No weekday: it is a field's value,
+// not an announcement, and the trigger sits beside a time of the same width.
+const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
 const DAY_BASE =
     'flex size-9 items-center justify-center rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none';
@@ -40,11 +43,20 @@ const addMonths = (date, months) => new Date(date.getFullYear(), date.getMonth()
  * for two reasons: choosing a date is the dialog's only job, so hiding the grid behind a button
  * costs a click for nothing; and a `<dialog>` is `overflow: auto` in the UA stylesheet, so an
  * absolutely positioned panel inside one is clipped rather than floating over it.
+ *
+ * `collapsed` is the same in-flow grid behind a trigger, for a dialog where the date is one field
+ * among several. It is not the popover: the panel stays in the flow and pushes the fields below it
+ * down, because a floating panel is the thing a `<dialog>` clips.
  */
 function enhance(field) {
     const input = field.querySelector('input[type="date"]');
-    const inline = field.dataset.dateField === 'inline';
+    const mode = field.dataset.dateField;
+    const inline = mode === 'inline';
+    const collapsed = mode === 'collapsed';
+    // Both keep the grid in the document flow; only the popover floats over it.
+    const inFlow = inline || collapsed;
     const trigger = field.querySelector('[data-date-trigger]');
+    const label = field.querySelector('[data-date-label]');
 
     if (!input || (!inline && !trigger)) {
         return;
@@ -52,8 +64,8 @@ function enhance(field) {
 
     const popover = createElement(
         'div',
-        inline
-            ? 'mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 p-3'
+        inFlow
+            ? `mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 p-3 ${collapsed ? 'hidden' : ''}`
             : 'absolute z-20 hidden w-72 rounded-xl border border-gray-200 bg-white p-3 shadow-lg',
     );
 
@@ -62,7 +74,15 @@ function enhance(field) {
         popover.setAttribute('aria-label', 'Choose a date');
     }
 
-    (inline ? field : trigger.parentElement).append(popover);
+    if (collapsed) {
+        popover.id = `${input.id}-grid`;
+        // All or nothing: the trigger appears exactly when the native input steps back, so the
+        // field never shows two controls, and never none.
+        trigger.classList.replace('hidden', 'flex');
+        input.hidden = true;
+    }
+
+    (inFlow ? field : trigger.parentElement).append(popover);
 
     const heading = createElement('p', 'text-sm font-medium', '');
     const previous = createElement('button', NAV_BUTTON);
@@ -88,12 +108,13 @@ function enhance(field) {
     clear.type = 'button';
     today.type = 'button';
 
-    // Inline, the surrounding dialog already owns clearing the date, and two Clears read as a bug.
+    // In the flow, the surrounding dialog already owns clearing the date — and on the New task
+    // form the date is required, so a Clear would only offer a state the server refuses.
     const footer = createElement(
         'div',
-        `mt-2 flex items-center border-t border-gray-200 pt-2 ${inline ? 'justify-end' : 'justify-between'}`,
+        `mt-2 flex items-center border-t border-gray-200 pt-2 ${inFlow ? 'justify-end' : 'justify-between'}`,
     );
-    footer.append(...(inline ? [today] : [clear, today]));
+    footer.append(...(inFlow ? [today] : [clear, today]));
 
     popover.append(header, weekdays, grid, footer);
 
@@ -103,6 +124,19 @@ function enhance(field) {
     let cursor = startOfToday();
 
     const selected = () => (input.value ? parseDate(input.value) : null);
+
+    /** The trigger says what the field holds, because the input it replaced is no longer on screen. */
+    function syncLabel() {
+        if (!label) {
+            return;
+        }
+
+        const chosen = selected();
+
+        label.textContent = chosen === null ? 'Select date' : labelFormatter.format(chosen);
+        label.classList.toggle('text-gray-400', chosen === null);
+        label.classList.toggle('text-gray-900', chosen !== null);
+    }
 
     function render() {
         heading.textContent = monthLabel(visibleMonth);
@@ -201,7 +235,11 @@ function enhance(field) {
 
         popover.classList.remove('hidden');
         trigger.setAttribute('aria-expanded', 'true');
-        place();
+
+        // Only a floating panel has to be placed; an in-flow one is already where it belongs.
+        if (!collapsed) {
+            place();
+        }
 
         grid.querySelector('[tabindex="0"]')?.focus();
     }
@@ -224,9 +262,10 @@ function enhance(field) {
         // A programmatic value change fires nothing, and callers listen for a real edit.
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
-        if (inline) {
+        if (inFlow) {
             cursor = iso ? parseDate(iso) : startOfToday();
             render();
+            syncLabel();
         }
 
         close();
@@ -290,8 +329,9 @@ function enhance(field) {
         }
     });
 
-    if (inline) {
+    if (inFlow) {
         render();
+        syncLabel();
     } else {
         // Clicking anywhere else dismisses it, but focus belongs to whatever was clicked.
         document.addEventListener('pointerdown', (event) => {
@@ -303,10 +343,11 @@ function enhance(field) {
 
     // Typing in the field is still a valid way to set the date, so keep the grid in step.
     input.addEventListener('change', () => {
-        if (inline) {
+        if (inFlow) {
             cursor = input.value ? parseDate(input.value) : startOfToday();
             visibleMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
             render();
+            syncLabel();
         } else if (isOpen()) {
             open();
         }

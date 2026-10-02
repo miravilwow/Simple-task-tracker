@@ -234,7 +234,9 @@ the two quietly come to disagree.
 - Opening focuses Title. Closing — by Cancel, Escape, the backdrop, or a successful save — clears the form and returns focus to the button that opened it, so a half-typed task is never waiting the next time it opens.
 
 - Every field has a visible `<label>` tied to it with `for`/`id`. Placeholders are not labels.
-- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority, Project, Due date (required, marked with the same `*`, because the server refuses a task without one).
+- Fields: Title (required, marked with `*`), Description (optional `<textarea>`, 3 rows), Priority, Project, Due date (required, marked with the same `*`, because the server refuses a task without one) and Time (optional).
+- **Date and Time sit on one row from `sm`, and stack below it.** A month grid needs about 250px of its own, which two columns of a phone-width dialog do not have.
+- **Time is the browser's own `<input type="time">`.** The reason `type="date"` is rebuilt is that Chrome, Firefox and Safari each draw a different control; they draw a time field much the same, so there is nothing to replace. A time is optional: plenty of work is due on a day without being due at an hour.
 - **A submit names every missing field at once**, rather than revealing the second one after the first is filled. The server reports them together, and so does the client-side check in front of it.
 - **Project is a text input, not a select.** A project is created by typing its name: a new name makes the project, an existing one (matched without regard to case) reuses it, and leaving it empty means no project. `<datalist id="project-options">` offers the existing names as suggestions, with the hint "Type a new name to create a project." The task dialog's Project field is the same input on the same datalist and saves on change.
 - Priority is a radio group styled as three cards inside a `<fieldset>`, not a `<select>`, so all options are visible at once and each is a single tap. The checked card takes its priority's tint through `has-checked:`. Medium is checked by default.
@@ -248,6 +250,8 @@ Every date uses `<x-date-field>`, never a bare `<input type="date">`, because Ch
 - **Never build the value with `new Date(iso)`.** Use `parseDate` / `toIsoDate`, or "Today" lands on yesterday west of Greenwich.
 - **Keyboard:** arrows by day, PageUp/PageDown by month clamped to that month's length, Home/End to the ends of the week, Enter to choose, Escape to dismiss and hand focus back to the button.
 - **`:inline` where picking the date is the whole point**, and always inside a `<dialog>`: a `<dialog>` is `overflow: auto` in the UA stylesheet, so a floating panel inside one is clipped rather than layered over it. An inline grid also drops any control the surrounding dialog already offers, so "Clear" never appears twice.
+- **`:collapsed` where the date is one field among several**, which is the New task form. It is the same in-flow grid behind a full-width trigger reading "Select date", or the chosen day, with a chevron — **not** the popover, because the panel still sits in the flow and pushes the fields below it down rather than floating where the dialog would clip it. The trigger appears exactly when the native input steps back, so the field never shows two controls and never none. Opening it focuses the day the cursor is on; Escape closes it and hands focus back to the trigger without closing the dialog around it; choosing a day closes it and the trigger names the day.
+- **A collapsed field's error focus lands on the trigger**, because the input it replaced is no longer on screen and no browser moves focus to something hidden.
 - **The popover hangs off the field's left edge** and flips only to stay inside the viewport. The field can sit in a column narrower than the panel, and growing rightwards keeps it on the page's gutter.
 - **A past day is never offered.** The grid draws it grey and disabled, and the native input carries `min` set to today, which matches the server's `after_or_equal:today`. The days are shown rather than hidden: a month with holes in it is harder to read than a month with grey in it.
 - Placeholders show an example; they never replace a label.
@@ -371,6 +375,8 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] Priority and status badges match the tables above and include text labels
 - [ ] Form has visible labels, inline errors, keeps input on error, resets on success
 - [ ] New task refuses to submit without a due date, and submitting an empty form names both Title and Due date at once
+- [ ] The New task date is collapsed to a trigger, opens to the grid in the flow without being clipped, names the chosen day, and is empty again the next time the dialog opens
+- [ ] A time can be set on New task and in the task dialog, shows beside the due date, and the task dialog's Time is disabled while the task has no date
 - [ ] New task opens the dialog, Escape and the backdrop close it, and a half-typed task is gone the next time it opens
 - [ ] The due date inside the New task dialog is the inline grid and is not clipped
 - [ ] Date fields: the grid opens, arrows and PageUp/PageDown move, a chosen day reaches the API unchanged, and with JavaScript off a plain native date input remains

@@ -18,6 +18,7 @@ import {
     createBadge,
     createElement,
     createIcon,
+    formatTime,
     parseDate,
     setBusy,
     setDone,
@@ -77,6 +78,7 @@ const elements = {
     title: $('title'),
     description: $('description'),
     dueDate: $('due_date'),
+    dueTime: $('due_time'),
     submit: $('submit-button'),
     taskList: $('task-list'),
     tasksHeading: $('tasks-heading'),
@@ -144,13 +146,16 @@ function dueLabel(task) {
         return 'No due date';
     }
 
-    const formatted = shortDate.format(parseDate(task.due_date));
+    // The time is detail on the end of the day, never in front of it: the day is what decides
+    // which view the task is in and whether it is late.
+    const at = task.due_time ? `, ${formatTime(task.due_time)}` : '';
+    const formatted = shortDate.format(parseDate(task.due_date)) + at;
 
     if (task.is_overdue) {
         return `Overdue · ${formatted}`;
     }
 
-    return task.due_date === toIsoDate(today) ? 'Due today' : `Due ${formatted}`;
+    return task.due_date === toIsoDate(today) ? `Due today${at}` : `Due ${formatted}`;
 }
 
 const filtersAreOn = () => Object.values(filterBar.state).some((value) => value !== '');
@@ -887,10 +892,17 @@ function showFieldErrors(errors, scope) {
         errorElement.classList.remove('hidden');
     }
 
-    scope.querySelector('[aria-invalid="true"]')?.focus();
+    // A collapsed date field hides its own input behind a trigger, and no browser moves focus to
+    // something that is not on screen. The trigger is what the user would reach for anyway.
+    const invalid = scope.querySelector('[aria-invalid="true"]');
+    const target = invalid?.hidden
+        ? invalid.closest('[data-date-field]')?.querySelector('[data-date-trigger]')
+        : invalid;
+
+    target?.focus();
 }
 
-const TASK_FIELDS = ['title', 'description', 'priority', 'category_name', 'due_date'];
+const TASK_FIELDS = ['title', 'description', 'priority', 'category_name', 'due_date', 'due_time'];
 
 // Where focus goes on close when something other than the New task button opened the dialog.
 let taskDialogReturnTarget = null;
@@ -925,6 +937,7 @@ async function createTask(event) {
         priority: elements.form.querySelector('input[name="priority"]:checked')?.value,
         category_name: elements.categoryName.value.trim() || null,
         due_date: elements.dueDate.value || null,
+        due_time: elements.dueTime.value || null,
     };
 
     // Both at once rather than one per submit: the server would report them together, and a form
@@ -1135,6 +1148,9 @@ elements.taskCancel.addEventListener('click', closeTaskDialog);
 // form is cleared here too rather than in each handler.
 elements.taskDialog.addEventListener('close', () => {
     elements.form.reset();
+    // A reset fires no change event, and the date's trigger would go on naming the day that was
+    // just cleared. The datepicker keeps itself in step with this field, so tell it.
+    elements.dueDate.dispatchEvent(new Event('change', { bubbles: true }));
     clearFieldErrors(TASK_FIELDS);
     const target = taskDialogReturnTarget?.isConnected && taskDialogReturnTarget.offsetParent !== null
         ? taskDialogReturnTarget

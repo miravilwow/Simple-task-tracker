@@ -18,6 +18,7 @@ const elements = {
     description: $('detail-description'),
     project: $('detail-category-name'),
     date: $('detail-date'),
+    time: $('detail-time'),
     priority: $('detail-priority'),
     color: $('detail-color'),
     status: $('detail-status'),
@@ -138,6 +139,8 @@ function fill() {
     setValue(elements.description, task.description ?? '');
     setValue(elements.project, task.category?.name ?? '');
     setDate(task.due_date ?? '');
+    setValue(elements.time, task.due_time ?? '');
+    elements.time.disabled = task.due_date === null;
     setValue(elements.priority, task.priority);
     setValue(elements.status, task.status);
     markSwatch(task.color ?? '');
@@ -286,6 +289,10 @@ export function wireTaskDetail() {
 
         save(() => api(`/tasks/${task.id}/schedule`, { method: 'PATCH', body: { due_date: elements.date.value || null } }));
     });
+
+    // The date has the calendar's drag; a time has no gesture of its own, so the dialog is the
+    // only way to one, and it goes through the update endpoint rather than schedule.
+    elements.time.addEventListener('change', () => patchTask({ due_time: elements.time.value || null }));
 
     $('subtask-add').addEventListener('click', () => {
         elements.subtaskForm.hidden = false;

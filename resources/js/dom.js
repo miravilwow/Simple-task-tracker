@@ -188,6 +188,18 @@ export function toIsoDate(date) {
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
+const clock = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+
+/**
+ * `10:30` as the API sends it, read back as `10:30 AM`. The day is arbitrary: only the clock is
+ * being formatted, and a time carries no date of its own.
+ */
+export function formatTime(value) {
+    const [hours, minutes] = value.split(':').map(Number);
+
+    return clock.format(new Date(2000, 0, 1, hours, minutes));
+}
+
 export const startOfToday = () => {
     const now = new Date();
 

@@ -5,7 +5,7 @@
  */
 import { PRIORITY_DOTS } from './calendar.js';
 import { dayColorOf, setDayColor } from './daycolor.js';
-import { CARD_TINTS, createBadge, createElement, parseDate, startOfToday, STATUS_BADGES, toIsoDate } from './dom.js';
+import { CARD_TINTS, createBadge, createElement, formatTime, parseDate, startOfToday, STATUS_BADGES, toIsoDate } from './dom.js';
 
 const titleFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -43,7 +43,14 @@ export function createDayDialog({ onOpenTask, onColorChange }) {
         open.type = 'button';
         open.addEventListener('click', () => onOpenTask(task.id, { focus: () => focusRow(task.id) }, shown.map((item) => item.id)));
         open.dataset.taskId = task.id;
-        item.append(createElement('span', `size-2 shrink-0 rounded-full ${PRIORITY_DOTS[task.priority]}`), open, createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
+        item.append(createElement('span', `size-2 shrink-0 rounded-full ${PRIORITY_DOTS[task.priority]}`), open);
+
+        // Every row here shares one day, so the hour is the only thing that orders them.
+        if (task.due_time) {
+            item.append(createElement('span', 'shrink-0 text-xs tabular-nums text-gray-500', formatTime(task.due_time)));
+        }
+
+        item.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
         return item;
     }
