@@ -23,6 +23,7 @@ import {
     setDone,
     setVisible,
     shortDate,
+    STATUS_BADGES,
     startOfToday,
     toIsoDate,
 } from './dom.js';
@@ -33,13 +34,6 @@ const PRIORITY_BADGES = {
     high: { label: 'High', classes: 'bg-red-100 text-red-700', accent: 'bg-red-400' },
     medium: { label: 'Medium', classes: 'bg-amber-100 text-amber-800', accent: 'bg-amber-400' },
     low: { label: 'Low', classes: 'bg-slate-100 text-slate-700', accent: 'bg-slate-300' },
-};
-
-const STATUS_BADGES = {
-    pending: { label: 'To do', classes: 'bg-blue-100 text-blue-700' },
-    in_progress: { label: 'In progress', classes: 'bg-amber-100 text-amber-800' },
-    in_review: { label: 'In review', classes: 'bg-purple-100 text-purple-700' },
-    completed: { label: 'Done', classes: 'bg-green-100 text-green-700' },
 };
 
 const VIEWS = {
@@ -678,7 +672,7 @@ async function load() {
                 onOpen: rescheduleFromDialog,
                 onReschedule: scheduleTask,
             });
-            dayDialog.refresh(tasksOn);
+            dayDialog.refresh(tasksOn, dayEmptyText());
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
             elements.unscheduledEmpty.textContent = filtersAreOn() ? FILTERED_EMPTY : UNSCHEDULED_EMPTY;
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
@@ -1103,10 +1097,10 @@ function previousInColumn(task) {
     return index > 0 ? column[index - 1].id : null;
 }
 
-function showTaskDetail(id, trigger) {
+function showTaskDetail(id, trigger, ids) {
     openTaskDetail(id, trigger, {
         onStage: moveTask,
-        order: () => latestTasks.map((task) => task.id),
+        order: () => ids ?? latestTasks.map((task) => task.id),
         onChange: load,
         onDelete: (task) => deleteTask(task, null),
     });
@@ -1121,8 +1115,9 @@ function addTaskOn(iso) {
 }
 
 const tasksOn = (iso) => latestTasks.filter((task) => task.due_date === iso);
-const dayDialog = createDayDialog({ onOpenTask: (id, trigger) => showTaskDetail(id, trigger), onAddTask: addTaskOn });
-const openDay = (iso) => dayDialog.open(iso, tasksOn(iso));
+const dayDialog = createDayDialog({ onOpenTask: showTaskDetail, onAddTask: addTaskOn });
+const dayEmptyText = () => (filtersAreOn() ? FILTERED_EMPTY : undefined);
+const openDay = (iso) => dayDialog.open(iso, tasksOn(iso), dayEmptyText());
 
 const display = createDisplay(applyDisplay);
 const filterBar = createFilterBar(() => load());

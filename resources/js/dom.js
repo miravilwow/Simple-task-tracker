@@ -66,6 +66,14 @@ export function createIcon(name, className = 'size-4') {
     return svg;
 }
 
+// Full class strings, so Tailwind can find them. Shared by the list, the board and the day dialog.
+export const STATUS_BADGES = {
+    pending: { label: 'To do', classes: 'bg-blue-100 text-blue-700' },
+    in_progress: { label: 'In progress', classes: 'bg-amber-100 text-amber-800' },
+    in_review: { label: 'In review', classes: 'bg-purple-100 text-purple-700' },
+    completed: { label: 'Done', classes: 'bg-green-100 text-green-700' },
+};
+
 export function createBadge(label, classes) {
     return createElement('span', `inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`, label);
 }

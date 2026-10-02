@@ -66,16 +66,18 @@ export const monthLabel = (month) => monthFormatter.format(month);
 // Overdue keeps its red: a due date that has passed is meaning, a colour is decoration.
 function chipSurface(task) {
     if (task.is_overdue) {
-        return 'border-red-200 bg-red-50';
+        return 'border-red-200 bg-red-50 hover:brightness-95';
     }
 
-    return CARD_TINTS[task.color] ?? 'border-gray-200 bg-white';
+    const tint = CARD_TINTS[task.color];
+
+    return tint ? `${tint} hover:brightness-95` : 'border-gray-200 bg-white hover:bg-gray-50';
 }
 
 function createChip(task, { onOpen, draggable }) {
     const chip = createElement(
         'button',
-        `flex w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-xs transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${chipSurface(task)}`,
+        `flex w-full items-center gap-1.5 rounded-md border px-2 py-1 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${chipSurface(task)}`,
     );
     chip.type = 'button';
     chip.dataset.taskId = String(task.id);
@@ -90,6 +92,11 @@ function createChip(task, { onOpen, draggable }) {
             task.title,
         ),
     );
+
+    // A red card colour shares the overdue surface, so overdue says so in words as well.
+    if (task.is_overdue) {
+        chip.append(createElement('span', 'ml-auto shrink-0 text-xs font-medium text-red-700', 'Overdue'));
+    }
 
     chip.addEventListener('click', () => onOpen(task));
 
@@ -174,24 +181,25 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         );
 
         const numberClasses = isToday
-            ? 'flex size-6 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
-            : `flex size-6 items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`;
+            ? 'flex items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white'
+            : `flex items-center justify-center text-xs font-medium ${inMonth ? 'text-gray-600' : 'text-gray-400'}`;
         let number;
 
         if (onOpenDay) {
             number = createElement(
                 'button',
-                `${numberClasses} rounded-full hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
+                `${numberClasses} -my-1 min-h-8 min-w-8 rounded-full hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
                 String(date.getDate()),
             );
             number.type = 'button';
+            number.dataset.iso = iso;
             number.setAttribute(
                 'aria-label',
                 `${dayFormatter.format(date)}, ${dayTasks.length} ${dayTasks.length === 1 ? 'task' : 'tasks'}`,
             );
             number.addEventListener('click', () => onOpenDay(iso));
         } else {
-            number = createElement('span', numberClasses, String(date.getDate()));
+            number = createElement('span', `${numberClasses} size-6`, String(date.getDate()));
         }
 
         const header = createElement('div', 'flex items-center justify-between gap-1');
@@ -214,10 +222,11 @@ export function renderMonthGrid(container, { tasks, month, onOpen, onReschedule,
         if (onOpenDay && dayTasks.length > MAX_CHIPS) {
             const more = createElement(
                 'button',
-                'w-full rounded-md px-2 py-1 text-left text-xs font-medium text-gray-600 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+                'min-h-8 w-full rounded-md px-2 text-left text-xs font-medium text-gray-600 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
                 `+${dayTasks.length - MAX_CHIPS} more`,
             );
             more.type = 'button';
+            more.dataset.iso = iso;
             more.addEventListener('click', () => onOpenDay(iso));
             cell.append(more);
         }
@@ -259,10 +268,11 @@ export function renderAgenda(container, { tasks, onOpen, onOpenDay, emptyText = 
             if (onOpenDay) {
                 heading = createElement(
                     'button',
-                    `${headingClasses} rounded-md text-left hover:underline focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
+                    `${headingClasses} -my-1 min-h-8 rounded-md text-left hover:underline focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none`,
                     headingText,
                 );
                 heading.type = 'button';
+                heading.dataset.iso = iso;
                 heading.addEventListener('click', () => onOpenDay(iso));
             } else {
                 heading = createElement('p', headingClasses, headingText);

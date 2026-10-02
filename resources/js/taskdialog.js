@@ -120,9 +120,11 @@ function markSwatch(color) {
     });
 }
 
-function pickColor(swatch) {
+async function pickColor(swatch) {
     markSwatch(swatch.dataset.color);
-    patchTask({ color: swatch.dataset.color || null });
+    await patchTask({ color: swatch.dataset.color || null });
+    // A refused save leaves the swatch on a colour the server never took.
+    markSwatch(task.color ?? '');
 }
 
 function fill() {
