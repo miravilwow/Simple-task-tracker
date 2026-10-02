@@ -180,24 +180,6 @@ function actionLabel(text, className = '') {
     return span;
 }
 
-function deleteButton(task, compact) {
-    const button = createElement('button', `${BUTTON_BASE} text-red-600 hover:bg-red-50 focus-visible:ring-red-500`);
-
-    button.type = 'button';
-    button.append(createIcon('trash'), actionLabel('Delete', compact ? 'sr-only' : ''));
-    button.addEventListener('click', () => deleteTask(task, button));
-
-    return button;
-}
-
-/**
- * The actions a task offers, built once for both layouts so a row and a card can never disagree
- * about what can be done to a task.
- *
- * `compact` is the card, where Delete keeps its word as screen-reader text only. `stageButtons`
- * is false on a draggable board, where the drag is the move and Start or Complete would be a
- * second way to do the one thing the columns already do.
- */
 // Complete is the only stage button anywhere. Starting a task is the board's drag or the dialog's
 // Status field; reopening one is the Undo on its toast, the same two, or dragging it back.
 function completeButton(task, compact) {
@@ -211,19 +193,6 @@ function completeButton(task, compact) {
     button.addEventListener('click', () => completeTask(task, button));
 
     return button;
-}
-
-/** The board card's actions: both buttons, because a card has room to show them. */
-function taskActions(task, { compact = false } = {}) {
-    const buttons = [];
-
-    if (task.status !== 'completed') {
-        buttons.push(completeButton(task, compact));
-    }
-
-    buttons.push(deleteButton(task, compact));
-
-    return buttons;
 }
 
 /**
@@ -248,8 +217,8 @@ function rowActions(task) {
     return buttons;
 }
 
-function rowMenu(task) {
-    const trigger = createElement('button', 'btn-row-menu');
+function menuTrigger(task, sizeClass, buildEntries) {
+    const trigger = createElement('button', `btn-row-menu ${sizeClass}`);
 
     trigger.type = 'button';
     trigger.dataset.menuLabel = 'Task actions';
@@ -259,7 +228,13 @@ function rowMenu(task) {
     trigger.append(createIcon('ellipsis'));
 
     // Built on open rather than up front, so the labels read from the task as it is now.
-    trigger.addEventListener('click', () => {
+    trigger.addEventListener('click', () => openMenu(trigger, buildEntries(trigger)));
+
+    return trigger;
+}
+
+function rowMenu(task) {
+    return menuTrigger(task, 'size-10', (trigger) => {
         const entries = [
             { icon: 'pencil', label: 'Open', onSelect: () => showTaskDetail(task.id, trigger) },
             {
@@ -278,10 +253,16 @@ function rowMenu(task) {
             { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteTask(task) },
         );
 
-        openMenu(trigger, entries);
+        return entries;
     });
+}
 
-    return trigger;
+function cardMenu(task) {
+    return menuTrigger(task, 'absolute top-1 right-1 size-8', (trigger) => [
+        { icon: 'pencil', label: 'Edit', onSelect: () => showTaskDetail(task.id, trigger) },
+        { separator: true },
+        { icon: 'trash', label: 'Delete', destructive: true, onSelect: () => deleteTask(task) },
+    ]);
 }
 
 function titleButton(task) {
@@ -353,8 +334,7 @@ function renderTask(task) {
 }
 
 /**
- * A board card stacks the facts a row lays out in columns. Both call taskActions, so what a task
- * can do never depends on which layout is open.
+ * A board card stacks the facts a row lays out in columns.
  */
 function renderCard(task) {
     const priority = PRIORITY_BADGES[task.priority];
@@ -373,9 +353,9 @@ function renderCard(task) {
         item.setAttribute('aria-describedby', 'board-help');
     }
 
-    const heading = createElement('h3', `text-sm font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
+    const heading = createElement('h3', `pr-8 text-sm font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
     heading.append(titleButton(task));
-    item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`), heading);
+    item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`), heading, cardMenu(task));
 
     if (task.description) {
         item.append(createElement('p', 'mt-1 text-xs whitespace-pre-line wrap-break-word text-gray-500', task.description));
@@ -395,9 +375,13 @@ function renderCard(task) {
         meta.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
     }
 
-    const actions = createElement('div', 'mt-3 flex items-center gap-2');
-    actions.append(...taskActions(task, { compact: true }));
-    item.append(meta, actions);
+    item.append(meta);
+
+    if (!isCompleted) {
+        const actions = createElement('div', 'mt-3 flex items-center gap-2');
+        actions.append(completeButton(task, true));
+        item.append(actions);
+    }
 
     return item;
 }
