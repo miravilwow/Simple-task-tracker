@@ -1,16 +1,15 @@
 import { createElement, createIcon } from './dom.js';
 
 /**
- * The popover behind a sidebar row's "…" button.
+ * The popover behind a "…" button.
  *
- * Panels are appended to <body> and positioned `fixed`, not absolutely inside the row: the
- * sidebar scrolls on its own, so a panel placed within it would be clipped by that overflow.
- * The flip side is that a panel does not follow the page, so any scroll closes the whole menu.
+ * The panel is appended to <body> and positioned `fixed`, not absolutely inside its row, so a
+ * scrolling container around the trigger cannot clip it. The flip side is that it does not follow
+ * the page, so any scroll closes it.
  *
- * An entry is one of three things:
+ * An entry is one of two things:
  *   { separator: true }                        a rule between groups
  *   { icon, label, onSelect, destructive? }    an action
- *   { icon, label, submenu: [...] }            a group that opens its own panel to the side
  */
 let session = null;
 
@@ -19,11 +18,11 @@ function closeAll({ restoreFocus = true } = {}) {
         return;
     }
 
-    const { panels, trigger, controller } = session;
+    const { panel, trigger, controller } = session;
 
     session = null;
     controller.abort();
-    panels.forEach((panel) => panel.remove());
+    panel.remove();
     trigger.setAttribute('aria-expanded', 'false');
 
     if (restoreFocus) {
@@ -31,33 +30,15 @@ function closeAll({ restoreFocus = true } = {}) {
     }
 }
 
-/**
- * Drops every panel deeper than the given one, which is what closing a submenu means.
- */
-function closeBelow(depth) {
-    while (session.panels.length > depth + 1) {
-        session.panels.pop().remove();
-    }
-}
-
-/**
- * Anchored to the trigger, pulled back inside the viewport when it would hang off an edge.
- * A submenu grows sideways from its parent item; the root panel grows downwards from the button.
- */
-function position(panel, anchorRect, { sideways }) {
+/** Anchored under the trigger, pulled back inside the viewport when it would hang off an edge. */
+function position(panel, anchorRect) {
     const gap = 4;
     const { width, height } = panel.getBoundingClientRect();
 
-    let left = sideways ? anchorRect.right + gap : anchorRect.left;
-
-    // Flip to the other side rather than hang off the edge.
-    if (left + width > window.innerWidth - gap) {
-        left = sideways ? anchorRect.left - width - gap : window.innerWidth - width - gap;
-    }
-
-    const preferred = sideways ? anchorRect.top : anchorRect.bottom + gap;
+    const left = Math.min(anchorRect.left, window.innerWidth - width - gap);
+    const preferred = anchorRect.bottom + gap;
     const top = preferred + height > window.innerHeight - gap
-        ? Math.max(gap, window.innerHeight - height - gap)
+        ? window.innerHeight - height - gap
         : preferred;
 
     panel.style.left = `${Math.max(gap, left)}px`;
@@ -74,7 +55,7 @@ function itemClasses(destructive) {
     ].join(' ');
 }
 
-function buildPanel(entries, depth, label) {
+function buildPanel(entries, label) {
     const panel = createElement(
         'div',
         'fixed z-50 min-w-52 rounded-lg border border-gray-200 bg-white p-1 shadow-lg',
@@ -94,85 +75,36 @@ function buildPanel(entries, depth, label) {
         item.type = 'button';
         item.setAttribute('role', 'menuitem');
         item.append(
-            // A reaction entry is marked by its emoji rather than by a drawn icon.
-            entry.emoji
-                ? createElement('span', 'w-4 shrink-0 text-center text-base', entry.emoji)
-                : createIcon(entry.icon, 'size-4 shrink-0 text-gray-500'),
+            createIcon(entry.icon, 'size-4 shrink-0 text-gray-500'),
             createElement('span', 'flex-1 text-left', entry.label),
         );
-
-        // A zero renders as nothing rather than "0", the same as the sidebar's own badges.
-        if (entry.count) {
-            item.append(createElement('span', 'shrink-0 text-xs text-gray-400', String(entry.count)));
-        }
-
-        if (entry.submenu) {
-            item.setAttribute('aria-haspopup', 'menu');
-            item.setAttribute('aria-expanded', 'false');
-            item.append(createIcon('chevron-right', 'size-4 shrink-0 text-gray-400'));
-            item.addEventListener('click', () => openSubmenu(item, entry, depth, { focus: true }));
-            // Hovering opens it for a pointer, but must not move focus: a mouse crossing the
-            // menu would otherwise yank the keyboard user out of the list they are in.
-            item.addEventListener('pointerenter', () => openSubmenu(item, entry, depth));
-        } else {
-            item.addEventListener('click', () => {
-                // Close first: the action may replace the row the trigger lives in, and focus
-                // has to go back to it while it is still there.
-                closeAll();
-                entry.onSelect();
-            });
-            // Moving onto a plain item drops any submenu that was open beside it.
-            item.addEventListener('pointerenter', () => closeBelow(depth));
-        }
+        item.addEventListener('click', () => {
+            // Close first: the action may replace the row the trigger lives in, and focus
+            // has to go back to it while it is still there.
+            closeAll();
+            entry.onSelect();
+        });
 
         items.push(item);
         panel.append(item);
     }
 
-    panel.addEventListener('keydown', (event) => onPanelKey(event, items, depth));
+    panel.addEventListener('keydown', (event) => onPanelKey(event, items));
     document.body.append(panel);
 
     return { panel, items };
 }
 
-function onPanelKey(event, items, depth) {
-    const active = document.activeElement;
-
+function onPanelKey(event, items) {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
-        const index = items.indexOf(active);
+        const index = items.indexOf(document.activeElement);
         const step = event.key === 'ArrowDown' ? 1 : -1;
         // Wraps, so Up from the first item lands on the last.
         items[(index + step + items.length) % items.length].focus();
     } else if (event.key === 'Home' || event.key === 'End') {
         event.preventDefault();
         items[event.key === 'Home' ? 0 : items.length - 1].focus();
-    } else if (event.key === 'ArrowRight' && active?.getAttribute('aria-haspopup') === 'menu') {
-        event.preventDefault();
-        active.click();
-    } else if (event.key === 'ArrowLeft' && depth > 0) {
-        event.preventDefault();
-        closeBelow(depth - 1);
-        session.openers[depth - 1]?.focus();
-    }
-}
-
-function openSubmenu(item, entry, depth, { focus = false } = {}) {
-    // Already open beside this item, so hovering back onto it should not rebuild it.
-    if (session.openers[depth] === item && session.panels.length > depth + 1) {
-        return;
-    }
-
-    closeBelow(depth);
-    session.openers[depth] = item;
-
-    const { panel, items } = buildPanel(entry.submenu, depth + 1, entry.label);
-    session.panels.push(panel);
-    position(panel, item.getBoundingClientRect(), { sideways: true });
-    item.setAttribute('aria-expanded', 'true');
-
-    if (focus) {
-        items[0].focus();
     }
 }
 
@@ -195,47 +127,35 @@ export function openMenu(trigger, entries) {
     const on = (target, event, handler, options) =>
         target.addEventListener(event, handler, { ...options, signal: controller.signal });
 
-    session = { panels: [], openers: [], trigger, controller };
+    const { panel, items } = buildPanel(entries, trigger.dataset.menuLabel ?? 'Actions');
 
-    const { panel, items } = buildPanel(entries, 0, trigger.dataset.menuLabel ?? 'Actions');
-    session.panels.push(panel);
-    position(panel, trigger.getBoundingClientRect(), { sideways: false });
+    session = { panel, trigger, controller };
+    position(panel, trigger.getBoundingClientRect());
 
     trigger.setAttribute('aria-expanded', 'true');
     items[0].focus();
 
-    const inside = (target) => session?.panels.some((one) => one.contains(target));
-
     on(document, 'keydown', (event) => {
         if (event.key === 'Escape') {
             event.preventDefault();
-
-            // Escape closes one level at a time, so a submenu opened by mistake is cheap to undo.
-            if (session.panels.length > 1) {
-                const depth = session.panels.length - 2;
-                closeBelow(depth);
-                session.openers[depth]?.setAttribute('aria-expanded', 'false');
-                session.openers[depth]?.focus();
-            } else {
-                closeAll();
-            }
+            closeAll();
         }
     });
 
     // Tabbing out, or clicking anywhere else, dismisses it without stealing focus back.
     on(document, 'focusin', (event) => {
-        if (!inside(event.target)) {
+        if (!panel.contains(event.target)) {
             closeAll({ restoreFocus: false });
         }
     }, { capture: true });
 
     on(document, 'pointerdown', (event) => {
-        if (!inside(event.target) && event.target !== trigger) {
+        if (!panel.contains(event.target) && event.target !== trigger) {
             closeAll({ restoreFocus: false });
         }
     });
 
-    // Fixed positioning does not follow a scroll, so the panels would drift off their rows.
+    // Fixed positioning does not follow a scroll, so the panel would drift off its row.
     on(window, 'scroll', () => closeAll({ restoreFocus: false }), { capture: true });
     on(window, 'resize', () => closeAll({ restoreFocus: false }));
 }

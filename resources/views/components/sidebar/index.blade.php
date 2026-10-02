@@ -10,7 +10,7 @@
     class="fixed inset-0 z-40 hidden cursor-default bg-gray-900/40 lg:hidden"></button>
 
 {{-- p-3 plus each row's own px-3 puts every label on the app container's 1.5rem gutter. --}}
-<aside data-sidebar data-state="{{ $collapsed ? 'collapsed' : 'expanded' }}" aria-label="Views and categories"
+<aside data-sidebar data-state="{{ $collapsed ? 'collapsed' : 'expanded' }}" aria-label="Task views"
     {{ $attributes->class(['sidebar flex flex-col gap-4 border-r border-gray-200 bg-white p-3']) }}>
     <div class="sidebar-header flex items-center justify-between gap-2">
         {{-- px-3 matches the menu rows, so the heading sits on the same gutter as everything below. --}}

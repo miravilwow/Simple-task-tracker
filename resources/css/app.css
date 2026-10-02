@@ -1,18 +1,9 @@
 @import 'tailwindcss';
-@plugin '@iconify/tailwind4';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
-
-/*
- * Project icons are chosen by the user and their classes are built at runtime, so Tailwind
- * never sees them in a source file. This one line is the safelist, and it has to stay in step
- * with App\Enums\CategoryIcon; CategoryApiTest fails if the two ever drift apart.
- */
-/* prettier-ignore */
-@source inline("icon-[fluent--{folder,folder-open,archive,briefcase,box,building,building-bank,building-home,building-shop,building-factory,building-retail,building-government,building-multiple,home,home-more,desktop,laptop,phone,tablet,device-meeting-room,document,document-text,document-pdf,notepad,note,book,book-open,bookmark,clipboard,clipboard-task,library,reading-list,text-paragraph,slide-text,form,table,grid,apps,board,board-split,folder-zip,calendar,calendar-day,calendar-week-start,calendar-month,clock,clock-alarm,timer,hourglass,history,mail,mail-inbox,send,chat,comment,person-chat,call,video,person,people,person-star,person-support,people-team,people-community,handshake,globe,location,map,earth,flag,compass-northwest,cart,shopping-bag,store-microsoft,receipt,money,money-hand,wallet,credit-card-person,payment,coin-multiple,savings,tag,ticket-diagonal,gift,gift-card,cube,heart,heart-pulse,pill,syringe,stethoscope,dumbbell,sport,sport-soccer,sport-basketball,sport-baseball,sport-american-football,sport-hockey,sport-cricket-ball,run,person-walking,bed,weather-moon,showerhead,food,food-apple,food-pizza,food-cake,food-egg,food-fish,food-chicken-leg,drink,drink-coffee,drink-beer,drink-wine,bowl-chopsticks,cookies,airplane,airplane-take-off,vehicle-car,vehicle-bus,vehicle-truck,vehicle-bicycle,vehicle-ship,vehicle-subway,vehicle-motorcycle,luggage,beach,mountain-trail,tent,city,animal-cat,animal-dog,animal-rabbit,animal-turtle,leaf,tree-deciduous,plant-grass,plant-ragweed,weather-sunny,weather-rain,weather-snowflake,water,drop,music-note-1,music-note-2,headphones,mic,speaker-2,play-circle,video-clip,movies-and-tv,camera,camera-dome,image,image-multiple,paint-brush,paint-bucket,color,pen,highlight,draw-shape,design-ideas,wand,code,code-block,branch,bug,database,server,cloud,wifi-2,bluetooth,plug-connected,battery-charge,lightbulb,flash,rocket,puzzle-piece,toolbox,wrench,wrench-screwdriver,settings,key,shield-task,lock-closed,fingerprint,hat-graduation,backpack,ribbon,trophy,star-emphasis,premium,certificate,broom,dust,couch,seat,lightbulb-filament,bin-recycle,target-arrow,chart-multiple,data-trending,data-pie,board-heart,accessibility,earth-leaf,emoji,emoji-laugh,emoji-sad,hand-wave,thumb-like,heart-circle,sparkle,glasses,scales,balloon,fireplace,games,xbox-console,puzzle-cube,wheelchair-access,walkie-talkie}-24-regular]");
 
 /* Task table columns: select | Task | Priority | Status | Actions. Shared by the header row and
    each task row, which is what keeps a heading over the column it names. */
@@ -312,18 +303,6 @@
     opacity: 1;
 }
 
-/* The Comments / Activity switch. Both Blade and the reaction rows need these strings, so they
-   live here once rather than being copied into each. */
-@utility panel-tab {
-    @apply min-h-8 rounded-full px-4 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-pressed:bg-white aria-pressed:text-red-700 aria-pressed:shadow-sm;
-}
-
-/* One reaction chip under a comment. aria-pressed carries "I reacted", so the state is in the
-   markup a screen reader reads rather than in the colour alone. */
-@utility reaction-chip {
-    @apply inline-flex min-h-8 items-center gap-1 rounded-full border border-gray-200 bg-white px-2 text-xs text-gray-600 transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-pressed:border-red-300 aria-pressed:bg-red-50 aria-pressed:text-red-700;
-}
-
 @utility sidebar-menu-button {
     @apply flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-pressed:bg-red-50 aria-pressed:text-red-700;
 }
@@ -336,9 +315,6 @@
     @apply text-xs text-gray-400 tabular-nums;
 }
 
-@utility sidebar-group-label {
-    @apply px-3 text-xs font-semibold tracking-wide text-gray-500 uppercase;
-}
 
 /* The Display panel's layout tiles, selects and toggle, plus the task dialog's fields. Blade
    renders some and JavaScript the rest, so the strings live here once. */

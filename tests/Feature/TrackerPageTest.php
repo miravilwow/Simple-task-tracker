@@ -32,6 +32,17 @@ class TrackerPageTest extends TestCase
         ], false);
     }
 
+    public function test_the_sidebar_has_no_project_tree_favorites_or_project_dialogs(): void
+    {
+        $this->get('/tasks')
+            ->assertOk()
+            ->assertDontSee('My projects')
+            ->assertDontSee('Favorites')
+            ->assertDontSee('id="project-dialog"', false)
+            ->assertDontSee('id="project-panel"', false)
+            ->assertDontSee('id="move-dialog"', false);
+    }
+
     public function test_the_board_columns_stretch_so_a_drop_lands_anywhere_in_a_column(): void
     {
         // items-start sizes each column to its own cards, which leaves the space under the last
