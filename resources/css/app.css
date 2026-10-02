@@ -336,6 +336,15 @@
  * the list behind it catches up. Green is the only place the app uses it for anything but a Done
  * badge, and it means the same thing in both.
  */
+/*
+ * The spinner on a working button: a ring with one quarter missing, which is what a circle
+ * turning looks like. Built from a border rather than a drawn path, so the gap is exact and the
+ * ring takes the button's own colour.
+ */
+@utility btn-spinner {
+    @apply inline-block size-4 shrink-0 rounded-full border-2 border-current border-t-transparent;
+}
+
 @utility btn-done {
     @apply border-green-200 bg-green-50 text-green-700;
 }

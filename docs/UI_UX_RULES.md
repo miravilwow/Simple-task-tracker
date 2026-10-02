@@ -201,7 +201,8 @@ Everything on the tracker resolves to **one gutter and one column grid**. Nothin
 - **A button that starts a request goes through three states**: what it does, that it is doing it, and that it is done. `Complete` → a spinner and `Completing…` → a green tick and `Completed`. It stays disabled through all three: it is reporting what happened, not offering to do it again, and most of these buttons are about to be removed by the re-render anyway.
 - **The finished state covers work that is happening, not a pause invented to show it.** The reload behind it is several requests; the 700ms floor is only there for when the server answers too quickly for the state to be read.
 - **The width is pinned when the first label changes.** `Complete`, `Completing…` and `Completed` are three different widths, and a row of buttons would shuffle under the cursor at each step.
-- With motion turned off the spinner is a still arc, which still reads as waiting beside a label ending in three dots.
+- **The spinner is a ring with a quarter missing, not a drawn icon.** A circle turning is what a spinner looks like everywhere; it is built from a border, so the gap is exact and the ring takes the button's own colour. With motion turned off it is a still ring, which still reads as waiting beside a label ending in three dots.
+- **A swapped-in mark takes its classes from the button's resting icon, never from the one it is replacing.** Reading them off whatever is currently there handed the finished tick the spinner's animation, and the tick span.
 
 ## 4. Form
 

@@ -1,7 +1,6 @@
 // Heroicons v2 (MIT) outline paths, matching resources/views/components/icon.blade.php.
 const ICONS = {
     check: 'm4.5 12.75 6 6 9-13.5',
-    spinner: 'M12 3a9 9 0 1 0 9 9',
     undo: 'M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3',
     trash: 'm14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',
     calendar:
@@ -85,11 +84,14 @@ const labelOf = (button) => button.querySelector('[data-label]') ?? button;
 // the node goes back exactly as it was, and nothing is rebuilt from a string.
 const restingIcons = new WeakMap();
 
+/** The mark a button is wearing: its own icon, or the spinner standing in for it while it works. */
+const markOf = (button) => button.querySelector('svg, [data-spinner]');
+
 /**
- * Swaps a button's icon, keeping whatever size and colour classes it was already wearing.
+ * Puts a new mark on a button, remembering the one it was wearing at rest.
  */
-function swapIcon(button, name, extra = '') {
-    const current = button.querySelector('svg');
+function setMark(button, node) {
+    const current = markOf(button);
 
     if (! current) {
         return;
@@ -99,7 +101,23 @@ function swapIcon(button, name, extra = '') {
         restingIcons.set(button, current);
     }
 
-    current.replaceWith(createIcon(name, `${current.getAttribute('class')} ${extra}`.trim()));
+    current.replaceWith(node);
+}
+
+/** The size and colour classes the button's own icon wears, so a swapped-in one matches it. */
+const restingClass = (button) => restingIcons.get(button)?.getAttribute('class') ?? 'size-4';
+
+/**
+ * A ring with a gap in it, rather than a drawn icon: a circle turning is what a spinner looks
+ * like everywhere, and a path would have to be redrawn to say the same thing.
+ */
+function spinner() {
+    const ring = createElement('span', 'btn-spinner');
+
+    ring.dataset.spinner = '';
+    ring.setAttribute('aria-hidden', 'true');
+
+    return ring;
 }
 
 /**
@@ -119,7 +137,7 @@ export function setBusy(button, label) {
     target.dataset.previous = target.textContent;
     target.textContent = label;
     button.disabled = true;
-    swapIcon(button, 'spinner', 'btn-spinner');
+    setMark(button, spinner());
 }
 
 /**
@@ -131,7 +149,7 @@ export function setBusy(button, label) {
 export function setDone(button, label) {
     labelOf(button).textContent = label;
     button.classList.add('btn-done');
-    swapIcon(button, 'check');
+    setMark(button, createIcon('check', restingClass(button)));
 }
 
 export function clearBusy(button) {
@@ -144,7 +162,7 @@ export function clearBusy(button) {
     button.style.minWidth = '';
 
     if (resting) {
-        button.querySelector('svg')?.replaceWith(resting);
+        markOf(button)?.replaceWith(resting);
         restingIcons.delete(button);
     }
 }
