@@ -24,7 +24,6 @@ class Task extends Model
         'title',
         'description',
         'priority',
-        'category_id',
         'due_date',
     ];
 

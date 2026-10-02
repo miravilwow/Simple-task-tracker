@@ -128,7 +128,7 @@ cannot outlive the endpoint it describes.
 POST /api/tasks
 Content-Type: application/json
 
-{ "title": "Book dentist appointment", "description": null, "priority": "medium", "due_date": "2026-10-08", "category_id": 10 }
+{ "title": "Book dentist appointment", "description": null, "priority": "medium", "due_date": "2026-10-08", "category_name": "Basketball" }
 ```
 
 ```json
@@ -142,14 +142,14 @@ Content-Type: application/json
     "position": 3,
     "due_date": "2026-10-08",
     "is_overdue": false,
-    "category": { "id": 10, "name": "Basketball", "icon": "sport-basketball", "color": "slate" },
+    "category": { "id": 10, "name": "Basketball" },
     "created_at": "2026-09-29T21:19:16+00:00",
     "updated_at": "2026-09-29T21:19:16+00:00"
   }
 }
 ```
 
-`title` is required and trimmed, so a title of only spaces is empty. `priority` must be `low`,
+`title` is required and trimmed, so a title of only spaces is empty. `category_name` is the project, typed by name: an existing one is reused regardless of case, a new one is created, and `null` or an empty string means no project (up to 40 characters). The same field on `PATCH /api/tasks/{id}` is applied only when the key is sent. `priority` must be `low`,
 `medium` or `high`. `due_date` is `YYYY-MM-DD` and **cannot be in the past**: a due date is a promise
 about work still ahead. A task becomes overdue the ordinary way, by the day arriving and passing.
 

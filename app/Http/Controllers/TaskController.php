@@ -13,10 +13,12 @@ use App\Http\Requests\ScheduleTaskRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\Category;
 use App\Models\Task;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Src\TaskSorter;
@@ -70,7 +72,13 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, Task $task): TaskResource
     {
-        $task->update($request->validated());
+        $data = $request->validated();
+
+        if (array_key_exists('category_name', $data)) {
+            $task->category()->associate($data['category_name'] === null ? null : Category::named($data['category_name']));
+        }
+
+        $task->update(Arr::except($data, 'category_name'));
 
         return TaskResource::make($task->load('category', 'subtasks'));
     }
@@ -111,7 +119,19 @@ class TaskController extends Controller
 
     public function store(StoreTaskRequest $request): JsonResponse
     {
-        $task = Task::create($request->validated());
+        $data = $request->validated();
+
+        $task = DB::transaction(function () use ($data) {
+            $task = new Task(Arr::except($data, 'category_name'));
+
+            if ($data['category_name'] ?? null) {
+                $task->category()->associate(Category::named($data['category_name']));
+            }
+
+            $task->save();
+
+            return $task;
+        });
 
         return TaskResource::make($task->load('category'))->response()->setStatusCode(201);
     }

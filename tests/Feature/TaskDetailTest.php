@@ -47,19 +47,17 @@ class TaskDetailTest extends TestCase
     public function test_updates_the_fields_the_dialog_edits(): void
     {
         $task = Task::factory()->create(['title' => 'Old', 'priority' => 'low']);
-        $category = Category::factory()->create();
-
         $response = $this->patchJson("/api/tasks/{$task->id}", [
             'title' => 'New',
             'description' => 'Now with a description.',
             'priority' => 'high',
-            'category_id' => $category->id,
+            'category_name' => 'Errands',
         ]);
 
         $response->assertOk()
             ->assertJsonPath('data.title', 'New')
             ->assertJsonPath('data.priority', 'high')
-            ->assertJsonPath('data.category.id', $category->id);
+            ->assertJsonPath('data.category.name', 'Errands');
     }
 
     public function test_updates_one_field_without_touching_the_others(): void
@@ -76,7 +74,7 @@ class TaskDetailTest extends TestCase
     {
         $task = Task::factory()->for(Category::factory())->create();
 
-        $this->patchJson("/api/tasks/{$task->id}", ['category_id' => null])
+        $this->patchJson("/api/tasks/{$task->id}", ['category_name' => null])
             ->assertOk()
             ->assertJsonPath('data.category', null);
     }

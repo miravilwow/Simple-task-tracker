@@ -22,17 +22,15 @@ class TaskSchedulingTest extends TestCase
 
     public function test_creates_a_task_with_a_category_and_due_date(): void
     {
-        $category = Category::factory()->create();
-
         $this->postJson('/api/tasks', [
             'title' => 'Submit thesis outline',
             'priority' => 'high',
-            'category_id' => $category->id,
+            'category_name' => 'Thesis',
             'due_date' => '2026-10-05',
         ])
             ->assertCreated()
             ->assertJsonPath('data.due_date', '2026-10-05')
-            ->assertJsonPath('data.category.name', $category->name);
+            ->assertJsonPath('data.category.name', 'Thesis');
     }
 
     public function test_rejects_a_due_date_that_is_not_iso_formatted(): void
@@ -44,13 +42,6 @@ class TaskSchedulingTest extends TestCase
         ])
             ->assertStatus(400)
             ->assertJsonValidationErrors('due_date');
-    }
-
-    public function test_rejects_an_unknown_category(): void
-    {
-        $this->postJson('/api/tasks', ['title' => 'Orphan', 'priority' => 'low', 'category_id' => 999])
-            ->assertStatus(400)
-            ->assertJsonValidationErrors('category_id');
     }
 
     public function test_schedules_a_task_onto_a_new_date(): void
