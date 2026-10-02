@@ -101,6 +101,7 @@ function hideGap() {
 export function wireBoardDragging(onMove, onOpen) {
     let held = null;
     let dragged = null;
+    let landing = false;
 
     const columnOf = (target) => target.closest?.('[data-group]');
     const cardOf = (target) => target.closest?.('.board-card[draggable="true"]');
@@ -133,7 +134,7 @@ export function wireBoardDragging(onMove, onOpen) {
         setTimeout(() => card.classList.add('hidden'), 0);
     });
 
-    board.addEventListener('dragend', endDrag);
+    board.addEventListener('dragend', () => landing || endDrag());
 
     board.addEventListener('dragover', (event) => {
         const section = columnOf(event.target);
@@ -160,7 +161,7 @@ export function wireBoardDragging(onMove, onOpen) {
         }
     });
 
-    board.addEventListener('drop', (event) => {
+    board.addEventListener('drop', async (event) => {
         const section = columnOf(event.target);
 
         if (!section || !dragged) {
@@ -183,9 +184,17 @@ export function wireBoardDragging(onMove, onOpen) {
         const id = Number(event.dataTransfer.getData('text/plain'));
         const group = section.dataset.group;
         const after = anchor ? Number(anchor.dataset.taskId) : null;
+        const card = dragged;
 
-        endDrag();
-        onMove(id, group, after);
+        // The gap holds the landing spot until the server answers. Showing the card back in its
+        // old column first made it jump there and back, and the whole board flash with it.
+        landing = true;
+        dragged = null;
+        clearHighlights();
+        await onMove(id, group, after);
+        landing = false;
+        card.classList.remove('hidden');
+        hideGap();
     });
 
     board.addEventListener('keydown', async (event) => {

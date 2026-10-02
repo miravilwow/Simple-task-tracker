@@ -112,6 +112,11 @@ let latestRequestId = 0;
 // The list as the page last drew it, so the board and the dialog can read what is on screen.
 let latestTasks = [];
 
+// Every reload redraws the whole layout, so only a task missing from the last draw plays the
+// entrance animation. Replaying it on every card made the board blink after each drop.
+let drawnIds = new Set();
+const enterClass = (task) => (drawnIds.has(task.id) ? '' : 'task-enter');
+
 // The ids the list last drew, which is what "select every task shown" means and what a selection
 // is pruned against. Not the same as latestTasks: a grouping can leave an empty group out.
 let listedIds = [];
@@ -288,7 +293,7 @@ function renderTask(task) {
 
     const item = createElement(
         'li',
-        'task-enter relative flex flex-wrap items-center gap-x-2 gap-y-3 py-4 pr-4 pl-5 transition-colors hover:bg-gray-50 sm:pr-6 sm:pl-7 md:grid md:task-columns md:gap-4',
+        `${enterClass(task)} relative flex flex-wrap items-center gap-x-2 gap-y-3 py-4 pr-4 pl-5 transition-colors hover:bg-gray-50 sm:pr-6 sm:pl-7 md:grid md:task-columns md:gap-4`,
     );
     item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`));
 
@@ -342,7 +347,7 @@ function renderCard(task) {
     const isCompleted = task.status === 'completed';
     const draggable = display.state.grouping === 'status';
 
-    const item = createElement('li', 'board-card task-enter');
+    const item = createElement('li', `board-card ${enterClass(task)}`);
     item.dataset.taskId = task.id;
     item.dataset.status = task.status;
 
@@ -629,6 +634,7 @@ async function load() {
             );
         }
 
+        drawnIds = new Set(tasksResponse.data.map((task) => task.id));
         display.renderSummary(tasksResponse.data.length);
     } catch (error) {
         if (requestId === latestRequestId) {
