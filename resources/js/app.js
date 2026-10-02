@@ -1,6 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { clearBoard, renderBoard, wireBoardDragging } from './board.js';
 import { createDisplay, groupTasks } from './display.js';
+import { createFilterBar } from './filterbar.js';
 import { openTaskDetail, wireTaskDetail } from './taskdialog.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
 import { enhanceDateFields } from './datepicker.js';
@@ -150,6 +151,10 @@ function emptyMessage() {
     // The Display panel can narrow the list to nothing, and "No tasks yet" would then be a lie.
     if (currentLayout() === 'board' && (display.state.date || display.state.priority || !display.state.showCompleted)) {
         return 'Nothing matches these display settings.';
+    }
+
+    if (currentLayout() !== 'board' && Object.values(filterBar.state).some((value) => value !== '')) {
+        return 'Nothing matches these filters.';
     }
 
     return {
@@ -550,6 +555,10 @@ function currentParams() {
         }
     }
 
+    if (currentLayout() !== 'board') {
+        Object.assign(params, filterBar.state);
+    }
+
     return params;
 }
 
@@ -603,6 +612,7 @@ async function load() {
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
         renderProjectOptions(categoriesResponse.data);
+        filterBar.setProjects(categoriesResponse.data);
 
         // Set before anything draws: renderList syncs the selection toolbar, which has to read the
         // list it is about to show rather than the one it is replacing.
@@ -913,10 +923,12 @@ function applyView() {
 
     elements.boardControls.hidden = !onBoard;
     elements.displaySummary.hidden = !onBoard;
+    filterBar.setShown(!onBoard);
 }
 
 function setView(key) {
     state.view = key;
+    filterBar.reset();
     applyView();
     applyLayout();
     syncSortHeaders(sortHeaders, state.listSort);
@@ -1037,6 +1049,7 @@ function showTaskDetail(id, trigger) {
 }
 
 const display = createDisplay(applyDisplay);
+const filterBar = createFilterBar(() => load());
 
 // ---------------------------------------------------------------- wiring
 

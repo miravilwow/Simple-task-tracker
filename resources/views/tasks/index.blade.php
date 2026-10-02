@@ -126,6 +126,36 @@
              inside the list panel: the board is where nothing else says what is filtered. --}}
         <div id="display-summary" class="mt-4 flex flex-wrap items-center gap-1.5"></div>
 
+        {{-- Upcoming, Overdue and Completed have no Display panel; these are their filters. --}}
+        <div id="filter-bar" role="search" aria-label="Filter tasks" hidden class="mt-4">
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
+                    <label for="filter-search" class="text-xs font-medium text-gray-600">Search</label>
+                    <input type="search" id="filter-search" maxlength="100" autocomplete="off"
+                        placeholder="e.g. report" class="filter-control">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label for="filter-bar-priority" class="text-xs font-medium text-gray-600">Priority</label>
+                    <select id="filter-bar-priority" class="filter-control">
+                        @foreach (['' => 'All priorities', 'high' => 'High', 'medium' => 'Medium', 'low' => 'Low'] as $value => $text)
+                            <option value="{{ $value }}">{{ $text }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label for="filter-bar-project" class="text-xs font-medium text-gray-600">Project</label>
+                    <select id="filter-bar-project" class="filter-control">
+                        <option value="">All projects</option>
+                        <option value="none">No project</option>
+                    </select>
+                </div>
+                <button type="button" id="filter-clear" hidden
+                    class="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-gray-600 underline underline-offset-2 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
+                    Clear filters
+                </button>
+            </div>
+        </div>
+
         <div id="load-error" class="mt-6 hidden" role="alert">
             <div class="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
                 <span class="flex items-center gap-2">

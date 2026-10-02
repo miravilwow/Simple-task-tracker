@@ -31,6 +31,19 @@ class TrackerPageTest extends TestCase
         ], false);
     }
 
+    public function test_the_filter_bar_offers_search_priority_and_project(): void
+    {
+        $this->get('/tasks')->assertOk()->assertSeeInOrder([
+            'id="display-summary"',
+            'id="filter-bar"',
+            'id="filter-search"',
+            'id="filter-bar-priority"',
+            'id="filter-bar-project"',
+            'id="filter-clear"',
+            'id="list-view"',
+        ], false);
+    }
+
     public function test_the_display_panel_offers_no_layout_sorting_or_none_grouping(): void
     {
         // Every view decides its own layout and the board's order is the one you drag, so none of

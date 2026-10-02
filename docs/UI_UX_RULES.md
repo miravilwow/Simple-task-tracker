@@ -267,6 +267,16 @@ One button in the page header carries **everything that answers "what am I looki
 - **The stages always read To do, In progress, In review, Done** — across the board, the list's groups and the list's own order. They are one sequence, and work does not run backwards through it.
 - The panel closes on Escape, on a click outside it, and returns focus to its button.
 
+## 5a. The filter bar
+
+Upcoming, Overdue and Completed have no Display panel, so they carry a filter bar under the page heading instead.
+
+- **Search** waits 300ms after typing, so a word is one request rather than one per letter.
+- **Priority** and **Project** are selects. Project lists the projects that still have tasks, plus "No project".
+- **Clear filters** appears only while something is set, and returns focus to Search.
+- **A filter never follows the user into another view**: every view change resets the bar.
+- It narrows the calendar's month grid and its no-due-date tray alike, and an empty result says "Nothing matches these filters."
+
 ## 5b. The Board layout
 
 The board's columns **are the grouping**: by status it is To do / In progress / In review / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
@@ -397,6 +407,7 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] The Task and Priority headers sort, and Status has no sort button
 - [ ] A row's "…" opens Open, Reschedule and Delete, with Reopen on a finished row, and focus returns to it
 - [ ] An unfinished board card still carries Complete as a button
+- [ ] On Upcoming, Overdue and Completed the filter bar narrows the view, Clear filters resets it, and switching view clears it
 - [ ] Display opens, closes on Escape and on a click outside, and returns focus to its button
 - [ ] Each layout shows only itself, and switching views moves nothing sideways
 - [ ] Grouping by status, priority and project regroups the board
