@@ -172,6 +172,8 @@ GET /api/tasks?due=today&priority=high&sort=default&completed=0
 | `priority` | `low`, `medium`, `high` |
 | `sort` | `default`, `due`, `name`, `manual` |
 | `completed` | `0` hides finished work; `1` is the same as leaving it out |
+| `project` | a project id, or `none` for tasks without one |
+| `search` | part of a title, up to 100 characters |
 
 `sort=default` is `Src\TaskSorter`. `due`, `name` and `manual` replace it. All four then put To do
 before In progress before In review before Done, which is the order the board's columns read, so no sort can bury

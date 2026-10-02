@@ -34,6 +34,11 @@ class TaskController extends Controller
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'sort' => ['nullable', Rule::enum(TaskSort::class)],
+            // A project id, or "none" for the tasks that carry no project.
+            'project' => ['nullable', ...($request->input('project') === 'none'
+                ? ['in:none']
+                : ['integer', Rule::exists('categories', 'id')])],
+            'search' => ['nullable', 'string', 'max:100'],
             // Not beside status: "give me completed tasks, but hide completed tasks" can only ever
             // answer nothing, and an empty list is a worse reply than an error.
             'completed' => ['nullable', 'boolean', 'prohibits:status'],
@@ -44,6 +49,14 @@ class TaskController extends Controller
             ->with('category')
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['priority'] ?? null, fn (Builder $query, string $priority) => $query->where('priority', $priority))
+            ->when($filters['project'] ?? null, fn (Builder $query, string|int $project) => $project === 'none'
+                ? $query->whereNull('category_id')
+                : $query->where('category_id', $project))
+            // "!" escapes, because it is the one escape character MySQL and SQLite both accept.
+            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->whereRaw(
+                "title LIKE ? ESCAPE '!'",
+                ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%'],
+            ))
             // The Display panel's "Completed tasks" toggle. Only the off position narrows anything.
             ->when(
                 isset($filters['completed']) && ! $request->boolean('completed'),
