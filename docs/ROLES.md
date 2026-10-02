@@ -171,6 +171,7 @@ Start every response that changes code with one line naming the active role(s), 
   | `display.js` | the Display panel on the board views: completed tasks, grouping, date and priority filters, and the chips that name them |
   | `filterbar.js` | the search, priority and project filters on Upcoming, Overdue and Completed |
   | `board.js` | the board's columns, and dragging a card between columns by pointer or keyboard |
+  | `projects.js` | the project cards that grouping by project draws, each opening that project's board |
   | `table.js` | the list's row selection, its header checkbox and its sortable column headers (Overdue and Completed) |
   | `taskdialog.js` | the task dialog: its fields and its sub-task checklist |
   | `toast.js` | the toast region, its three variants, and the action a toast can carry |

@@ -1,8 +1,9 @@
 /**
  * The board layout. Its columns are whatever the Display panel groups by, so grouping by status
- * gives To do / In progress / Done and grouping by priority gives High / Medium / Low.
+ * gives the four stages and grouping by priority gives High / Medium / Low. Grouping by project
+ * opens a project's own board instead, see projects.js.
  *
- * Dragging only moves a card between the three stages, because that is the only move the API
+ * Dragging only moves a card between the stages, because that is the only move the API
  * has an endpoint for. Under any other grouping the cards carry their buttons instead, rather
  * than offering a gesture that would silently do nothing.
  */
@@ -45,10 +46,10 @@ function column(group, renderCard, draggable) {
 }
 
 /**
- * @param {{tasks: array, grouping: string, categories: array, renderCard: Function}} options
+ * @param {{tasks: array, grouping: string, renderCard: Function}} options
  */
-export function renderBoard({ tasks, grouping, categories, renderCard }) {
-    const groups = groupTasks({ tasks, grouping, categories });
+export function renderBoard({ tasks, grouping, renderCard }) {
+    const groups = groupTasks({ tasks, grouping });
     const draggable = grouping === 'status';
 
     board.replaceChildren(...groups.map((group) => column(group, renderCard, draggable)));

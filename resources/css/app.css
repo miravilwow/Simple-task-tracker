@@ -442,3 +442,7 @@
 @utility board-card {
     @apply relative overflow-hidden rounded-lg border border-gray-200 bg-white p-3 pl-4 shadow-sm;
 }
+
+@utility project-card {
+    @apply flex w-full flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-gray-300 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none max-md:mb-4;
+}

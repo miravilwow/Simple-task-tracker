@@ -279,7 +279,9 @@ Upcoming, Overdue and Completed have no Display panel, so they carry a filter ba
 
 ## 5b. The Board layout
 
-The board's columns **are the grouping**: by status it is To do / In progress / In review / Done, by priority High / Medium / Low, by project one column per project plus "No project". There is no separate table of user-made sections, because the grouping already says what a column is.
+The board's columns **are the grouping**: by status it is To do / In progress / In review / Done, by priority High / Medium / Low, and by project it is a grid of project cards rather than columns, so the four stages survive. There is no separate table of user-made sections, because the grouping already says what a column is.
+
+- **A project card shows its total, a count per stage and a done bar.** Clicking it opens that project's own board in the four stage columns, with dragging, under a "Projects / <name>" crumb. Projects returns to the cards and focus goes back to the card that was opened. Switching view or grouping closes the project, and the chip row says `Project: <name>` while one is open.
 
 - A card carries the title, description, project, due date and priority badge. **It carries no status badge while grouped by status**, because the column it sits in already says that.
 - **A card's "…" holds Edit and Delete.** A card has room for one button and not for a row of them, so Delete moved into a 32px "…" at the card's top-right, with Edit (it opens the task dialog) beside it. Delete still asks for confirmation and still offers Undo. It is the same `role="menu"` the table row uses, so arrows, Home/End and Escape behave as they do there, and focus returns to the "…".
@@ -421,7 +423,8 @@ Build only what the exam asks for, plus what the user has since asked for: the b
 - [ ] A drop lands in the right place while the Completed toggle or a filter is hiding cards
 - [ ] The up and down arrows move a held card within its column, and Undo on the toast puts it back exactly where it was
 - [ ] A card can be moved with Space and the arrows alone, and keeps focus after the move
-- [ ] Grouped by priority or project, the cards are not draggable
+- [ ] Grouped by priority, the cards are not draggable
+- [ ] Grouping by project shows project cards; a card opens its board with all four stages and dragging works; Projects returns to the cards
 - [ ] The dialog's Status field moves a task through all four stages, and the board and the counts follow
 - [ ] A task's name opens the dialog from a click and from the keyboard, in both the list and the board
 - [ ] Each dialog field saves on its own, and the list behind it follows

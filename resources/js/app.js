@@ -1,6 +1,7 @@
 import { ApiError, api, errorMessage, RATE_LIMIT_MESSAGE } from './api.js';
 import { clearBoard, renderBoard, wireBoardDragging } from './board.js';
 import { createDisplay, groupTasks } from './display.js';
+import { renderProjectGrid } from './projects.js';
 import { createFilterBar } from './filterbar.js';
 import { openTaskDetail, wireTaskDetail } from './taskdialog.js';
 import { monthLabel, monthRange, renderAgenda, renderMonthGrid, renderUnscheduled } from './calendar.js';
@@ -69,6 +70,9 @@ const elements = {
     projectOptions: $('project-options'),
     listView: $('list-view'),
     boardView: $('board-view'),
+    projectCrumb: $('project-crumb'),
+    projectBack: $('project-back'),
+    projectCrumbName: $('project-crumb-name'),
     calendarView: $('calendar-view'),
     form: $('task-form'),
     title: $('title'),
@@ -108,6 +112,9 @@ const today = startOfToday();
 
 const state = {
     view: 'all',
+    // The project whose board is open, as a category id string or 'none'; null shows the project cards.
+    project: null,
+    projectName: '',
     // The table's sort, set by its column headers. The board always asks for its manual order.
     listSort: 'default',
     month: new Date(today.getFullYear(), today.getMonth(), 1),
@@ -355,7 +362,7 @@ function renderTask(task) {
 function renderCard(task) {
     const priority = PRIORITY_BADGES[task.priority];
     const isCompleted = task.status === 'completed';
-    const draggable = display.state.grouping === 'status';
+    const draggable = boardGrouping() === 'status';
 
     const item = createElement('li', `board-card ${enterClass(task)}`);
     item.dataset.taskId = task.id;
@@ -550,6 +557,10 @@ function currentParams() {
         params.priority = display.state.priority;
         params.due = display.state.date || params.due;
 
+        if (state.project !== null) {
+            params.project = state.project;
+        }
+
         if (!display.state.showCompleted) {
             params.completed = 0;
         }
@@ -578,6 +589,22 @@ function showLoadError(error) {
     elements.loadErrorMessage.textContent =
         error instanceof ApiError && error.status === 429 ? RATE_LIMIT_MESSAGE : "Couldn't load tasks. Try again.";
     elements.loadError.classList.remove('hidden');
+}
+
+// A project's own board is grouped by stage; everywhere else the board follows the panel.
+const boardGrouping = () => (state.project === null ? display.state.grouping : 'status');
+
+function openProject({ key, name }) {
+    state.project = key;
+    state.projectName = name;
+    load().then(() => elements.projectBack.focus());
+}
+
+function closeProject() {
+    const key = state.project;
+
+    state.project = null;
+    load().then(() => elements.boardView.querySelector(`[data-project="${key}"]`)?.focus());
 }
 
 async function load() {
@@ -609,6 +636,7 @@ async function load() {
         }
 
         hideSkeletons();
+        elements.projectCrumb.hidden = true;
         elements.loadError.classList.add('hidden');
         renderStats(statsResponse.data);
         renderProjectOptions(categoriesResponse.data);
@@ -635,25 +663,28 @@ async function load() {
             elements.unscheduledCount.textContent = String(unscheduledResponse.data.length);
             elements.unscheduledEmpty.classList.toggle('hidden', unscheduledResponse.data.length > 0);
         } else if (currentLayout() === 'board') {
-            renderBoard({
-                tasks: tasksResponse.data,
-                grouping: display.state.grouping,
-                categories: categoriesResponse.data,
-                renderCard,
-            });
+            const showingProjects = display.state.grouping === 'project' && state.project === null;
+
+            elements.projectCrumb.hidden = state.project === null;
+            elements.projectCrumbName.textContent = state.projectName;
+
+            if (showingProjects) {
+                renderProjectGrid(elements.boardView, { tasks: tasksResponse.data, onOpen: openProject });
+            } else {
+                renderBoard({ tasks: tasksResponse.data, grouping: boardGrouping(), renderCard });
+            }
         } else {
             renderList(
                 tasksResponse.data,
-                groupTasks({
-                    tasks: tasksResponse.data,
-                    grouping: 'status',
-                    categories: categoriesResponse.data,
-                }),
+                groupTasks({ tasks: tasksResponse.data, grouping: 'status' }),
             );
         }
 
         drawnIds = new Set(tasksResponse.data.map((task) => task.id));
-        display.renderSummary(tasksResponse.data.length);
+        display.renderSummary(
+            tasksResponse.data.length,
+            state.project === null ? [] : [['Project: ', state.projectName]],
+        );
     } catch (error) {
         if (requestId === latestRequestId) {
             showLoadError(error);
@@ -927,6 +958,7 @@ function applyView() {
 }
 
 function setView(key) {
+    state.project = null;
     state.view = key;
     filterBar.reset();
     applyView();
@@ -963,6 +995,10 @@ function applyLayout() {
 }
 
 function applyDisplay({ date }) {
+    if (display.state.grouping !== 'project') {
+        state.project = null;
+    }
+
     // Today, Upcoming and Overdue are date filters already. Choosing a Date in the panel takes
     // over, rather than leaving two filters to fight while the heading still names the view that
     // lost.
@@ -1069,6 +1105,7 @@ elements.taskDialog.addEventListener('click', (event) => {
     }
 });
 elements.retry.addEventListener('click', load);
+elements.projectBack.addEventListener('click', closeProject);
 
 elements.selectAll.addEventListener('change', () =>
     selection.setMany(listedIds, elements.selectAll.checked),

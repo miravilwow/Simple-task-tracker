@@ -250,4 +250,14 @@ class TrackerPageTest extends TestCase
             'A date input is not wrapped in <x-date-field>'
         );
     }
+
+    public function test_a_project_board_has_a_way_back_to_the_projects(): void
+    {
+        $this->get('/tasks')->assertOk()->assertSeeInOrder([
+            'id="project-crumb"',
+            'id="project-back"',
+            'id="project-crumb-name"',
+            'id="board-view"',
+        ], false);
+    }
 }

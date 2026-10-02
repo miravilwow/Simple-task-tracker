@@ -275,6 +275,20 @@
                 </div>
             @endfor
         </div>
+        {{-- Shown while one project's board is open, so the way back is where the eye starts. --}}
+        <nav id="project-crumb" aria-label="Project" hidden class="mt-6">
+            <ol class="flex items-center gap-2 text-sm">
+                <li>
+                    <button type="button" id="project-back"
+                        class="-mx-2 inline-flex min-h-10 items-center gap-1 rounded-md px-2 font-medium text-gray-600 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
+                        <x-icon name="chevron-left" class="size-4" />
+                        Projects
+                    </button>
+                </li>
+                <li aria-hidden="true" class="text-gray-400">/</li>
+                <li id="project-crumb-name" aria-current="page" class="font-medium text-gray-900"></li>
+            </ol>
+        </nav>
         <div id="board-view" class="mt-6 gap-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] xl:gap-6"></div>
         <p id="board-help" class="sr-only">
             Press Enter to open a task. Press Space to pick it up, the left and right arrows to move

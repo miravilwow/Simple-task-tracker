@@ -28,20 +28,9 @@ const LABELS = {
  * Splits a list into the groups asked for. One function for the board and the list, so a board
  * column and a list group always hold the same tasks under the same heading.
  *
- * @param {{tasks: array, grouping: string, categories: array}} options
+ * @param {{tasks: array, grouping: string}} options
  */
-export function groupTasks({ tasks, grouping, categories }) {
-    if (grouping === 'project') {
-        return [
-            ...categories.map((category) => ({
-                key: `project-${category.id}`,
-                label: category.name,
-                tasks: tasks.filter((task) => task.category?.id === category.id),
-            })),
-            { key: 'project-none', label: 'No project', tasks: tasks.filter((task) => !task.category) },
-        ];
-    }
-
+export function groupTasks({ tasks, grouping }) {
     return GROUPINGS[grouping].keys.map((key) => ({
         key,
         label: LABELS[grouping][key],
