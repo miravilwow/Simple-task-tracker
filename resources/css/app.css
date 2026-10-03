@@ -5,10 +5,21 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
-/* Task table columns: Task | Priority | Status | Actions. Shared by the header row and each task
-   row, which is what keeps a heading over the column it names. */
+/* Task table columns: Task | Date | Time | Priority | Status | Actions. Shared by the header row
+   and each task row, which is what keeps a heading over the column it names. Below xl the Complete
+   button drops its word (see completeButton in app.js), so Actions narrows and Task keeps room.
+   Every column grows in proportion past its minimum: with only Task growing, a wide screen left a
+   long empty run between each short title and its date, and the rest of the row bunched up. */
 @utility task-columns {
-    grid-template-columns: minmax(0, 1fr) 5.5rem 6.5rem 10.5rem;
+    grid-template-columns:
+        minmax(0, 2.5fr) minmax(5.5rem, 1fr) minmax(4.5rem, 1fr) minmax(4.5rem, 1fr) minmax(5.5rem, 1fr)
+        minmax(9rem, 1fr);
+
+    @media (width >= 80rem) {
+        grid-template-columns:
+            minmax(0, 2.5fr) minmax(6.5rem, 1fr) minmax(5rem, 1fr) minmax(5rem, 1fr) minmax(6rem, 1fr)
+            minmax(13rem, 1fr);
+    }
 }
 
 /* Hides the bar, not the scrolling: wheel, touch, keyboard and trackpad all still scroll. */
@@ -68,7 +79,7 @@
 }
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
     /* The cap on the full-bleed shell, so the tracker stops stretching on an ultrawide display. */
@@ -215,6 +226,39 @@
     }
 }
 
+/*
+ * Tablets and small laptops (30rem to 64rem): the icon rail, always on screen, instead of a drawer
+ * hidden behind a menu button. There is room for 3.5rem of icons here but not for 16rem of labels.
+ * `:not([data-open])` because Ctrl/Cmd+B can still open the full drawer over the page at this size.
+ */
+@media (min-width: 30rem) and (max-width: 63.99rem) {
+    .sidebar:not([data-open='true']) {
+        top: var(--header-height);
+        z-index: 20;
+        width: var(--sidebar-width-icon);
+        visibility: visible;
+        transform: none;
+    }
+
+    .sidebar:not([data-open='true']) .sidebar-collapsible,
+    .sidebar:not([data-open='true']) [data-sidebar-close] {
+        display: none;
+    }
+
+    .sidebar:not([data-open='true']) .sidebar-menu-button {
+        justify-content: center;
+        padding-inline: 0;
+    }
+
+    [data-app-shell] {
+        --app-shell-offset: var(--sidebar-width-icon);
+    }
+
+    [data-app-shell] > main {
+        padding-left: var(--app-shell-offset);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .sidebar {
         transition: none;
@@ -246,8 +290,8 @@
     @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none;
 }
 
-/* The shape every row, board card and task dialog action shares. Blade and the rows JavaScript
-   builds both need it, so it lives here once instead of as a string in each. */
+/* The shape every row and task dialog action shares. Blade and the rows JavaScript builds both
+   need it, so it lives here once instead of as a string in each. */
 @utility btn-action {
     @apply inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60;
 }
@@ -257,7 +301,7 @@
     @apply inline-flex shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none;
 }
 
-/* Complete, wherever it appears. */
+/* Complete, on a row and in the task dialog. */
 @utility btn-complete {
     @apply border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 focus-visible:ring-green-500;
 }
@@ -275,11 +319,6 @@
  */
 @utility table-sort {
     @apply -mx-1 inline-flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-pressed:text-gray-900;
-}
-
-/* Faint until this column is the one being sorted by, so the row reads as headings first. */
-.table-sort > svg {
-    opacity: 0.3;
 }
 
 .table-sort[aria-pressed='true'] > svg {
@@ -308,6 +347,21 @@
     @apply min-h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none sm:w-auto;
 }
 
+/* The browser's own select arrow differs by OS (a heavy stacked chevron on macOS, a thin one on
+   Windows) and sits flush against the text with no reserved gap. One Heroicons chevron-down,
+   drawn the same way across every select, replaces it with room of its own. Scoped to `select` so
+   it never lands on `.detail-field`'s text inputs, which share that utility. */
+select.filter-control,
+select.display-select,
+select.detail-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m19.5 8.25-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem;
+    padding-right: 2.25rem;
+}
+
 /* aria-checked carries the state, so it is never in the colour alone. */
 @utility switch {
     @apply relative h-6 w-10 shrink-0 rounded-full bg-gray-300 transition-colors focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none aria-checked:bg-red-600 after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:transition-transform aria-checked:after:translate-x-4;
@@ -317,8 +371,18 @@
     @apply inline-flex size-9 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none disabled:opacity-35 disabled:hover:bg-transparent;
 }
 
+/* Also the board card's Complete control: small, beside the task name, rather than a labelled
+   button below it. `disabled:text-gray-400` keeps the busy spinner visible while it is mid-flight
+   (`aria-checked` is still false then); `.tick.btn-done` below covers the brief "done" moment the
+   same generic three-state flow (`setDone()` in dom.js) adds to every other action button. */
 @utility tick {
-    @apply inline-flex size-5.5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-white text-transparent transition-colors hover:border-green-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none aria-checked:border-green-700 aria-checked:bg-green-700 aria-checked:text-white;
+    @apply inline-flex size-5.5 shrink-0 items-center justify-center rounded-full border-2 border-gray-400 bg-white text-transparent transition-colors hover:border-green-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-gray-400 aria-checked:border-green-700 aria-checked:bg-green-700 aria-checked:text-white;
+}
+
+/* Outranks both single-class utilities so the brief "done" moment reads the same green-filled
+   circle as the steady `aria-checked` state, whichever order Tailwind emits the two in. */
+.tick.btn-done {
+    @apply border-green-700 bg-green-700 text-white;
 }
 
 @utility detail-title {

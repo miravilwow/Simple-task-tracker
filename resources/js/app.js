@@ -45,6 +45,7 @@ const VIEWS = {
     upcoming: { title: 'Upcoming', subtitle: 'Everything with a date. Drag a task onto a day to schedule it.', params: {} },
     overdue: { title: 'Overdue', subtitle: 'Past their due date and still pending.', params: { due: 'overdue' } },
     completed: { title: 'Completed', subtitle: "Everything you've finished.", params: {} },
+    deleted: { title: 'Deleted', subtitle: 'Removed tasks. Restore brings one back.', params: { trashed: 1 } },
 };
 
 const UNSCHEDULED_EMPTY = 'Every task has a date.';
@@ -158,6 +159,7 @@ function emptyMessage() {
         upcoming: 'Nothing scheduled ahead.',
         overdue: 'Nothing overdue. Nice work.',
         completed: 'No completed tasks yet.',
+        deleted: 'Nothing in here. Deleted tasks show up here until restored.',
     }[state.view];
 }
 
@@ -177,6 +179,51 @@ function createDueButton(task) {
     return button;
 }
 
+// The table's Date column: the day as digits. A card's meta line keeps the sentence form in
+// `dueLabel` above — it has a full row to run across, which a column does not.
+const numericDate = new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
+function tableDateContent(task) {
+    const text = createElement('span', 'flex flex-col leading-tight');
+
+    text.append(createElement('span', '', task.due_date ? numericDate.format(parseDate(task.due_date)) : 'No date'));
+
+    // The red already says late; the word says it to anyone who cannot rely on the colour.
+    if (task.is_overdue) {
+        text.append(createElement('span', 'text-[11px] font-medium', 'Overdue'));
+    }
+
+    return text;
+}
+
+// A live row's date reschedules on click. A trashed row's is text: `schedule` binds the default
+// (non-trashed) way, so a button there would only 404.
+function tableDateCell(task) {
+    const tone = task.is_overdue ? 'text-red-600' : 'text-gray-700';
+
+    if (task.deleted_at) {
+        const span = createElement('span', `text-xs ${tone}`);
+        span.append(tableDateContent(task));
+
+        return span;
+    }
+
+    const button = createElement(
+        'button',
+        `-mx-2 inline-flex min-h-8 items-center rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none ${tone}`,
+    );
+    button.type = 'button';
+    button.title = task.due_date ? 'Reschedule' : 'Set a date';
+    button.append(tableDateContent(task));
+    button.addEventListener('click', () => rescheduleFromDialog(task));
+
+    return button;
+}
+
+function tableTimeCell(task) {
+    return createElement('span', 'text-xs text-gray-700', task.due_time ? formatTime(task.due_time) : '—');
+}
+
 function projectChip(category) {
     const chip = createElement('span', 'inline-flex items-center gap-1.5 text-xs text-gray-600');
     chip.append(createIcon('folder', 'size-3.5 shrink-0 text-gray-400'), createElement('span', '', category.name));
@@ -193,21 +240,64 @@ function actionLabel(text, className = '') {
 
 // Complete is the only stage button anywhere. Starting a task is the board's drag or the dialog's
 // Status field; reopening one is the Undo on its toast, the same two, or dragging it back.
-function completeButton(task, compact) {
-    const button = createElement(
-        'button',
-        [BUTTON_BASE, 'btn-complete', compact ? '' : 'flex-1 md:flex-none'].filter(Boolean).join(' '),
-    );
+// Between md and xl the table is at its narrowest, so the word is kept for screen readers only
+// and the tick carries the button; a phone stacks the row and has room for it again.
+function completeButton(task) {
+    const button = createElement('button', [BUTTON_BASE, 'btn-complete', 'flex-1 md:flex-none'].join(' '));
 
     button.type = 'button';
-    button.append(createIcon('check'), actionLabel('Complete'));
+    button.title = 'Complete';
+    button.append(createIcon('check'), actionLabel('Complete', 'md:max-xl:sr-only'));
     button.addEventListener('click', () => completeTask(task, button));
 
     return button;
 }
 
+// The board card's Complete: a small circle beside the task name rather than a labelled button,
+// so it reads as a checkbox the way a sub-task's own tick does. The label stays in the DOM via
+// `[data-label]`, sr-only, since setBusy()/setDone() (dom.js) write to it and fall back to
+// overwriting the whole button — icon included — when that span is missing.
+function cardTick(task) {
+    const button = createElement('button', 'tick mt-0.5');
+
+    button.type = 'button';
+    button.setAttribute('role', 'checkbox');
+    button.setAttribute('aria-checked', 'false');
+    button.append(createIcon('check', 'size-3'), actionLabel('Complete', 'sr-only'));
+    button.addEventListener('click', () => completeTask(task, button));
+
+    return button;
+}
+
+// Deleted's row: View details (read-only) and Restore, nothing behind a "…". Reschedule and Delete
+// assume a task still on the board; a trashed row only ever goes one way, which is back. The word
+// alone, at its own width: an icon beside it said the same thing twice and made the button longer.
+function restoreButton(task) {
+    const button = createElement('button', 'btn-secondary');
+
+    button.type = 'button';
+    button.append(actionLabel('Restore'));
+    button.addEventListener('click', () => restoreTask(task, button));
+
+    return button;
+}
+
+// The task dialog, one click from the row rather than two through the "…". Icon-only, so it
+// carries its name for a screen reader and a tooltip for a pointer.
+function viewButton(task) {
+    const button = createElement('button', 'btn-row-menu size-10');
+
+    button.type = 'button';
+    button.title = 'View details';
+    button.setAttribute('aria-label', `View details for ${task.title}`);
+    button.append(createIcon('eye'));
+    button.addEventListener('click', () => showTaskDetail(task.id, button));
+
+    return button;
+}
+
 /**
- * A table row's actions: Complete, then everything else behind the "…".
+ * A table row's actions: Complete, View details, then everything else behind the "…".
  *
  * Complete stays a button because it is the commonest thing anyone does on this page, and burying
  * it would make one click into two. Delete goes inside, which is where the rules already wanted it
@@ -217,11 +307,17 @@ function completeButton(task, compact) {
  * A board card offers fewer: Complete, then Edit and Delete behind its own "…".
  */
 function rowActions(task) {
+    if (task.deleted_at) {
+        return [viewButton(task), restoreButton(task)];
+    }
+
     const buttons = [];
 
     if (task.status !== 'completed') {
-        buttons.push(completeButton(task, false));
+        buttons.push(completeButton(task));
     }
+
+    buttons.push(viewButton(task));
 
     buttons.push(rowMenu(task));
 
@@ -245,9 +341,9 @@ function menuTrigger(task, sizeClass, buildEntries) {
 }
 
 function rowMenu(task) {
-    return menuTrigger(task, 'size-10', (trigger) => {
+    return menuTrigger(task, 'size-10', () => {
+        // No "Open": View details sits beside this menu and does exactly that.
         const entries = [
-            { icon: 'pencil', label: 'Open', onSelect: () => showTaskDetail(task.id, trigger) },
             {
                 icon: 'calendar',
                 label: task.due_date ? 'Reschedule' : 'Set a date',
@@ -280,7 +376,7 @@ function titleButton(task) {
 
     const button = createElement(
         'button',
-        'block w-full text-left wrap-break-word hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
+        'block min-h-6 w-full text-left wrap-break-word hover:underline hover:underline-offset-2 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none',
         task.title,
     );
 
@@ -295,35 +391,45 @@ function titleButton(task) {
 function renderTask(task) {
     const priority = PRIORITY_BADGES[task.priority];
     const isCompleted = task.status === 'completed';
+    const isTrashed = Boolean(task.deleted_at);
 
     const item = createElement(
         'li',
-        `${enterClass(task)} relative flex flex-wrap items-center gap-x-2 gap-y-3 py-4 pr-4 pl-5 transition-colors hover:bg-gray-50 sm:pr-6 sm:pl-7 md:grid md:task-columns md:gap-4`,
+        `${enterClass(task)} relative flex flex-wrap items-center gap-x-2 gap-y-3 py-3 pr-4 pl-5 transition-colors hover:bg-gray-50 sm:pr-6 sm:pl-7 md:grid md:task-columns md:gap-4`,
     );
     item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`));
 
-    const content = createElement('div', 'min-w-0 flex-1 md:w-auto');
+    // Full width below md, so the name gets the whole first line and the cells wrap beneath it.
+    const content = createElement('div', 'w-full min-w-0 md:w-auto');
     const heading = createElement('h3', `font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
     heading.append(titleButton(task));
     content.append(heading);
 
-    if (task.description) {
-        content.append(
-            createElement('p', 'mt-1 text-sm whitespace-pre-line wrap-break-word text-gray-600', task.description),
-        );
-    }
-
+    // No description in the table: it has no length limit, so one long one would stretch its row
+    // far past the others. It lives in the task dialog, which View details opens.
     const meta = createElement('div', 'mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1');
 
     if (task.category) {
         meta.append(projectChip(task.category));
     }
 
-    meta.append(createDueButton(task));
     meta.append(
-        createElement('span', 'text-xs text-gray-400', `Added ${createdFormatter.format(new Date(task.created_at))}`),
+        createElement(
+            'span',
+            'text-xs text-gray-400',
+            isTrashed
+                ? `Deleted ${createdFormatter.format(new Date(task.deleted_at))}`
+                : `Added ${createdFormatter.format(new Date(task.created_at))}`,
+        ),
     );
     content.append(meta);
+
+    // Date and time each get a column of their own from md, rather than sharing one cell.
+    const dateCell = createElement('div', 'flex items-center');
+    dateCell.append(tableDateCell(task));
+
+    const timeCell = createElement('div', 'flex items-center');
+    timeCell.append(tableTimeCell(task));
 
     const priorityCell = createElement('div');
     priorityCell.append(createBadge(priority.label, priority.classes));
@@ -331,10 +437,12 @@ function renderTask(task) {
     const statusCell = createElement('div');
     statusCell.append(createBadge(STATUS_BADGES[task.status].label, STATUS_BADGES[task.status].classes));
 
-    const actions = createElement('div', 'flex w-full items-center gap-2 md:w-auto md:justify-end');
+    // Centred under the centred "Actions" heading, so the buttons sit beneath the word that names them.
+    // On a phone it closes the date/time/badges line (ml-auto) rather than taking a line of its own.
+    const actions = createElement('div', 'ml-auto flex items-center gap-2 md:ml-0 md:justify-center');
     actions.append(...rowActions(task));
 
-    item.append(content, priorityCell, statusCell, actions);
+    item.append(content, dateCell, timeCell, priorityCell, statusCell, actions);
 
     return item;
 }
@@ -359,9 +467,16 @@ function renderCard(task) {
         item.setAttribute('aria-describedby', 'board-help');
     }
 
-    const heading = createElement('h3', `pr-8 text-sm font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
+    const heading = createElement('h3', `min-w-0 flex-1 text-sm font-medium ${isCompleted ? 'text-gray-400 line-through' : ''}`);
     heading.append(titleButton(task));
-    item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`), heading, cardMenu(task));
+
+    const titleRow = createElement('div', 'flex items-start gap-2 pr-8');
+    if (!isCompleted) {
+        titleRow.append(cardTick(task));
+    }
+    titleRow.append(heading);
+
+    item.append(createElement('span', `absolute inset-y-0 left-0 w-1 ${priority.accent}`), titleRow, cardMenu(task));
 
     if (task.description) {
         item.append(createElement('p', 'mt-1 text-xs whitespace-pre-line wrap-break-word text-gray-500', task.description));
@@ -382,12 +497,6 @@ function renderCard(task) {
 
     item.append(meta);
 
-    if (!isCompleted) {
-        const actions = createElement('div', 'mt-3 flex items-center gap-2');
-        actions.append(completeButton(task, true));
-        item.append(actions);
-    }
-
     return item;
 }
 
@@ -396,11 +505,14 @@ function renderCard(task) {
  * row that happens to be a heading rather than a second structure to keep in step.
  */
 function groupHeading(group) {
-    const row = createElement('li', 'flex items-center justify-between gap-2 bg-gray-50 px-4 py-2 sm:px-6');
+    // Only as wide as the label itself, not spread across the row with `justify-between`: at the
+    // table's `md:task-columns` width that put the count under the Actions header, reading as
+    // part of the row below rather than as its own heading.
+    const row = createElement('li', 'flex items-center gap-2 bg-gray-50 px-4 py-2 sm:px-6');
 
     row.append(
         createElement('h3', 'text-xs font-semibold tracking-wide text-gray-600 uppercase', group.label),
-        createElement('span', 'text-xs font-medium text-gray-500 tabular-nums', String(group.tasks.length)),
+        createElement('span', 'text-xs font-medium text-gray-500 tabular-nums', `(${group.tasks.length})`),
     );
 
     return row;
@@ -409,13 +521,15 @@ function groupHeading(group) {
 function renderList(tasks, groups) {
     const hasTasks = tasks.length > 0;
     const rows = [];
+    const populated = groups.filter((item) => item.tasks.length > 0);
 
-    // Ungrouped, the list is what it has always been. Grouped, each heading carries its own rows,
-    // and an empty group is left out rather than printed as a heading over nothing.
-    if (groups.length === 1 && groups[0].key === 'all') {
+    // An empty group is left out rather than printed as a heading over nothing, which leaves
+    // Completed with exactly one ("Done"): a heading would only repeat what every row already
+    // is, so a single surviving group draws as a plain list instead of a heading over itself.
+    if (populated.length <= 1) {
         rows.push(...tasks.map(renderTask));
     } else {
-        for (const group of groups.filter((item) => item.tasks.length > 0)) {
+        for (const group of populated) {
             rows.push(groupHeading(group), ...group.tasks.map(renderTask));
         }
     }
@@ -457,6 +571,12 @@ function renderProjectOptions(categories) {
 }
 
 function currentParams() {
+    // `trashed` prohibits every other filter server-side, so Deleted sends nothing else: no sort,
+    // no status, none of the filter bar's settings.
+    if (state.view === 'deleted') {
+        return { ...VIEWS.deleted.params };
+    }
+
     const params = {
         ...VIEWS[state.view].params,
         sort: currentLayout() === 'board' ? 'manual' : state.listSort,
@@ -697,8 +817,20 @@ async function runAndReload(request, { message, description = '', undo = null } 
     }
 }
 
-const completeTask = (task, button) =>
-    runAction(button, {
+async function completeTask(task, button) {
+    const confirmed = await confirmAction({
+        title: 'Complete task',
+        message: `Mark "${task.title}" as complete?`,
+        confirmLabel: 'Complete',
+        tone: 'success',
+    });
+
+    if (!confirmed) {
+        button?.focus();
+        return;
+    }
+
+    await runAction(button, {
         busyLabel: 'Completing…',
         doneLabel: 'Completed',
         request: () => api(`/tasks/${task.id}/complete`, { method: 'PATCH' }),
@@ -707,6 +839,20 @@ const completeTask = (task, button) =>
         // Back to the stage it left, not always To do: an In review task would otherwise lose its place.
         undo: () => api(`/tasks/${task.id}/${STAGE_ENDPOINTS[task.status]}`, { method: 'PATCH' }),
         undoMessage: `Moved back to ${STATUS_BADGES[task.status].label}`,
+    });
+}
+
+// Deleted's one row action. The same reversal the Delete toast's own Undo runs, so there is one
+// path back from the trash whichever way it is reached.
+const restoreTask = (task, button) =>
+    runAction(button, {
+        busyLabel: 'Restoring…',
+        doneLabel: 'Restored',
+        request: () => api(`/tasks/${task.id}/restore`, { method: 'PATCH' }),
+        successMessage: 'Task restored',
+        description: task.title,
+        undo: () => api(`/tasks/${task.id}`, { method: 'DELETE' }),
+        undoMessage: 'Task deleted',
     });
 
 // Reopening from the row's menu. The same endpoint the dialog's Status field and a board drag use.
@@ -870,6 +1016,10 @@ async function createTask(event) {
         missing.due_date = ['The due date field is required.'];
     }
 
+    if (!payload.due_time) {
+        missing.due_time = ['The due time field is required.'];
+    }
+
     if (Object.keys(missing).length > 0) {
         showFieldErrors(missing, elements.form);
 
@@ -916,7 +1066,8 @@ function applyView() {
 
     elements.boardControls.hidden = !onBoard;
     elements.displaySummary.hidden = !onBoard;
-    filterBar.setShown(!onBoard);
+    // Deleted carries none of the filter bar's settings either: `trashed` prohibits them server-side.
+    filterBar.setShown(!onBoard && state.view !== 'deleted');
 }
 
 function setView(key) {
@@ -935,7 +1086,7 @@ function setView(key) {
  * Every view decides its own layout: All tasks and Today are the board, Upcoming is the calendar,
  * and Overdue and Completed are the table.
  */
-const LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar', overdue: 'list', completed: 'list' };
+const LAYOUTS = { all: 'board', today: 'board', upcoming: 'calendar', overdue: 'list', completed: 'list', deleted: 'list' };
 
 const currentLayout = () => LAYOUTS[state.view];
 
@@ -971,8 +1122,22 @@ function applyDisplay({ date }) {
     load();
 }
 
+const relativeMonth = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+// The middle button says where the shown month sits relative to now, rather than always reading
+// "Today": on any other month that label looked like it described the month on screen.
+function syncMonthButton() {
+    const button = $('calendar-today');
+    const offset = (state.month.getFullYear() - today.getFullYear()) * 12 + state.month.getMonth() - today.getMonth();
+    const label = relativeMonth.format(offset, 'month');
+
+    button.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    button.disabled = offset === 0;
+}
+
 function shiftMonth(offset) {
     state.month = new Date(state.month.getFullYear(), state.month.getMonth() + offset, 1);
+    syncMonthButton();
     load();
 }
 
@@ -1099,8 +1264,12 @@ $('calendar-prev').addEventListener('click', () => shiftMonth(-1));
 $('calendar-next').addEventListener('click', () => shiftMonth(1));
 $('calendar-today').addEventListener('click', () => {
     state.month = new Date(today.getFullYear(), today.getMonth(), 1);
+    syncMonthButton();
+    // Disabling the button that has focus drops focus onto the page, so it goes to the month name.
+    $('calendar-heading').focus();
     load();
 });
+syncMonthButton();
 
 wireTaskDetail();
 wireBoardDragging(reorderTask, (id) => showTaskDetail(id));

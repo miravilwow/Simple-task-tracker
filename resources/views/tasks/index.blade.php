@@ -10,6 +10,7 @@
             ['key' => 'upcoming', 'label' => 'Upcoming', 'icon' => 'calendar', 'count' => null],
             ['key' => 'overdue', 'label' => 'Overdue', 'icon' => 'warning', 'count' => 'overdue'],
             ['key' => 'completed', 'label' => 'Completed', 'icon' => 'check-circle', 'count' => 'completed'],
+            ['key' => 'deleted', 'label' => 'Deleted', 'icon' => 'trash', 'count' => 'deleted'],
         ];
     @endphp
 
@@ -128,13 +129,15 @@
 
         {{-- Upcoming, Overdue and Completed have no Display panel; these are their filters. --}}
         <div id="filter-bar" role="search" aria-label="Filter tasks" hidden class="mt-4">
+            {{-- Below sm: Search alone on the first line, the two selects sharing the second. A phone
+                 cannot fit all three on one line without crushing the search box to a sliver. --}}
             <div class="flex flex-wrap items-end gap-3">
-                <div class="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xs">
+                <div class="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-1 sm:max-w-xs">
                     <label for="filter-search" class="text-xs font-medium text-gray-600">Search</label>
                     <input type="search" id="filter-search" maxlength="100" autocomplete="off"
                         placeholder="e.g. report" class="filter-control">
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
                     <label for="filter-bar-priority" class="text-xs font-medium text-gray-600">Priority</label>
                     <select id="filter-bar-priority" class="filter-control">
                         @foreach (['' => 'All priorities', 'high' => 'High', 'medium' => 'Medium', 'low' => 'Low'] as $value => $text)
@@ -142,7 +145,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="flex flex-col gap-1">
+                <div class="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
                     <label for="filter-bar-project" class="text-xs font-medium text-gray-600">Project</label>
                     <select id="filter-bar-project" class="filter-control">
                         <option value="">All projects</option>
@@ -181,29 +184,33 @@
 
                 {{-- Not aria-hidden any more: it holds two real sort buttons, and hiding the row
                      would hide them from a screen reader entirely. --}}
+                {{-- The same horizontal padding as a task row (pl-7 clears the row's priority bar),
+                     so each heading starts exactly over the column it names. --}}
                 <div id="column-headers"
-                    class="hidden gap-4 border-b border-gray-200 bg-gray-50 px-6 py-2 text-xs font-medium text-gray-500 md:task-columns">
+                    class="hidden gap-4 border-b border-gray-200 bg-gray-50 py-2 pr-6 pl-7 text-xs font-medium text-gray-500 md:task-columns">
                     <span class="flex items-center">
                         <button type="button" class="table-sort" data-sort="name" aria-pressed="false"
                             title="Sort by name">
                             Task
-                            <x-icon name="chevron-down" class="size-3.5" />
                         </button>
                     </span>
+                    {{-- No sort of its own: Date and Name replace TaskSorter outright, which this
+                         header does not, and the calendar is still where a date moves a task. --}}
+                    <span class="flex items-center">Date</span>
+                    <span class="flex items-center">Time</span>
                     <span class="flex items-center">
                         {{-- "default" is Src\TaskSorter, which is priority first. The header names what
                              the user sees rather than what the enum calls it. --}}
                         <button type="button" class="table-sort" data-sort="default" aria-pressed="false"
                             title="Sort by priority">
                             Priority
-                            <x-icon name="chevron-down" class="size-3.5" />
                         </button>
                     </span>
                     {{-- Status does not sort. Every order runs through byStage() already, so To do
                          always precedes the later stages; a sort button here would be a control
                          that changes nothing. --}}
                     <span class="flex items-center">Status</span>
-                    <span class="flex items-center justify-end">Actions</span>
+                    <span class="flex items-center justify-center">Actions</span>
                 </div>
 
                 {{-- Skeleton rows hold the layout steady on first load. --}}
@@ -286,9 +293,11 @@
                             class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
                             <x-icon name="chevron-left" class="size-4" />
                         </button>
-                        <button type="button" id="calendar-today"
-                            class="inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
-                            Today
+                        {{-- Names the shown month relative to now ("Next month", "2 months ago"), and
+                             jumps back to this month. Disabled while this month is already shown. --}}
+                        <button type="button" id="calendar-today" title="Back to this month"
+                            class="inline-flex min-h-10 min-w-32 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none disabled:cursor-default disabled:text-gray-400 disabled:hover:bg-white">
+                            This month
                         </button>
                         <button type="button" id="calendar-next" aria-label="Next month"
                             class="flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none">
@@ -320,10 +329,9 @@
                 <div id="calendar-agenda" class="divide-y divide-gray-200 md:hidden"></div>
             </section>
 
-            {{-- Ordered into the first column so the tray lands where the New task form sits in
-                 the list layout, and switching views moves nothing sideways. --}}
+            {{-- The fourth column, to the right of the month grid. --}}
             <section aria-labelledby="unscheduled-heading"
-                class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm xl:order-first xl:sticky xl:app-sticky-top">
+                class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm xl:sticky xl:app-sticky-top">
                 <div class="flex items-center gap-2 border-b border-gray-200 px-4 py-3">
                     <x-icon name="inbox-stack" class="size-5 text-gray-500" />
                     <h2 id="unscheduled-heading" class="font-medium">No due date</h2>
@@ -341,8 +349,9 @@
     <dialog id="confirm-dialog"
         class="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-gray-900/40">
         <div class="flex gap-4 p-6">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <x-icon name="warning" class="size-6" />
+            <span id="confirm-icon-wrap"
+                class="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <x-icon id="confirm-icon" name="warning" class="size-6" />
             </span>
             <div class="min-w-0">
                 <h2 id="confirm-title" class="font-medium">Delete task</h2>
@@ -396,103 +405,104 @@
             <h2 id="new-task-heading" class="font-medium">New task</h2>
         </div>
 
-        <div class="space-y-4 p-6">
-<form id="task-form" novalidate>
-                    <div>
-                        <label for="title" class="block text-sm font-medium text-gray-700">
-                            Title <span class="text-red-600" aria-hidden="true">*</span>
-                        </label>
-                        <input id="title" name="title" type="text" maxlength="255" required
-                            placeholder="e.g. Fix the checkout timeout" aria-describedby="title-error"
-                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
-                        <p id="title-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                    </div>
+        <div class="p-6">
+            <form id="task-form" novalidate>
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700">
+                        Title <span class="text-red-600" aria-hidden="true">*</span>
+                    </label>
+                    <input id="title" name="title" type="text" maxlength="255" required
+                        placeholder="e.g. Fix the checkout timeout" aria-describedby="title-error"
+                        class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
+                    <p id="title-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </div>
 
-                    <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700">
-                            Description <span class="font-normal text-gray-500">(optional)</span>
-                        </label>
-                        <textarea id="description" name="description" rows="2" placeholder="Add any details worth remembering"
-                            aria-describedby="description-error"
-                            class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
-                        <p id="description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                    </div>
+                <div class="mt-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700">
+                        Description <span class="font-normal text-gray-500">(optional)</span>
+                    </label>
+                    <textarea id="description" name="description" rows="2" placeholder="Add any details worth remembering"
+                        aria-describedby="description-error"
+                        class="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500"></textarea>
+                    <p id="description-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                </div>
 
-                    <fieldset>
-                        <legend class="block text-sm font-medium text-gray-700">Priority</legend>
-                        <p id="priority-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                <fieldset class="mt-4">
+                    <legend class="block text-sm font-medium text-gray-700">Priority</legend>
+                    <p id="priority-error" class="mt-1.5 hidden text-sm text-red-600"></p>
 
-                        {{-- Radio cards make the three options visible at once, unlike a closed select. --}}
-                        <div class="mt-1.5 grid grid-cols-3 gap-2">
-                            @foreach ([
-                                'low' => ['label' => 'Low', 'active' => 'has-checked:border-slate-400 has-checked:bg-slate-50 has-checked:text-slate-800'],
-                                'medium' => ['label' => 'Medium', 'active' => 'has-checked:border-amber-400 has-checked:bg-amber-50 has-checked:text-amber-900'],
-                                'high' => ['label' => 'High', 'active' => 'has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800'],
-                            ] as $value => $option)
-                                <label
-                                    class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-red-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
-                                    <input type="radio" name="priority" value="{{ $value }}" class="sr-only"
-                                        @checked($value === 'medium')>
-                                    {{ $option['label'] }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </fieldset>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label for="category_name" class="block text-sm font-medium text-gray-700">
-                                Project <span class="font-normal text-gray-500">(optional)</span>
+                    {{-- Radio cards make the three options visible at once, unlike a closed select. --}}
+                    <div class="mt-1.5 grid grid-cols-3 gap-2">
+                        @foreach ([
+                            'low' => ['label' => 'Low', 'active' => 'has-checked:border-slate-400 has-checked:bg-slate-50 has-checked:text-slate-800'],
+                            'medium' => ['label' => 'Medium', 'active' => 'has-checked:border-amber-400 has-checked:bg-amber-50 has-checked:text-amber-900'],
+                            'high' => ['label' => 'High', 'active' => 'has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800'],
+                        ] as $value => $option)
+                            <label
+                                class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 has-focus-visible:ring-2 has-focus-visible:ring-red-500 has-focus-visible:ring-offset-2 {{ $option['active'] }}">
+                                <input type="radio" name="priority" value="{{ $value }}" class="sr-only"
+                                    @checked($value === 'medium')>
+                                {{ $option['label'] }}
                             </label>
-                            <input id="category_name" name="category_name" type="text" maxlength="40"
-                                autocomplete="off" list="project-options" placeholder="e.g. School, Work"
-                                aria-describedby="category_name-hint category_name-error"
-                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
-                            <datalist id="project-options"></datalist>
-                            <p id="category_name-hint" class="mt-1.5 text-xs text-gray-500">Type a new name to create a project.</p>
-                            <p id="category_name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                        </div>
+                        @endforeach
+                    </div>
+                </fieldset>
 
-                        {{-- Side by side from sm, stacked below it: a month grid needs about 250px
-                             of its own, which two columns of a phone-width dialog do not have. --}}
-                        <div class="grid gap-3 sm:grid-cols-3">
-                            {{-- Required: a task nobody has given a day to is one the calendar, Today,
-                                 Upcoming and Overdue all have nothing to say about. Collapsed, because
-                                 the open grid is the tallest thing on this form by some way. --}}
-                            <div class="sm:col-span-2">
-                                <x-date-field id="due_date" name="due_date" label="Due date" :required="true"
-                                    :collapsed="true" describedby="due_date-error">
-                                    <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                                </x-date-field>
-                            </div>
-
-                            <div>
-                                {{-- The browser's own time control: unlike type="date" the three
-                                     browsers draw it much the same, so there is nothing to replace. --}}
-                                <label for="due_time" class="block text-sm font-medium text-gray-700">
-                                    Time <span class="font-normal text-gray-500">(optional)</span>
-                                </label>
-                                <input id="due_time" name="due_time" type="time" aria-describedby="due_time-error"
-                                    class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
-                                <p id="due_time-error" class="mt-1.5 hidden text-sm text-red-600"></p>
-                            </div>
-                        </div>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="category_name" class="block text-sm font-medium text-gray-700">
+                            Project <span class="font-normal text-gray-500">(optional)</span>
+                        </label>
+                        <input id="category_name" name="category_name" type="text" maxlength="40"
+                            autocomplete="off" list="project-options" placeholder="e.g. School, Work"
+                            aria-describedby="category_name-hint category_name-error"
+                            class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-500/20">
+                        <datalist id="project-options"></datalist>
+                        <p id="category_name-hint" class="mt-1.5 text-xs text-gray-500">Type a new name to create a project.</p>
+                        <p id="category_name-error" class="mt-1.5 hidden text-sm text-red-600"></p>
                     </div>
 
-                    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                        {{-- Not btn-secondary: this dialog's buttons are 44px to match its Save,
-                             where every other dialog uses 40px. --}}
-                        <button type="button" id="task-cancel"
-                            class="btn-secondary min-h-11">
-                            Cancel
-                        </button>
-                        <button type="submit" id="submit-button"
-                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
-                            <x-icon name="plus" class="size-4" />
-                            <span data-label>Add task</span>
-                        </button>
+                    {{-- Side by side from sm, stacked below it: a month grid needs about 250px
+                         of its own, which two columns of a phone-width dialog do not have. --}}
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        {{-- Required: a task nobody has given a day to is one the calendar, Today,
+                             Upcoming and Overdue all have nothing to say about. Collapsed, because
+                             the open grid is the tallest thing on this form by some way. --}}
+                        <div class="sm:col-span-2">
+                            <x-date-field id="due_date" name="due_date" label="Due date" :required="true"
+                                :collapsed="true" describedby="due_date-error">
+                                <p id="due_date-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                            </x-date-field>
+                        </div>
+
+                        <div>
+                            {{-- The browser's own time control: unlike type="date" the three
+                                 browsers draw it much the same, so there is nothing to replace.
+                                 Required, like the day: the server refuses a new task without it. --}}
+                            <label for="due_time" class="block text-sm font-medium text-gray-700">
+                                Time <span class="text-red-600" aria-hidden="true">*</span>
+                            </label>
+                            <input id="due_time" name="due_time" type="time" required aria-describedby="due_time-error"
+                                class="mt-1.5 block min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none aria-invalid:border-red-500">
+                            <p id="due_time-error" class="mt-1.5 hidden text-sm text-red-600"></p>
+                        </div>
                     </div>
-                </form>
+                </div>
+
+                <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    {{-- Not btn-secondary: this dialog's buttons are 44px to match its Save,
+                         where every other dialog uses 40px. --}}
+                    <button type="button" id="task-cancel"
+                        class="btn-secondary min-h-11">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submit-button"
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60">
+                        <x-icon name="plus" class="size-4" />
+                        <span data-label>Add task</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </dialog>
 
@@ -558,7 +568,15 @@
             </div>
         </div>
 
-        <div class="grid max-h-[calc(100dvh-6rem)] overflow-auto lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {{-- A deleted task opens read-only: every save endpoint refuses one, so its fields would
+             only offer edits that fail. Disabling the fieldset disables every control inside it. --}}
+        <p id="detail-trashed" hidden class="border-b border-gray-200 bg-gray-50 px-5 py-2 text-sm text-gray-600 sm:px-6">
+            This task is deleted. Restore it from Deleted to make changes.
+        </p>
+
+        <fieldset id="detail-body"
+            class="m-0 grid min-w-0 max-h-[calc(100dvh-6rem)] overflow-auto border-0 p-0 disabled:opacity-60 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <legend class="sr-only">Task details</legend>
             <div class="p-5 sm:p-6">
                 <div class="flex items-start gap-3">
                     <button type="button" id="detail-tick" class="btn-action btn-complete mt-1.5 shrink-0">
@@ -657,7 +675,7 @@
 
                 </div>
             </aside>
-        </div>
+        </fieldset>
     </dialog>
 
 </x-layout>

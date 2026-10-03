@@ -6,6 +6,7 @@
  */
 import { api } from './api.js';
 import { clearBusy, createElement, createIcon, setBusy, setDone } from './dom.js';
+import { confirmAction } from './dialogs.js';
 import { toast } from './toast.js';
 
 // The same floor the row and board card Complete buttons hold their "Completed" state for, so a
@@ -17,6 +18,9 @@ const $ = (id) => document.getElementById(id);
 
 const elements = {
     dialog: $('task-detail'),
+    body: $('detail-body'),
+    trashed: $('detail-trashed'),
+    delete: $('detail-delete'),
     crumb: $('detail-crumb'),
     tick: $('detail-tick'),
     title: $('detail-title'),
@@ -151,6 +155,11 @@ function fill() {
     markSwatch(task.color ?? '');
     elements.tick.querySelector('[data-label]').textContent = isDone ? 'Reopen' : 'Done';
 
+    const isTrashed = Boolean(task.deleted_at);
+    elements.body.disabled = isTrashed;
+    elements.trashed.hidden = !isTrashed;
+    elements.delete.disabled = isTrashed;
+
     const ids = order();
     const index = ids.indexOf(task.id);
     elements.prev.disabled = index <= 0;
@@ -159,20 +168,35 @@ function fill() {
     renderSubtasks();
 }
 
+// Every field saves on its own request, so two can be in flight together — a second color swatch
+// clicked before the first one's response lands, a date change while a title edit is still saving.
+// Nothing ordered them: two requests sent together can also arrive at the server together, and
+// whichever the server finishes last is what the row ends up holding, regardless of which the user
+// clicked last. Chaining each save onto the one before it sends them one at a time, so a save only
+// starts once the previous one has actually finished — the order the user made them in is the order
+// they reach the server in.
+let queue = Promise.resolve();
+
 /** Runs a request, refreshes the dialog from the answer, and reloads the page behind it. */
-async function save(request) {
-    try {
-        const response = await request();
+function save(request) {
+    const run = async () => {
+        try {
+            const response = await request();
 
-        if (response?.data) {
-            task = response.data;
-            fill();
+            if (response?.data) {
+                task = response.data;
+                fill();
+            }
+
+            await handlers.onChange();
+        } catch (error) {
+            toast.error(errorMessage(error));
         }
+    };
 
-        await handlers.onChange();
-    } catch (error) {
-        toast.error(errorMessage(error));
-    }
+    queue = queue.then(run, run);
+
+    return queue;
 }
 
 const patchTask = (payload) => save(() => api(`/tasks/${task.id}`, { method: 'PATCH', body: payload }));
@@ -247,6 +271,20 @@ export function wireTaskDetail() {
     elements.tick.addEventListener('click', async () => {
         const completing = task.status !== 'completed';
         const button = elements.tick;
+
+        if (completing) {
+            const confirmed = await confirmAction({
+                title: 'Complete task',
+                message: `Mark "${task.title}" as complete?`,
+                confirmLabel: 'Complete',
+                tone: 'success',
+            });
+
+            if (!confirmed) {
+                button.focus();
+                return;
+            }
+        }
 
         setBusy(button, completing ? 'Completing…' : 'Reopening…');
 

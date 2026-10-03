@@ -73,7 +73,9 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// Leaving the drawer open while the viewport grows would strand the backdrop over the page.
+// Leaving the drawer open while the viewport grows would strand the backdrop over the page. The
+// rail appears at 30rem, so growing past that closes it as well as growing past lg does.
 DESKTOP.addEventListener('change', (event) => event.matches && closeDrawer());
+window.matchMedia('(min-width: 30rem)').addEventListener('change', (event) => event.matches && closeDrawer());
 
 syncRail();
