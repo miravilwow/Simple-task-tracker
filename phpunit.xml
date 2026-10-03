@@ -27,8 +27,12 @@
         <!-- The request counter stays in memory here. A file would carry a count from one run
              of the suite into the next and eventually answer 429 for no visible reason. -->
         <env name="CACHE_LIMITER" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!-- Forced, and set in $_SERVER too (which Laravel reads first): inside the Docker
+             container DB_CONNECTION is already mysql, and the suite would wipe the app's data. -->
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <server name="DB_CONNECTION" value="sqlite" force="true"/>
+        <server name="DB_DATABASE" value=":memory:" force="true"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
