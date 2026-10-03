@@ -27,6 +27,7 @@ class TaskSchedulingTest extends TestCase
             'priority' => 'high',
             'category_name' => 'Thesis',
             'due_date' => '2026-10-05',
+            'due_time' => '09:00',
         ])
             ->assertCreated()
             ->assertJsonPath('data.due_date', '2026-10-05')

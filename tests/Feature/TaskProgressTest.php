@@ -124,7 +124,7 @@ class TaskProgressTest extends TestCase
     public function test_a_task_still_starts_as_to_do(): void
     {
         // The exam pins the default, and widening the set must not move it.
-        $this->postJson('/api/tasks', ['title' => 'Fresh', 'priority' => 'low', 'due_date' => today()->toDateString()])
+        $this->postJson('/api/tasks', ['title' => 'Fresh', 'priority' => 'low', 'due_date' => today()->toDateString(), 'due_time' => '09:00'])
             ->assertCreated()
             ->assertJsonPath('data.status', 'pending');
     }

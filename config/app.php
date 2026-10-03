@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // From the environment, not fixed at UTC: "today" decides the Today view, Overdue and the
+    // past-date rule, and the browser picks dates in its own local day. With the server on UTC, a
+    // user at UTC+8 creating a task due today between midnight and 8 AM saw it filed as upcoming.
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------

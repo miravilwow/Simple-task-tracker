@@ -11,7 +11,9 @@ Route::post('/tasks', [TaskController::class, 'store']);
 // Before /tasks/{task} is irrelevant for POST, but it is grouped with the other writes so the
 // table's selection toolbar is findable beside the single-task actions it stands in for.
 Route::post('/tasks/bulk', [TaskController::class, 'bulk']);
-Route::get('/tasks/{task}', [TaskController::class, 'show']);
+// withTrashed, so View details works on the Deleted list. Only reading reaches a deleted task:
+// every write below keeps the default binding and still answers 404 for one.
+Route::get('/tasks/{task}', [TaskController::class, 'show'])->withTrashed();
 Route::patch('/tasks/{task}', [TaskController::class, 'update']);
 Route::patch('/tasks/{task}/start', [TaskController::class, 'start']);
 Route::patch('/tasks/{task}/review', [TaskController::class, 'review']);

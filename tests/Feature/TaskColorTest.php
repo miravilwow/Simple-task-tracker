@@ -15,14 +15,14 @@ class TaskColorTest extends TestCase
 
     public function test_a_task_starts_without_a_color(): void
     {
-        $this->postJson('/api/tasks', ['title' => 'Plain', 'priority' => 'low', 'due_date' => today()->toDateString()])
+        $this->postJson('/api/tasks', ['title' => 'Plain', 'priority' => 'low', 'due_date' => today()->toDateString(), 'due_time' => '09:00'])
             ->assertCreated()
             ->assertJsonPath('data.color', null);
     }
 
     public function test_color_is_not_set_on_create(): void
     {
-        $this->postJson('/api/tasks', ['title' => 'Plain', 'priority' => 'low', 'color' => 'blue', 'due_date' => today()->toDateString()])
+        $this->postJson('/api/tasks', ['title' => 'Plain', 'priority' => 'low', 'color' => 'blue', 'due_date' => today()->toDateString(), 'due_time' => '09:00'])
             ->assertCreated()
             ->assertJsonPath('data.color', null);
     }

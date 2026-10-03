@@ -36,6 +36,8 @@ class TaskResource extends JsonResource
             'subtasks' => SubtaskResource::collection($this->whenLoaded('subtasks')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            // Only a trashed task carries one; the Deleted view is what reads it.
+            'deleted_at' => $this->deleted_at?->toIso8601String(),
         ];
     }
 }

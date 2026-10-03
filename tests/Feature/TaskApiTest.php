@@ -82,6 +82,7 @@ class TaskApiTest extends TestCase
             'description' => 'Setup steps and AI disclosure',
             'priority' => 'high',
             'due_date' => today()->toDateString(),
+            'due_time' => '09:00',
         ]);
 
         $response->assertCreated()
@@ -189,6 +190,7 @@ class TaskApiTest extends TestCase
                 'high_priority_pending' => 2,
                 'overdue' => 0,
                 'due_today' => 0,
+                'deleted' => 0,
             ]]);
     }
 
@@ -203,6 +205,7 @@ class TaskApiTest extends TestCase
                 'high_priority_pending' => 0,
                 'overdue' => 0,
                 'due_today' => 0,
+                'deleted' => 0,
             ]]);
     }
 

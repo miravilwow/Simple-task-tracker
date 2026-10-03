@@ -17,6 +17,7 @@ class TaskProjectNameTest extends TestCase
             'title' => 'A task',
             'priority' => 'low',
             'due_date' => today()->toDateString(),
+            'due_time' => '09:00',
             ...$extra,
         ]);
     }

@@ -20,6 +20,7 @@ class PastDueDateTest extends TestCase
         return $this->postJson('/api/tasks', [
             'title' => 'Ship it',
             'priority' => 'medium',
+            'due_time' => '09:00',
             ...$overrides,
         ]);
     }

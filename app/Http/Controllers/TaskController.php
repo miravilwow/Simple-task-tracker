@@ -42,7 +42,18 @@ class TaskController extends Controller
             // Not beside status: "give me completed tasks, but hide completed tasks" can only ever
             // answer nothing, and an empty list is a worse reply than an error.
             'completed' => ['nullable', 'boolean', 'prohibits:status'],
+            // The Deleted view: every other filter answers "what is left to do", which a removed
+            // task no longer is, so it never combines with them.
+            'trashed' => ['nullable', 'boolean', 'prohibits:status,due,from,to,priority,sort,project,search,completed'],
         ]);
+
+        if ($request->boolean('trashed')) {
+            // Newest-deleted first, not TaskSorter: priority and age answer "what to work on next",
+            // which is not what a trash can is for.
+            $tasks = Task::onlyTrashed()->with('category')->orderByDesc('deleted_at')->get();
+
+            return response()->json(['data' => TaskResource::collection($tasks)->resolve($request)]);
+        }
 
         $tasks = Task::query()
             // Without this the list would run one category query per row.
@@ -131,7 +142,12 @@ class TaskController extends Controller
         }
 
         // SUM() returns NULL on an empty table and drivers may return numeric strings, so normalise to int.
-        return response()->json(['data' => array_map('intval', (array) $query->first())]);
+        $data = array_map('intval', (array) $query->first());
+        // A separate query, not a CASE in the one above: the global SoftDeletes scope already
+        // excludes trashed rows from it, so a trashed count needs the scope lifted instead.
+        $data['deleted'] = Task::onlyTrashed()->count();
+
+        return response()->json(['data' => $data]);
     }
 
     public function store(StoreTaskRequest $request): JsonResponse

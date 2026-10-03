@@ -32,9 +32,11 @@ class TaskDueTimeTest extends TestCase
             ->assertJsonPath('data.due_time', '10:30');
     }
 
-    public function test_a_time_is_optional(): void
+    public function test_a_time_is_required_on_create(): void
     {
-        $this->create()->assertCreated()->assertJsonPath('data.due_time', null);
+        $this->create()
+            ->assertStatus(400)
+            ->assertJsonValidationErrors('due_time');
     }
 
     public function test_rejects_a_time_that_is_not_hours_and_minutes(): void

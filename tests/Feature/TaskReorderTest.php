@@ -56,7 +56,7 @@ class TaskReorderTest extends TestCase
     {
         $this->column('First', 'Second');
 
-        $this->postJson('/api/tasks', ['title' => 'Third', 'priority' => 'low', 'due_date' => today()->toDateString()])->assertCreated();
+        $this->postJson('/api/tasks', ['title' => 'Third', 'priority' => 'low', 'due_date' => today()->toDateString(), 'due_time' => '09:00'])->assertCreated();
 
         $this->assertSame(['First', 'Second', 'Third'], $this->manualOrder('pending'));
     }
