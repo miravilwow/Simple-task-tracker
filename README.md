@@ -1,14 +1,40 @@
 # Simple Task Tracker
 
-<!-- Replace OWNER/REPO with your GitHub path once the repository is pushed. The workflow it
-     points at is .github/workflows/ci.yml, which already runs style, tests and the build. -->
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/miravilwow/Simple-task-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/miravilwow/Simple-task-tracker/actions/workflows/ci.yml)
 
 A task tracker built on Laravel 12 and MySQL: a sortable task list, a drag-and-drop board, a
 calendar, all driven by a JSON API. Projects are labels typed onto tasks.
 
 The sorting rule that the brief specifies lives in `src/TaskSorter.php` as plain PHP with no
 framework behind it, and the application really uses it — `GET /api/tasks` is ordered by it.
+
+## Run with Docker (quickest)
+
+Needs only [Docker Desktop](https://www.docker.com/products/docker-desktop/). No PHP, Composer,
+Node or MySQL on the machine.
+
+```bash
+git clone <repository-url> simple-task-tracker
+cd simple-task-tracker
+docker compose up --build
+```
+
+Open **http://localhost:8000** once the log says `Server running on [http://0.0.0.0:8000]`. The
+first start takes a few minutes: it builds the assets, installs the PHP packages, creates the
+database and loads demo tasks. Later starts skip the demo data and keep whatever was changed.
+
+| Task | Command |
+|---|---|
+| Run the test suite | `docker compose exec app php artisan test` |
+| Stop | `Ctrl+C`, or `docker compose down` |
+| Start over with a fresh database | `docker compose down -v` then `docker compose up` |
+| Connect to MySQL from the host | `127.0.0.1:3307`, user `tracker`, password `secret`, database `task_tracker` |
+
+Port 8000 or 3307 already taken? Pick others when starting, e.g.
+`APP_PORT=8080 DB_HOST_PORT=3308 docker compose up --build` (PowerShell:
+`$env:APP_PORT=8080; docker compose up --build`), then open that port instead.
+
+The manual setup below is the same app without Docker.
 
 ## Requirements
 
@@ -49,6 +75,10 @@ DB_PASSWORD=
 
 `utf8mb4` is not optional: a task's title or description can contain an emoji, and MySQL's older `utf8`
 holds three bytes per character, which truncates a four-byte emoji.
+
+Set `APP_TIMEZONE` in `.env` to your own timezone (it ships as `Asia/Manila`). The browser picks dates
+in its local day while the server decides what "today" is for the Today view, Overdue and the
+no-past-dates rule; if the two disagree, a task due today lands in Upcoming for part of the day.
 
 Then build the schema and the front end:
 
@@ -94,7 +124,7 @@ An error is always shaped the same way:
 | GET | `/api/tasks` | 200 | 400 invalid filter |
 | GET | `/api/tasks/stats` | 200 + counts | none |
 | POST | `/api/tasks` | 201 + created task | 400 validation failure |
-| GET | `/api/tasks/{id}` | 200 + task with its sub-tasks | 404 not found |
+| GET | `/api/tasks/{id}` | 200 + task with its sub-tasks (a deleted one too) | 404 not found |
 | PATCH | `/api/tasks/{id}` | 200 + updated task | 400 validation failure, 404 not found |
 | PATCH | `/api/tasks/{id}/start` | 200 + updated task | 404 not found |
 | PATCH | `/api/tasks/{id}/review` | 200 + updated task | 404 not found |
@@ -162,7 +192,7 @@ day to is one the calendar, Today, Upcoming and Overdue all have nothing to say 
 overdue the ordinary way, by the day arriving and passing. `PATCH /api/tasks/{id}/schedule` still accepts
 `null`, because clearing a date is how a task is dragged back to the calendar's "No due date" tray.
 
-`due_time` is `HH:MM` or `null`, and optional: plenty of work is due on a day without being due at an hour.
+`due_time` is `HH:MM`. It is required when creating a task (a missing one is a 400), and can be cleared to `null` afterwards through `PATCH /api/tasks/{id}`.
 It is its own column rather than `due_date` becoming a datetime, because **the day is what decides
 everything else** — Overdue, Today, Upcoming, the stats and the calendar all compare days, and a task due
 at 10:30 is not late at 3 PM on the same day. Clearing the date clears the time with it, since a time with
@@ -307,21 +337,16 @@ app/Enums/                  every closed set of values: priority, status, sort, 
 app/Http/Requests/          validation, one class per shape of input
 app/Http/Resources/         the JSON shape, kept separate from the database columns
 resources/js/               vanilla JS, one file per job, no framework
-docs/ROLES.md               which senior role owns what, and the standards each works to
-docs/UI_UX_RULES.md         the interface rules and the checklist run before any UI change
-docs/SPRINT.md              the plan that closed the architecture review
 ```
 
 ## Credits
 
-Three designs come from [shadcn/ui](https://ui.shadcn.com) (MIT): the sidebar's structure and
+Four designs come from [shadcn/ui](https://ui.shadcn.com) (MIT): the sidebar's structure and
 behaviour follow its Sidebar, the toasts follow its [Sonner](https://sonner.emilkowal.ski) wrapper,
-and the task list follows its Data Table — the checkbox column, the toolbar that appears for a
-selection, and the sortable headers. All three are rebuilt for Blade and vanilla JS rather than
-installed, since each ships as a React component; the Data Table is React over TanStack Table, which
-is a state machine for a table that renders its own rows, so none of it would have had anything to
-do here. Its column-visibility and faceted-filter parts were deliberately left out, because the filter
-bar already narrows the table and two controls for one setting is how they come to disagree.
+the Delete and Complete confirmations follow its Alert Dialog, and the task list follows its Data
+Table's sortable headers. All four are rebuilt for Blade and vanilla JS rather than installed, since
+each ships as a React component. The Data Table's row selection, column visibility and faceted
+filters were left out: a row's own actions and the filter bar already cover them.
 
 Every icon is Heroicons or hand-drawn to the same grid.
 
@@ -336,8 +361,7 @@ Every icon is Heroicons or hand-drawn to the same grid.
 **What was AI-generated.** Most of the code in this repository was written by Claude during a
 conversation in which I described what I wanted, reviewed what came back, and asked for changes.
 That covers the Laravel controllers, form requests, resources, models, migrations and enums; the
-vanilla JavaScript in `resources/js/`; the Blade views and the Tailwind CSS; the test suite; and the
-documents in `docs/`.
+vanilla JavaScript in `resources/js/`; the Blade views and the Tailwind CSS; and the test suite.
 
 **What I directed.** Every feature in the application exists because I asked for it, and several
 exist in the shape they do because I disagreed with the first suggestion and said so. Examples: I
@@ -352,7 +376,7 @@ the backend as a senior architect. That review found a crash when duplicating a 
 name was held by a deleted project, a due-date index that was never used because the column was
 wrapped in a function, a request counter kept in the database at the cost of nine extra queries per
 call, and documentation describing a feature that had been removed. Each was then fixed, measured and
-covered by a test. `docs/SPRINT.md` is the plan those fixes were worked through.
+covered by a test.
 
 **What I verified by hand.** I ran the application in a browser throughout and reported the problems
 I found there — a task that could not be opened from the board, a board whose columns read in the
