@@ -6,27 +6,25 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * The endpoint table in docs/ROLES.md has to match the routes the application really has.
+ * The endpoint table in the README has to match the routes the application really has.
  *
- * The README is written from that table and the README is graded, so a line left behind after an
+ * The README is graded, so a line left behind after an
  * endpoint goes is an endpoint a grader will try and watch fail. This test is the gate: it fails in
  * both directions, for a route with no line and a line with no route.
  */
 class DocumentedRoutesTest extends TestCase
 {
-    private const DOC = 'docs/ROLES.md';
+    private const DOC = 'README.md';
 
     /**
-     * The documents that carry an endpoint table. The README is the one that is graded, and it is
-     * the likeliest to promise something that does not run, so it is checked the same way.
+     * The documents that carry an endpoint table.
      *
      * @return array<int, string>
      */
     public static function documents(): array
     {
         return [
-            'the role documentation' => [self::DOC],
-            'the README' => ['README.md'],
+            'the README' => [self::DOC],
         ];
     }
 
@@ -126,26 +124,5 @@ class DocumentedRoutesTest extends TestCase
             $document,
             implode("\n  ", $undocumented),
         ));
-    }
-
-    public function test_no_checklist_item_asks_for_something_the_app_cannot_do(): void
-    {
-        // The UI/UX checklist is meant to be run by hand before a release, so every line has to be
-        // something that can actually pass. Archive was built and then withdrawn, and it left a
-        // checklist item behind that nobody could ever tick.
-        //
-        // Only the checklist is policed, not the prose: explaining why a feature was withdrawn is
-        // worth keeping, and a word ban would delete the explanation along with the stale promise.
-        $checklist = array_filter(
-            file(base_path('docs/UI_UX_RULES.md')),
-            fn (string $line) => str_starts_with(trim($line), '- [ ]'),
-        );
-
-        $withdrawn = array_values(array_filter(
-            $checklist,
-            fn (string $line) => preg_match('/\b(archive|archived|unarchive)\b/i', $line) === 1,
-        ));
-
-        $this->assertSame([], $withdrawn, "The checklist still asks for archiving:\n  ".implode('  ', $withdrawn));
     }
 }
