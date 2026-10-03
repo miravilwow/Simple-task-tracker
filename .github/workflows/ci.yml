@@ -34,10 +34,11 @@ jobs:
       - name: Check code style (PSR-12)
         run: vendor/bin/pint --test
 
-      - name: Run tests
-        run: php artisan test
-
+      # The page tests render Blade through @vite, which needs the built manifest.
       - name: Build frontend
         run: |
           npm ci
           npm run build
+
+      - name: Run tests
+        run: php artisan test
